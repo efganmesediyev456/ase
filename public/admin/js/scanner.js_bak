@@ -1,0 +1,395 @@
+$(document).ready(function () {
+    _packageCreate = $("#create_package").data('url');
+
+    $(document).on("keypress", function (e) {
+        if (e.shiftKey && (e.which == 13)) {
+            if ($("#new_package").length > 0) {
+                $("#new_package").modal("show");
+                $("#new_package input[name='tracking_code']").focus();
+            } else {
+                if (window.location != _packageCreate) {
+                    $("#loading").show();
+                    window.location = _packageCreate;
+                }
+            }
+
+        }
+    });
+
+    $("input[name='shipping_amount']").on("keyup", function () {
+        if (parseFloat($(this).val()) >= 900) {
+            $("#alert_price").show();
+        } else {
+            $("#alert_price").hide();
+        }
+    });
+
+    $(".change_volume").on("keyup", function () {
+        var delivery_index = parseInt($("#delivery_index").data('value'));
+        var width = parseFloat($("input[name='width']").val());
+        var height = parseFloat($("input[name='height']").val());
+        var length = parseFloat($("input[name='length']").val());
+
+        var weight = parseFloat($("input[name='weight']").val());
+        var volumeWeight = width * height * length / delivery_index;
+        volumeWeight = isNaN(volumeWeight) ? 0 : parseFloat(volumeWeight).toFixed(2);
+        weight = isNaN(weight) ? 0 : parseFloat(weight);
+
+        $("input[name='volume_weight']").val(volumeWeight);
+
+        $(".active_weight").removeClass('active_weight');
+        if (Math.round(weight * 100) < Math.round(volumeWeight * 100)) {
+            $(".volume_id").addClass("active_weight");
+        } else {
+            $(".weight_id").addClass("active_weight");
+        }
+
+        if (Math.round(volumeWeight * 100) >= 900 || Math.round(weight * 100) >= 900) {
+            $("#alert_weight").show();
+        } else {
+            $("#alert_weight").hide();
+        }
+    });
+
+    $("#add_type").on("click", function () {
+        var clone = $("#main_type_item").clone();
+        clone.removeAttr("id");
+        clone.addClass("extra_type");
+        clone.find(".select2-container").remove();
+        clone.find("select").select2();
+
+        //clone.find("select[name='type_id']").removeAttr("data-validation");
+        //clone.find("select[name='type_id']").attr("name", "type[]");
+
+        //clone.find("input[name='number_items']").removeAttr("data-validation");
+        //clone.find("input[name='number_items']").attr("name", "items[]");
+        clone.find("input").val("");
+        $("#type_section").append(clone);
+    });
+    $(document).on('click', '.btn_minus', function () {
+        $(this).parents(".type_item").remove();
+    });
+	if (typeof goods !== 'undefined' && goods.length > 0) {
+	    let good=goods[0];
+	    $("#main_type_item").find('select[name=ru_types\\[\\]]').val(good[0]).select2();
+	    $("#main_type_item").find('input[name=ru_shipping_amounts\\[\\]]').val(good[1]);
+	    $("#main_type_item").find('input[name=ru_weights\\[\\]]').val(good[2]);
+	    $("#main_type_item").find('input[name=ru_items\\[\\]]').val(good[3]);
+	    for (let gi = 1; gi < goods.length; gi++) {
+	        good=goods[gi];
+                var clone = $("#main_type_item").clone();
+                clone.removeAttr("id");
+                clone.addClass("extra_type");
+                clone.find(".select2-container").remove();
+	        clone.find('select[name=ru_types\\[\\]]').val(good[0]).select2();
+	        clone.find('input[name=ru_shipping_amounts\\[\\]]').val(good[1]);
+	        clone.find('input[name=ru_weights\\[\\]]').val(good[2]);
+	        clone.find('input[name=ru_items\\[\\]]').val(good[3]);
+                $("#type_section").append(clone);
+	    }
+	}
+
+    _addPackage = $("#form_add_package");
+    _addPackage.on("submit", function (e) {
+        e.preventDefault();
+        $("#loading").show();
+        var seri = _addPackage.serialize();
+        var _route = _addPackage.attr('action');
+        $.post(_route, seri, function (data) {
+            _addPackage.find("input[type=text], textarea").val("");
+            var  web_site = "";
+            if (data.web_site) {
+                web_site = data.web_site;
+            }
+            _addPackage.find("input[name=website_name]").val(web_site);
+            $(".select2-selection__rendered").text("-");
+            _addPackage.find(".extra_type").remove();
+            $(".hidden_for_user").show();
+            $("#new_package").modal("hide");
+            if (data.cwb) {
+                loadBarcodeData(data.cwb, null);
+            } else {
+                swal({
+                    "timer": 3000,
+                    "title": data.error,
+                    "showConfirmButton": false,
+                    "type": "error"
+                });
+            }
+
+            $("#loading").hide();
+        });
+    });
+
+
+    $(document).keypress(function (e) {
+        if ($("#modal").hasClass('in') && (e.keycode == 13 || e.which == 13)) {
+            $("#modal").modal("hide");
+        }
+    });
+
+
+    $("select[name='limit']").on('change', function () {
+        $(this).parents('form').submit();
+    });
+
+
+    $(document).on('click', '.delete-package', function () {
+        _packageItem = $(this);
+        _id = $("#scanned").data('id');
+        _packageId = $(this).data('item');
+        var _url = $("#delete_url").data('delete-url') + "/" + _id + "/" + _packageId;
+
+        $.post(_url, function (data) {
+            if (data.error) {
+                swal({
+                    "timer": 3000,
+                    "title": data.error,
+                    "showConfirmButton": false,
+                    "type": "error"
+                });
+            } else {
+
+                _packageItem.parents('tr').remove();
+                if ($(".scanned_package").length == 0) {
+                    $("#empty_package").show();
+                }
+
+                var el = parseInt($('#waiting_packages').text());
+                $('.waiting_packages').text(el + 1);
+            }
+
+        });
+
+    });
+
+    $("#manual_add_package").on("submit", function (e) {
+        e.preventDefault();
+        var barcode = $("#manual_add").val();
+
+        if (barcode != "") {
+            loadBarcodeData(barcode, null);
+        }
+    });
+
+		var w_val = $("select[name='warehouse_id']").children(":selected").attr("value");
+		if ( w_val == 12) {
+	             $("#package_type").hide();
+	        //     $("#package_shipping").hide();
+	             $("#package_goods").show();
+		}
+		else {
+	      //       $("#package_shipping").show();
+	             $("#package_type").show();
+	             $("#package_goods").hide();
+		}
+
+	$("select[name='warehouse_id']").on("change", function() {
+		var w_val = $(this).children(":selected").attr("value");
+		if ( w_val == 12) {
+	       //      $("#package_shipping").hide();
+	             $("#package_type").hide();
+	             $("#package_goods").show();
+		}
+		else {
+	        //     $("#package_shipping").show();
+	             $("#package_type").show();
+	             $("#package_goods").hide();
+		}
+	});
+
+});
+$(document).scannerDetection({
+    timeBeforeScanTest: 200,
+    endChar: [13],
+    avgTimeByChar: 40,
+    onComplete: function (barcode, qty) {
+        if (barcode) {
+            loadBarcodeData(barcode, qty)
+        }
+    }
+});
+
+
+function loadBarcodeData(barcode, qty) {
+
+    $('#modal').modal('hide');
+
+    var _url = $("#scan_url").data('scan-url') + "/" + barcode;
+    var autoPrint = $("#auto_print").data('enabled');
+    var autoPrintPackage = $("#auto_print_package").data('enabled');
+    var autoPrintParcel = $("#auto_print_parcel").data('enabled');
+    var autoPrintPackageInvoice = $("#auto_print_package_invoice").data('enabled');
+    var autoPrintParcelInvoice = $("#auto_print_parcel_invoice").data('enabled');
+    fakeInvoice = $("#fake_invoice").data('enabled');
+    var showInvoice = $("#show_invoice").data('enabled');
+    var showLabel = $("#show_label").data('enabled');
+    var scannerTab = $("#scanned");
+    var bagId=0;
+    if (scannerTab.length > 0) {
+        _id = scannerTab.data('id');
+	bagId=_id;
+        _url = _url + "/?scan=" + _id;
+    }
+
+    var paidForm=$("#paid_form");
+    if(paidForm.length>0)
+    {
+        var paidFormInput=$("#paid_form_input");
+        var paidFormButton=$("#paid_form_button");
+	paidFormInput[0].value=barcode;
+	paidForm.submit();
+	return;
+    }
+
+    $.getJSON(_url, function (data) {
+        //console.log(data);
+        if (data.error) {
+            swal({
+                "timer": 3000,
+                "title": data.error,
+                "showConfirmButton": false,
+                "type": "error"
+            });
+
+            // If not parcels page redirect to package create
+
+        } else if (data.redirect) {
+            window.location = data.redirect;
+        } else if (data.add_package) {
+            if ($("#new_package").length > 0) {
+
+                $("#new_package input[name='tracking_code']").val(barcode);
+                $("#new_package input[name='weight']").val("");
+                $("#alert_weight").hide();
+                $("#alert_price").hide();
+                var selectUser = $("select[name='user_id']");
+
+                if ($("#user_id select2-container").length == 0) {
+                    selectUser.removeAttr("disabled");
+                    selectUser.attr("data-validation", "required");
+                    selectUser.select2({
+                        minimumInputLength: 3,
+                        ajax: {
+                            url: selectUser.data("url"),
+                            dataType: 'json',
+                        },
+                    });
+                }
+                $(".select2-selection__rendered").text("-");
+
+                if (data.user && data.user == 'yes') {
+                    $("#user_id").hide();
+                    $(".hidden_for_user").hide();
+                    selectUser.attr("disabled", "disabled");
+                    selectUser.attr("data-validation", "null");
+                    $("#user_id .select2-container").remove();
+                } else {
+                    $("#user_id").show();
+                    $(".hidden_for_user").show();
+                }
+                $("#new_package").modal("show");
+            }
+        } else if (data.success) {
+            swal({
+                "timer": 3000,
+                "title": data.success,
+                "showConfirmButton": false,
+                "type": "success"
+            });
+        } else {
+            if ($("#scanned").length > 0 && data.html) {
+                if ($("#package_" + data.id).length == 0) {
+                    $("#empty_package").hide();
+                    scannerTab.append(data.html);
+                    $("#manual_add").val("");
+                    var el = parseInt($('#waiting_packages').text());
+                    if (el > 0) {
+                        $('.waiting_packages').text(el - 1);
+                    }
+
+                    $("#alert_weight").hide();
+                    $("#alert_price").hide();
+                    var selectUser = $("select[name='user_id']");
+
+                    if ($("#user_id select2-container").length == 0) {
+                        selectUser.removeAttr("disabled");
+                        selectUser.attr("data-validation", "required");
+                        selectUser.select2({
+                            minimumInputLength: 3,
+                            ajax: {
+                                url: selectUser.data("url"),
+                                dataType: 'json',
+                            },
+                        });
+                    }
+                    $(".select2-selection__rendered").text("-");
+                }
+
+            }
+
+            if (data.is_ready && data.label) {
+                //if (autoPrint == 'yes') {
+                if (autoPrint && ((bagId>1 && autoPrintParcel == 'yes') || (bagId<=1 && autoPrintPackage == 'yes'))) {
+                    var printerForLabel = Cookies.get('label_printer'); // will come from setting
+
+                    var cpj = new JSPM.ClientPrintJob();
+                    cpj.clientPrinter = new JSPM.InstalledPrinter(printerForLabel);
+                    var copies = 1;
+                    /* if (fakeInvoice == 'yes') {
+                         copies = 2;
+                     }*/
+                    var labelPDF = new JSPM.PrintFilePDF(data.label, JSPM.FileSourceType.URL, 'MyLabelFile.pdf', copies);
+                    cpj.files.push(labelPDF);
+
+                    if (fakeInvoice == 'yes') {
+                        var labelPDF2 = new JSPM.PrintFilePDF(data.label, JSPM.FileSourceType.URL, 'MyLabelFile2.pdf', 1);
+                        cpj.files.push(labelPDF2);
+                    }
+
+                    //console.log("Label");
+                    cpj.sendToClient();
+                } else {
+                    if (showLabel == 'yes') {
+                        window.open(data.label);
+                    }
+
+                }
+
+            }
+            if (data.is_ready && data.invoice) {
+                //if (autoPrint == 'yes') {
+                if (autoPrint && ((bagId>1 && autoPrintParcelInvoice == 'yes') || (bagId<=1 && autoPrintPackageInvoice == 'yes'))) {
+                    var ext = (data.invoice.split('.').pop()).toLowerCase();
+                    var printerForLabel = Cookies.get('invoice_printer'); // will come from setting
+                    var cpj2 = new JSPM.ClientPrintJob();
+                    cpj2.clientPrinter = new JSPM.InstalledPrinter(printerForLabel);
+
+                    if (ext == 'pdf') {
+                        var invoiceFile = new JSPM.PrintFilePDF(data.invoice, JSPM.FileSourceType.URL, 'MyInvoice.pdf', 1);
+
+                    } else {
+                        var invoiceFile = new JSPM.PrintFile(data.invoice, JSPM.FileSourceType.URL, 'MyInvoice.' + ext, 1);
+
+                    }
+                    cpj2.files.push(invoiceFile);
+                    cpj2.sendToClient();
+                } else {
+                    if (showInvoice == 'yes') {
+                        window.open(data.invoice);
+                    }
+                }
+            }
+
+
+            if (data.package) {
+                $("#modal .modal-dialog").html(data.package);
+                $('#modal').modal('show');
+            }
+
+        }
+
+    });
+}
+
+

@@ -1,0 +1,294 @@
+@php use App\Models\Precinct\PrecinctOrder; @endphp
+@extends(config('saysay.crud.layout'))
+
+@section('title', 'Azeriexpress - Konteyner')
+
+@section('content')
+    @if(Session::has('success'))
+        <audio id="successPlayer" autoplay>
+            <source src="{{ url('/sounds/success.mp3') }}" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
+    @endif
+    @if(Session::has('warning'))
+        <audio id="successPlayer" autoplay>
+            <source src="{{ url('/sounds/warning.mp3') }}" type="audio/wav">
+            Your browser does not support the audio element.
+        </audio>
+    @endif
+    @if ($errors->any())
+        <audio id="successPlayer" autoplay>
+            <source src="{{ url('/sounds/error.wav') }}" type="audio/wav">
+            Your browser does not support the audio element.
+        </audio>
+    @endif
+    <style>
+        td {
+            position: relative;
+        }
+
+        td:hover {
+            position: relative;
+        }
+
+        td:hover::before {
+            content: attr(title);
+            white-space: normal;
+            position: absolute;
+            z-index: 1;
+            background-color: #fff;
+            padding: 10px;
+            border: 1px solid #ccc;
+            top: 100%;
+            left: 0;
+        }
+    </style>
+
+    <div class="card box-primary">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <b>Konteyner adı:</b> {{$group->name ?? ''}}
+                    <br>
+                    <b>Konteyner Status: </b>{{ __('admin.precinct_warehouse_group_status_'.$group->status) }}
+                    <br>
+                    <a href="{{ route('precinct.containers.edit', $group->id) }}">
+                        Ümumi Bağlama sayı: {{$packagesCount ?? ''}}
+                    </a>
+                    <br>
+                    <a href="{{ route('precinct.containers.edit', $group->id) }}" class="text-success">
+                        Göndərilən Bağlama sayı: {{$sentPackagesCount ?? ''}}
+                    </a>
+                    <br>
+                    <a href="{{ route('precinct.containers.edit', $group->id) }}" class="text-warning">
+                        Göndərilməyən Bağlama sayı: {{$notSentPackagesCount ?? ''}}
+                    </a>
+                    <br>
+                    <a href="{{ route('precinct.containers.edit', $group->id) }}?status=2" class="text-danger">
+                        Problemli Bağlamalər: {{$packagesProblemCount}}
+                    </a>
+                </div>
+                <div class="col-md-6 text-right">
+                    <a href="?export=true" class="btn btn-primary mr-5">Export</a>
+                    <form method="post"
+                          action="{{ route('precinct.send-packages', $group->id) }}"
+                          class="form-prevent-multiple-submits"
+                          style="display: initial"
+                          id="Form">
+                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                        @permission('add-precinct_package_to_containers')
+                        @if($group->status == PrecinctOrder::STATUSES['WAITING'])
+                            <button class="btn btn-success"
+                                    data-url="{{ route('precinct.send-packages', $group->id) }}"
+                            >
+                                Göndər
+                            </button>
+                            <button class="btn btn-success"
+                                    data-url="{{ route('precinct.send-packages', $group->id) }}?temu=true"
+                            >
+                                Göndər Temu
+                            </button>
+                        @endif
+                        @endpermission
+                        @permission('accept-packages_to_precinct')
+                        @if($group->status == PrecinctOrder::STATUSES['SENT'])
+                            <button class="btn btn-success"
+                                    data-url="{{ route('precinct.accept-packages', $group->id) }}"
+                            >
+                                Qəbul et
+                            </button>
+                        @endif
+                        @endpermission
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @permission('accept-package_to_precinct')
+    <div class="card box-primary">
+        <div class="card-body">
+            <form action="{{ route('precinct.accept-package') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="container" value="{{ $group->id }}">
+                <div class="form-group">
+                    <label for="barcode">Barkod:</label>
+                    <input id="barcode" name="barcode" type="text" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-primary">Qəbul et</button>
+            </form>
+        </div>
+    </div>
+    @endpermission
+
+    @if($errors->any())
+        <div class="card box-primary">
+            <div class="card-header">
+                @foreach($errors->all() as $error)
+                    <span class="text-danger text-bold text-size-large"><b>{{ $error }}</b></span><br>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
+    @permission('add-precinct_package_to_containers')
+    <div class="card box-primary">
+        <div class="card-header">
+            <form method="post"
+                  action="{{ route('precinct.store', $group->id) }}"
+                  enctype="multipart/form-data"
+                  class="form-prevent-multiple-submits"
+            >
+                <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                <div class="form-group mb-3">
+                    <label for="">Barkod:</label>
+                    <input type="text" name="barcode" id="barcode"
+                           class="form-control"
+                           autocomplete="off"
+                           value="" autofocus>
+                </div>
+
+                <div class="form-group">
+                    <button class="btn btn-primary" name="button" type="submit" id="">Əlavə et</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endpermission
+
+    @if($packages->count() > 0)
+        <div class="card box-primary">
+            <div class="card-body table-responsive no-padding">
+                <form method="post" id="itemsForm" action="">
+                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                    <table class="table table-hover table-striped">
+                        <tr>
+                            <th>Sifariş kodu</th>
+                            <th>Status</th>
+                            <th>Əlavə edən</th>
+                            <th>Comment</th>
+                            <th>Əlavə edilmə tarixi</th>
+                            <th></th>
+                        </tr>
+                        @foreach($packages as $row)
+                            @php
+                                $_package = $row->type == 'package' ? $row->package : $row->track;
+                                $type = $row->type == 'package' ? 'packages' : 'tracks';
+                            @endphp
+                            <tr>
+                                <td>
+                                    @permission('add-precinct_package_to_containers')
+                                    <a href="{{route($type . '.index', ['q' => $_package->tracking ?? ''])}}"
+                                       target="_blank">
+                                        <b> {{ $_package->tracking ?? '-Tapılmadı!' }}</b>
+                                    </a>
+                                    @else
+                                        <b> {{ $_package->tracking ?? '-Tapılmadı!' }}</b>
+                                        @endpermission
+                                </td>
+                                <td>
+                                    @php
+                                        $class = "success";
+                                        if($row->status == 0){
+                                            $class = "danger";
+                                        }
+                                        if($row->status == 1){
+                                            $class = "primary";
+                                        }
+                                    @endphp
+                                    <span class="label label-{{ $class }}">{{ __('admin.azeriexpress_warehouse_package_status_'.$row->status) }}</span>
+                                </td>
+                                <td>{{ $row->creator->name??'' }}</td>
+
+                                <td title="{{ $row->comment }}">
+                                    <p class="text-warning-400">{{ str_limit($row->comment, 50) }}</p>
+                                </td>
+
+                                <td>{{ $row->created_at?$row->created_at->format('d M, Y H:i'):'' }}</td>
+                                <td>
+                                    <button formaction="{{ route('precinct.delete-package', $row->id) }}"
+                                            class="btn btn-danger"
+                                            type="submit"
+                                            formmethod="get"
+                                            onclick="confirmationDelete()">
+                                        <i class="icon-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </table>
+                </form>
+
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="text-center pull-left">
+                            {{$packages->links()}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    @endif
+
+@endsection
+
+@push('js')
+    <script>
+        function confirmFunction() {
+            if (confirm("Əminsiz?")) {
+                return true;
+            } else {
+                event.preventDefault();
+                return false;
+            }
+        }
+
+        $('.select-all').click(function () {
+            //console.log('sss');
+            $(this).parents('form').find('input:checkbox').prop('checked', $(this).is(':checked'));
+        });
+
+        $('input:checkbox:not(.select-all)').click(function () {
+            form = $(this).parents('form');
+
+            selectAll = true;
+            form.find('input:checkbox:not(.select-all)').each(function () {
+                if (!$(this).prop('checked')) {
+                    selectAll = false;
+                }
+            });
+
+            $(this).parents('form').find('input:checkbox.select-all').prop('checked', selectAll);
+        });
+
+
+        $(document).ready(function () {
+            let form = $('#Form');
+            form.on('click', 'button', function (e) {
+                e.preventDefault();
+                console.log('SSS');
+                let btn = $(this);
+                form.attr('action', btn.data('url'));
+                let check = confirm('Are you sure?');
+                if (check) {
+                    form.submit();
+                }
+            });
+        });
+
+        function confirmationDelete(url) {
+            var check = confirm('əminsiniz?');
+
+            if (check == true) {
+                $('#itemsForm').attr('action', url).submit();
+            } else {
+                event.preventDefault();
+                return false;
+            }
+        }
+    </script>
+@endpush
+
+

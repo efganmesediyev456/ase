@@ -1,0 +1,119 @@
+function onRuTypesChange(typeSelect)
+ {
+        let str=typeSelect.find('option:selected').text();
+        str=str.trim();
+        let hsCodeInp=typeSelect.parents(".type_item").find('input[name=ru_hscodes\\[\\]]');
+        let nameInp=typeSelect.parents(".type_item").find('input[name=ru_names\\[\\]]');
+        let hsCodeName=typeSelect.parents(".type_item").find('.hs_code_name');
+        if(str=='-')
+        {
+            hsCodeInp.val('');
+            nameInp.val('');
+            if (hsCodeInp.attr('readonly')) hsCodeInp.removeAttr('readonly');
+            if (nameInp.attr('readonly')) nameInp.removeAttr('readonly')
+            hsCodeName.show();
+        }
+        else
+        {
+            let myArr = str.split(' - ');
+            if (!hsCodeInp.attr('readonly')) hsCodeInp.attr('readonly', 'readonly');
+            if (!nameInp.attr('readonly'))nameInp.attr('readonly', 'readonly');
+            hsCodeInp.val(myArr[0]);
+            nameInp.val(myArr[1]);
+            hsCodeName.hide();
+        }
+}
+
+function pkgTypesAssign() {
+   $(".pkg_type_name").find("input").autocomplete({source: []});
+   $(".pkg_type_hs_code").find("input").autocomplete({source: []});
+
+   $(".pkg_type_name").find("input").autocomplete({
+     source: function( request, response ) {
+         $.ajax({
+                  url:"/w-packages/typenames",
+                  type: 'post',
+                  dataType: "json",
+                  data: {
+                           search: request.term,
+                           by: "name",
+			   id: ($(this.element).parent().prop("id"))
+                  },
+                  success: function( data ) {
+                            response( data );
+              }
+         });
+     },
+    select: function (event, ui) {
+	let arr=ui.item.id.split('-');
+	let num=arr[1];
+        $('#pkg_type_name-'+num).find("input").val(ui.item.name);
+        $('#pkg_type_hs_code-'+num).find("input").val(ui.item.hs_code);
+        $('#pkg_type_id-'+num).find("input").val(ui.item.value);
+        return false;
+     }
+  });
+
+   $(".pkg_type_hs_code").find("input").autocomplete({
+     source: function( request, response ) {
+         $.ajax({
+                  url:"/w-packages/typenames",
+                  type: 'post',
+                  dataType: "json",
+                  data: {
+                           search: request.term,
+                           by: "hs_code",
+			   id: ($(this.element).parent().prop("id"))
+                  },
+                  success: function( data ) {
+                            response( data );
+              }
+         });
+     },
+    select: function (event, ui) {
+	let arr=ui.item.id.split('-');
+	let num=arr[1];
+        $('#pkg_type_name-'+num).find("input").val(ui.item.name);
+        $('#pkg_type_hs_code-'+num).find("input").val(ui.item.hs_code);
+        $('#pkg_type_id-'+num).find("input").val(ui.item.value);
+        return false;
+     }
+  });
+}
+
+
+$(document).ready(function () {
+    if (typeof goods !== 'undefined' && goods.length > 0) {
+            let good=goods[0];
+            $("#main_type_item").find('select[name=ru_types\\[\\]]').val(good[0]).select2();
+            $("#main_type_item").find('input[name=ru_shipping_amounts\\[\\]]').val(good[1]);
+            $("#main_type_item").find('input[name=ru_weights\\[\\]]').val(good[2]);
+            $("#main_type_item").find('input[name=ru_items\\[\\]]').val(good[3]);
+            onRuTypesChange($("#main_type_item").find('select[name=ru_types\\[\\]]'));
+	    pkgTypeNum=1;
+            for (let gi = 1; gi < goods.length; gi++) {
+                good=goods[gi];
+                var clone = $("#main_type_item").clone();
+                clone.removeAttr("id");
+                clone.addClass("extra_type");
+                clone.find(".select2-container").remove();
+                clone.find('select[name=ru_types\\[\\]]').val(good[0]).select2();
+                clone.find('input[name=ru_shipping_amounts\\[\\]]').val(good[1]);
+                clone.find('input[name=ru_weights\\[\\]]').val(good[2]);
+                clone.find('input[name=ru_items\\[\\]]').val(good[3]);
+	        pkgTypeNum++;
+                clone.find(".pkg_type_name").attr('id','pkg_type_name-'+pkgTypeNum);
+                clone.find(".pkg_type_hs_code").attr('id','pkg_type_hs_code-'+pkgTypeNum);
+                clone.find(".pkg_type_id").attr('id','pkg_type_id-'+pkgTypeNum);
+                $("#type_section").append(clone);
+                onRuTypesChange(clone.find('select[name=ru_types\\[\\]]'));
+                clone.find('select[name=ru_types\\[\\]]').on('change', function () {
+                    onRuTypesChange($(this));
+                });
+
+            }
+    }
+
+    pkgTypesAssign();
+
+});

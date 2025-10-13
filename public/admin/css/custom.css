@@ -1,0 +1,244 @@
+.dropdown-item {
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-align: center;
+    align-items: center;
+    position: relative;
+    outline: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    margin-bottom: 0;
+    transition: background-color ease-in-out .15s,color ease-in-out .15s;
+    width: 100%;
+    clear: both;
+    font-weight: 400;
+    color: #333;
+    text-align: inherit;
+    white-space: nowrap;
+    background-color: transparent;
+    border-bottom: 1px dashed #ccc;
+    padding: 7px 17px;
+}
+.dropdown-item:last-child {
+    border: 0;
+}
+.dropdown-menu[x-placement^=bottom], .dropdown-menu[x-placement^=left], .dropdown-menu[x-placement^=right], .dropdown-menu[x-placement^=top] {
+    right: auto;
+    bottom: auto;
+}
+.dropdown-menu.show {
+    display: block;
+}
+.dropdown, .dropleft, .dropright, .dropup {
+    position: relative;
+}
+
+.dropdown-header i, .dropdown-header img, .dropdown-item i, .dropdown-item img {
+    margin-right: 1rem;
+}
+.card-group-control .card-title>a:before {
+    content: "";
+    font-family: icomoon;
+    position: absolute;
+    top: 50%;
+    margin-top: -.5rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    left: 0;
+}
+.card-group-control-left .card-title>a {
+    padding-left: 1.625rem;
+}
+
+.card-group-control .card-title>a {
+    display: inline-block;
+}
+.card-group-control .card-title>a.collapsed:before {
+    content: "";
+}
+.card {
+    margin-bottom: 1.25rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+
+.card {
+    position: relative;
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-direction: column;
+    flex-direction: column;
+    min-width: 0;
+    word-wrap: break-word;
+    background-color: #fff;
+    background-clip: border-box;
+    border: 1px solid rgba(0,0,0,.125);
+    border-radius: .1875rem;
+}
+
+.card-header:not([class*=bg-]):not([class*=alpha-]) {
+    background-color: transparent;
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+    border-bottom-width: 0;
+}
+
+.card-header:first-child {
+    border-radius: .125rem .125rem 0 0;
+}
+.card-header {
+    padding: .9375rem 1.25rem;
+    margin-bottom: 0;
+    background-color: rgba(0,0,0,.02);
+    border-bottom: 1px solid rgba(0,0,0,.125);
+}
+
+.card-header .card-title {
+    margin-bottom: 0;
+}
+
+.card-title {
+    position: relative;
+}
+.card-title {
+    margin-bottom: .9375rem;
+}
+
+.card-header:not([class*=bg-]):not([class*=alpha-])+*>.card-body:first-child, .card-header:not([class*=bg-]):not([class*=alpha-])+.card-body {
+    padding-top: 0;
+}
+
+.card-body {
+    -ms-flex: 1 1 auto;
+    flex: 1 1 auto;
+    padding: 1.25rem;
+}
+
+
+.closed .minus , .opened .plus , .sub-child {
+    display: none;
+}
+
+.tab_it {
+    cursor: pointer;
+}
+
+.tab_it2 {
+    cursor: pointer;
+}
+
+.table-responsive tr .dropdown-menu {
+    position: absolute;
+    top: -90px;
+}
+
+
+.table-responsive tr:first-child .dropdown-menu {
+    position: absolute;
+    top: 20px;
+}
+
+
+.bg .editable-click {
+    border-bottom: 1px dashed #fff;
+    color: #fff;
+}
+
+tbody > tr > td, tbody > tr > th, tfoot > tr > td, tfoot > tr > th, thead > tr > td, thead > tr > th {
+    white-space: nowrap !important;
+    border: 1px solid #263138 !important;
+    font-size: 14px;
+}
+.table>tbody>tr>td {
+    padding: 6px 8px !important;
+    font-size: 16px !important;
+}
+thead > tr > th {
+    padding: 8px 10px !important;
+    font-size: 17px !important;
+}
+/*.editable-click, .editable-click:hover, a.editable-click, a.editable-click:hover {
+    border-bottom: none !important;
+}*/
+td a {
+    color: #333 !important;
+}
+
+.select2-selection--multiple:not([class*=bg-]) .select2-search--inline:first-child .select2-search__field {
+    border-bottom: 1px solid #ccc;
+}
+
+.has-error .form-control {
+    border-color: transparent transparent #D84315 !important;
+}
+
+#search_form div[class^="col-lg"]{
+    margin-bottom: 20px;
+}
+.active_weight {
+    border: 1px solid #4c96f3;
+    padding: 10px;
+    border-radius: 5px;
+}
+#main_type_item .btn_minus {
+    display: none !important;
+}
+.type_item{
+    margin-bottom: 25px;
+}
+.chess-board {
+    border-spacing: 0;
+    border-collapse: collapse;
+    margin-top: 30px;
+}
+
+.chess-board th{
+    background: #fdffed;
+}
+.chess-board th , .chess-board td {
+    border: 1px solid #000 !important;
+    width: 5em;
+    height: 3.2em;
+    text-align: center;
+}
+.chess-board td {
+    cursor: pointer;
+}
+
+.pulse {
+    width: 63px;
+    height: 23px;
+    box-shadow: 0 0 0 rgba(0, 255, 125, 0.4);
+    animation: pulse 2s infinite;
+}
+.pulse:hover {
+    animation: none;
+}
+
+@-webkit-keyframes pulse {
+    0% {
+        -webkit-box-shadow: 0 0 0 0 rgba(0, 255, 125, 0.5);
+    }
+    70% {
+        -webkit-box-shadow: 0 0 0 10px rgba(0, 255, 125, 0.2);
+    }
+    100% {
+        -webkit-box-shadow: 0 0 0 0 rgba(0, 255, 125, 0);
+    }
+}
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 255, 125, 0.5);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(0, 255, 125, 0.05);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 255, 125, 0);
+    }
+}
+
+

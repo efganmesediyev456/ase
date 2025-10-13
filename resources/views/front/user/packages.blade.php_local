@@ -1,0 +1,258 @@
+@extends('front.layout')
+<script> 
+var wArr={{$warehousesArr}};
+</script>
+
+@section('content')
+    @include('front.sections.page-header')
+    @include('front.widgets.modal', ['modalId' => 'ajaxModal', 'noClick' => true])
+    <div class="my-packages">
+        <!-- content start -->
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="wrapper-content bg-white pinside30">
+                        <div class="st-tabs">
+                            <!-- Nav tabs -->
+                            <ul class="nav nav-tabs nav-justified" role="tablist">
+                                <li @if($id == 6) class="active" @endif>
+                                    <a href="{{ route('my-packages', ['id' => 6]) }}">
+                                        <i class="fa fa-pencil"></i>
+                                        {{ __('front.early_declaration') }}
+                                        <span class="badge">{{ $counts[6] or null }}</span>
+                                    </a>
+                                </li>
+                                <li @if($id == 0) class="active" @endif>
+                                    <a href="{{ route('my-packages') }}">
+                                        <i class="fa fa-globe"></i>
+                                        {{ __('front.in_store') }}
+                                        <span class="badge">{{ $counts[0] or null }}</span>
+                                    </a>
+                                </li>
+                                <li @if($id == 1) class="active" @endif>
+                                    <a href="{{ route('my-packages', ['id' => 1]) }}">
+                                        <i class="fa fa-plane"></i>
+                                        {{ __('front.was_sent') }}
+                                        <span class="badge">{{ $counts[1] or null }}</span>
+                                    </a>
+                                </li>
+                                <li @if($id == 2) class="active" @endif>
+                                    <a href="{{ route('my-packages', ['id' => 2]) }}">
+                                        <i class="fa fa-map-marker"></i>
+                                        {{ __('front.in_baku') }}
+                                        <span class="badge">{{ $counts[2] or null }}</span>
+                                    </a>
+                                </li>
+                                <li @if($id == 3) class="active" @endif>
+                                    <a href="{{ route('my-packages', ['id' => 3]) }}">
+                                        <i class="fa fa-clock-o"></i>
+                                        {{ __('front.done_packages') }}
+                                        <span class="badge">{{ $counts[3] or null }}</span>
+                                    </a>
+                                </li>
+                            </ul>
+                            <!-- Tab panes -->
+                            <div class="tab-content">
+                                <div role="tabpanel" class="tab-pane fade in active">
+                                    @if ( request()->has('success'))
+                                        <div class="alert alert-success"
+                                             role="alert">{{ __('front.was_paid') }}</div>
+                                    @endif
+                                    @if ( request()->has('error'))
+                                        <div class="alert alert-danger"
+                                             role="alert">{{ request()->get('error') }}</div>
+                                    @endif
+                                    @if (session('success'))
+                                        <div class="alert alert-success"
+                                             role="alert">{{ __('front.declaration_updated') }}</div>
+                                    @else
+                                        @if($packages->count() and 3 != $id)
+                                            <div class="alert alert-info"
+                                                 role="alert">{{ __('front.user_packages_info') }}</div>
+                                        @endif
+                                    @endif
+
+                                    @if(6 == $id)
+                                        <div class="text-center comapre-action mb30">
+                                            <a href="{{ route('declaration.create') }}"
+                                               id="declaration-button"
+                                               data-toggle="modal" data-target="#ajaxModal"
+                                               data-remote="false"
+                                               class="btn btn-primary btn-md">{{ __('front.early_declaration') }}</a>
+                                        </div>
+                                    @endif
+
+                                    @forelse($packages as $package)
+                                        <div class="compare-block mb30">
+                                            <div class="compare-title bg-primary pinside20">
+                                                <span class="date">{{ $package->created_at->format('d.m.y') }}</span>
+                                                <span class="flag"><img src="{{ $package->country_flag }}"></span>
+                                                <span class="tracking-code">{{ __('front.tracking_code') }}
+                                                    : <b>{{ $package->tracking_code }}</b></span>
+                                                <span class="tracking-code">AWB
+                                                    : <b>{{ $package->custom_id }}</b></span>
+                                                <span class="tracking-code"><i>{{ ($package->type_id && $package->type ?  ($package->type->name . ($package->other_type ? "(" . $package->other_type .")" : null))  : ($package->detailed_type ? str_limit($package->detailed_type, 98) : '-')) }}</i></span>
+
+                                                @if($package->warehouse && ! $package->warehouse->allow_make_fake_invoice)
+                                                    <span> <a href="http://parcelsapp.com/{{ app()->getLocale() }}/tracking/{{ $package->tracking_code }}"
+                                                              class="btn btn-primary btn-sm"
+                                                              data-id="{{ $package->tracking_code }}" target="_blank"
+                                                              style="padding: 10px 15px;">Bağlamam hardadır?</a></span>
+                                                @endif
+                                            </div>
+                                            <div class="compare-row outline pinside30">
+                                                <div class="row">
+                                                    <div class="col-md-4 col-sm-12 col-xs-12">
+                                                        <div style="display:inline;">
+                                                        <img class="web_logo" src="{{ $package->web_site_logo }}"
+                                                             alt="{{ $package->website_name }}">
+							@if ($package->seller_name)
+                                                             <h3 style="display:inline; margin-left:5px; vertical-align:middle">{{ $package->seller_name }}</h3>
+                                                        @endif
+                                                        </div>
+                                                        @if($package->shipping_amount)
+                                                            <div class="shipping_price"  style="display:inline;">{{ $package->shipping_org_price }}</div>
+                                                        @endif
+                                                    </div>
+                                                    <div class="col-md-2 col-sm-6 col-xs-12">
+                                                        <div class="text-center">
+                                                            <h3 class="rate">{{ $package->weight_goods ? $package->weight_goods : $package->weight }}</h3>
+                                                            <small>{{ __('front.calculator.weight') }}
+                                                                - {{ $package->weight_unit }}</small>
+                                                        </div>
+                                                    </div>
+                                                    {{-- <div class="col-md-2 col-sm-6 col-xs-12">
+                                                         <div class="text-center">
+                                                             <h3 class="fees">{{ $package->size }}</h3>
+                                                             <small>{{ __('front.wlh') }}
+                                                                 - {{ $package->size_unit }}</small>
+                                                         </div>
+                                                     </div>--}}
+                                                    <div class="col-md-2 col-sm-6 col-xs-12">
+                                                        <div class="text-center">
+                                                            <h3 class="compare-rate">{{ $package->number_items_goods or '-' }}</h3>
+                                                            <small>{{ __('front.number_items') }}</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-2 col-sm-6 col-xs-12">
+                                                        <div class="text-center">
+                                                            <h3 class="repayment">{{ $package->delivery_price ? $package->delivery_price_discount_with_label: '-' }}</h3>
+                                                            <small>{{ __('front.delivery_price') }} @if($package->discount_percent) ({{ $package->discount_percent_with_label }} {{ __('front.shop.discount') }})@endif</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3 col-sm-6 col-xs-12">
+                                                        @if($package->status == 4)
+                                                            <div class="text-center comapre-action">
+                                                            <button class="btn btn-warning btn-sm"
+                                                                    disabled>{{ trans('front.incustoms') }}</button>
+							    </div>
+                                                        @elseif($package->paid && $id == 2)
+                                                            <div class="text-center comapre-action">
+                                                            <button class="btn btn-success btn-sm"
+                                                                    disabled>{{ trans('front.paid') }}</button>
+							    </div>
+                                                        @elseif(($id == 6 || $id == 0) && ($package->warehouse && $package->warehouse->country && ($package->warehouse->country->allow_declaration ||  $package->warehouse->country->id == 2)))
+                                                            <div class="text-center comapre-action">
+                                                                <a href="{{ route('declaration.edit', $package->id) }}" 
+                                                                   data-toggle="modal" data-target="#ajaxModal"
+                                                                   data-remote="false"
+                                                                   class="btn @if($package->declaration) btn-primary @else btn-default @endif btn-sm">{{ $package->declaration ? __('front.edit') : __('front.declaration') }}</a>
+                                                                @if(! $package->paid && $id == 6)
+                                                                    <a href="{{ route('declaration.delete', $package->id) }}" 
+                                                                       class="btn btn-danger btn-sm show_loading">{{ trans('front.delete') }}</a>
+                                                                @endif
+                                                            </div>
+                                                        @endif
+							
+                                                        @if(!$package->paid && $id == 2 && $package->status != 4)
+ <div class="text-center comapre-action">
+ <input type="checkbox" class="checkbox" value="{{$package->delivery_manat_price_discount}}" id="pkg_pay_check-{{$package->id}}" name="pkg_pay_check" onclick="setPkgPayIds()">
+ <span class="checkboxtext"> {{ trans('front.select_to_pay') }} </span>
+ </div>
+                                                        @endif
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @empty
+                                        @if (! session('success'))
+                                            <div class="alert alert-warning"
+                                                 role="alert">{{ __('front.no_any_package') }}</div>
+                                        @endif
+                                    @endforelse
+				    @if ($id == 2)
+				    <form class="form-inline">
+ <div class="text-center comapre-action">
+     <input type=text class="form-control form-control-sm" name=pr_code id=pr_code  onchange="promoChange()" onkeydown="promoChange()" onpaste="promoChange()" oninput="promoChange()" style="display:inline; text-align: center; padding: 5px 5px 5px 5px; font-size:120%;" maxlength="6" size="10" placeholder="{{ trans('front.promo_code') }}">
+     <input type=hidden name=pr_percent id=pr_percent value="0">
+     <input type=hidden name=pr_amount id=pr_amount value="0">
+     <input type=hidden name=pr_weight id=pr_weight value="0">
+     <input type=hidden name=pr_id id=pr_id value="">
+     <input type=hidden name=pr_user_percent id=pr_user_percent value="0">
+     <input type=hidden name=pr_user_amount id=pr_user_amount value="0">
+     <input type=hidden name=pr_user_weight id=pr_user_weight value="0">
+     <input type=hidden name=pr_user_id id=pr_user_id value="">
+     <h3 style="display:inline; padding: 10px 5px 10px 5px" id="pr_discount_lbl"></h3>
+     <h3 style="display:inline; color:blue; padding: 10px 5px 10px 5px" id="pr_user_discount_lbl"></h3>
+     <input type=hidden name=pr_user id=pr_user value="0">
+     <h3 style="display:inline; color:red; padding: 10px 5px 10px 5px" id="pr_error_lbl"></h3>
+     <button class="btn btn-info btn-sm" disabled  style="display:inline;  margin: 5px 5px 15px 5px; margin-right:20px;" type='button' id="pr_btn" onclick="getPromo()" disabled>{{ trans('front.promo_get') }}</button>
+
+     <input type=text class="form-control form-control-sm" name=ul_code id=ul_code onchange="ulduzumChange()" onkeydown="ulduzumChange()" onpaste="ulduzumChange()" oninput="ulduzumChange()" style="display:inline; text-align: center; padding: 5px 5px 5px 5px; font-size:120%;" maxlength="4" size="9" placeholder="{{ trans('front.ulduzum_code') }}">
+     <input type=hidden name=ul_discount id=ul_discount value="0">
+     <input type=hidden name=ul_id id=ul_id value="">
+     <h3 style="display:inline; padding: 10px 5px 10px 5px" id="ul_discount_lbl"></h3>
+     <button class="btn btn-danger btn-sm"  style="display:inline;  margin: 5px 5px 15px 5px" type='button' id="ul_btn" onclick="getUlduzum()" disabled>{{ trans('front.ulduzum_get') }}</button>
+ </div>
+</form>
+ <div class="text-center comapre-action">
+                                                        {!! (new App\Models\Payments\PortManat())->generateForm2() !!}
+ </div>
+                                    @endif
+                                    <div class="mt-20 text-center">
+                                        {!! $packages->render() !!}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+@endsection
+
+@push('js')
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-form-validator/2.3.26/jquery.form-validator.min.js"
+            defer></script>
+    <script>
+        @if(request()->has('declaration') && request()->get('declaration') == 'on')
+        $(document).ready(function () {
+            $("#declaration-button").click();
+        });
+        @endif
+
+ $("#portmanat_payment_form").on("submit", function(){
+/*	 let amount=parseFloat(this.amount.value);
+	 if(amount>0) {
+	     this.method='POST';
+	     this.action=$(this).data('action-portmanat');
+	     console.log($(this).data('action-portmanat'));
+	 } else {
+	     this.method='GET';
+	     this.action=$(this).data('action-local');
+	     console.log($(this).data('action-local'));
+ }*/
+	     this.method='GET';
+	     this.action=$(this).data('action-local');
+	     console.log($(this).data('action-local'));
+        return true;
+ });
+
+    </script>
+@endpush

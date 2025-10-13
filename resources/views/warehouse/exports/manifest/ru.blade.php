@@ -1,0 +1,90 @@
+<html>
+<body>
+<table>
+    <?php $span=7; ?>
+    <tbody>
+    <tr>
+        <td colspan="{{ $span +1 }}"><b>INVOICE (express cargo)</b></td>
+    </tr>
+    <tr>
+        <td></td>
+        <td colspan="{{ $span }}"></td>
+    </tr>
+
+    <tr>
+        <td></td>
+        <td><b>Shipper:</b></td>
+        <td colspan="{{ $span - 6 }}">{{ $warehouse->company_name }}</td>
+        <td><b>Receiver:</b></td>
+        <td colspan="2">ASE AFRIKA HIZLI CARGO AS</td>
+    </tr>
+    <tr>
+        <td></td>
+        <td></td>
+        <td colspan="{{ $span - 6 }}">N. Basmannaya 14, Build 4</td>
+        <td></td>
+        <td colspan="2">25 UZEIR HAJIBEYOV STR</td>
+    </tr>
+    <tr>
+        <td></td>
+        <td></td>
+        <td colspan="{{ $span - 6 }}">Moscow, Russia</td>
+        <td></td>
+        <td colspan="2">BAKU, AZERBAIJAN</td>
+    </tr>
+    <tr>
+        <td></td>
+        <td></td>
+        <td colspan="{{ $span - 6 }}">Tel: +7(495)620-49-49</td>
+        <td></td>
+        <td colspan="2">TEL: 994124973775</td>
+    </tr>
+
+    <tr>
+        <td colspan="{{ $span }}"></td>
+    </tr>
+    <tr>
+        <td colspan="{{ $span }}"></td>
+    </tr>
+    <tr>
+        <td colspan="{{ $span }}"></td>
+    </tr>
+
+
+    <tr>
+        <th style="border: 1px solid black"><b>№</b></th>
+        <th style="border: 1px solid black"><b>HAWB</b></th>
+        <th style="border: 1px solid black"><b>Description</b></th>
+        <th style="border: 1px solid black"><b>QTY</b></th>
+        <th style="border: 1px solid black"><b>Weight (kg)</b></th>
+        <th style="border: 1px solid black"><b>Value, RUB</b></th>
+    </tr>
+
+
+    @foreach($packages as $key => $package)
+	<?php $rowspan=count($package->goods); ?>
+        <tr>
+            <td style="border: 1px solid black; vertical-align:center;" rowspan="{{ $rowspan>0 ? $rowspan : 1}}">{{ $key + 1 }}</td>
+            <td style="border: 1px solid black; vertical-align:center;" rowspan="{{ $rowspan>0 ? $rowspan : 1}}">{{ $package->custom_id }}</td>
+            <td style="border: 1px solid black">{{ $rowspan>0 ? $package->goods[0]->ru_type->name_ru : '' }}</td>
+            <td style="border: 1px solid black">{{ $rowspan>0 ? $package->goods[0]->number_items : '' }}</td>
+            <td style="border: 1px solid black">{{ $rowspan>0 ? specialPrice( $package->goods[0]->weight) : '' }}</td>
+            <td style="border: 1px solid black">{{ $rowspan>0 ? specialPrice( $package->goods[0]->shipping_amount ) : '' }}</td>
+        </tr>
+        @foreach($package->goods as $gkey => $good)
+	    @if($gkey>0)
+        <tr>
+            <td style="border: 1px solid black">{{ $good->ru_type->name_ru }} </td>
+            <td style="border: 1px solid black">{{ $good->number_items }}</td>
+            <td style="border: 1px solid black">{{ specialPrice( $good->weight ) }}</td>
+            <td style="border: 1px solid black">{{ specialPrice( $good->shipping_amount ) }}</td>
+        </tr>
+	    @endif
+        @endforeach
+    @endforeach
+
+    </tbody>
+</table>
+
+</body>
+</html>

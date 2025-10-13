@@ -1,0 +1,1 @@
+<a target="_blank" href="{{ $entry }}" >{{ str_limit(strip_tags($entry), 30) }}</a>

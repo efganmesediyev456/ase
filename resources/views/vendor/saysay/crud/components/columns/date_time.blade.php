@@ -1,0 +1,1 @@
+{{ $entry->format('d M, Y h:i') }}

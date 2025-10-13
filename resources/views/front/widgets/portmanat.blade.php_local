@@ -1,0 +1,4 @@
+<form action="" method="GET" id="portmanat_payment_form" data-action-local="{{ trim($action_local_adr) }}" data-action-portmanat="{{ trim($action_portmanat_adr) }}">
+    {!! implode("\n", $args_array) !!}
+    <h3 class="repayment" style="display: none; padding: 10px 5px 10px 10px" id="pkg_amount_cap">{{ trans('front.pay_amount') }}</h3> <h3 class="repayment" style="display: none; padding: 10px 15px 10px 5px" id="pkg_amount_lbl"></h3> <button class="btn btn-primary btn-sm" type='submit' id="pkg_pay_btn" disabled>{{ trans('front.pay') }}</button>
+</form>

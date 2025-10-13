@@ -1,0 +1,128 @@
+      <script>
+	 var categories = JSON.parse({!!json_encode(  App\Models\CustomsType::select('id','parent_id','name_'.\App::getLocale())->orderBy('name_'.\App::getLocale())->where('parent_id','!=',0)->get()->toJSon()  ) !!});
+      </script>
+<script src="{{ asset('front/js/ctypes.js') }}?v=1.0.0.2"></script>
+<div class="declaration">
+
+    <div class="row">
+        <div class="col-lg-12">
+
+            {{ Form::open(['class' => 'loan-eligibility-form', 'files' => true]) }}
+
+            @include('front.form.group', ['type' => 'select', 'key' => 'country_id', 'label' => trans('front.warehouse'), 'selects' => $countries, 'options' => ['class' => 'form-control','data-validation' => "required"]])
+            <div id="show_dec_message">
+                <div class="alert alert-danger">{{ trans('front.no_need_declaration') }}</div>
+            </div>
+            <div id="dec_content">
+                @include('front.form.group', ['key' => 'tracking_code', 'label' => trans('front.tracking_code'), 'options' => ['class' => 'form-control', 'data-validation' => 'required length custom', 'data-validation-length' => "min9", 'data-validation-regexp' => "^[A-Za-z0-9-]+$"]])
+                @include('front.form.group', ['key' => 'website_name', 'label' => trans('front.website_name'), 'options' => ['class' => 'form-control', 'placeholder' => trans('front.website_example'), 'data-validation' => 'required']])
+                <div class="row">
+                    <div class="col-sm-4 col-lg-3">
+                        @include('front.form.group', ['type' => 'select', 'key' => 'shipping_amount_cur', 'label' => trans('front.shipping_amount_cur'), 'selects' => config('ase.attributes.currencies'), 'options' => ['class' => 'form-control']])
+                    </div>
+                </div>
+		<div id="package_goods">
+		<div id="package_good"  class="col-sm-12 col-lg-12" style="border:1px ridge">
+
+                  <div id="other_type" style="margin-top: -30px; margin-botom:10px; display: none">
+                    @include('front.form.group', ['key' => 'other_type', 'label' => '&nbsp;', 'options' => ['class' => 'form-control', 'placeholder' => trans('front.other_placeholder'), 'data-validation' => "alphanumeric", 'data-validation-allowing' => " "]])
+                  </div>
+                  <div id="pkg_goods" style="margin-top: -30px; margin-botom:10px; display: none">
+                    @include('front.form.group', ['key' => 'pkg_goods', 'label' => '&nbsp;','value'=>'1', 'options' => ['class' => 'form-control', 'placeholder' => trans('front.other_placeholder'), 'data-validation' => "alphanumeric", 'data-validation-allowing' => " "]])
+                  </div>
+
+		</div>
+		</div>
+		<div id="package_goods_ru">
+		<div id="package_good_ru"  class="col-sm-12 col-lg-12" style="border:1px ridge">
+                  <div class="row">
+                    <div class="col-sm-12 col-lg-12 ru_types_item pkg_type_name" id="pkg_type_name-1">
+                      @include('front.form.group', ['type' => 'select', 'key' => 'ru_types[]', 'label' => trans('front.product_category'), 'selects' => $ru_categories, 'options' => ['id' => 'type_id', 'data-validation' => "required", 'class' => 'form-control select']])
+                    </div>
+                    <div class="col-sm-12 col-lg-12 ase_types_item" id="ase_types_item">
+                      @include('front.form.group', ['type' => 'select3',  'key_parent' => 'customs_type_parents[]', 'key' => 'customs_types[]', 'label' => trans('front.product_category'), 'selects' => $customs_categories, 'options' => ['id' => 'customs_type_id', 'data-validation' => "required", 'class' => 'form-control select3']])
+                    </div>
+		  </div>
+
+                  <div class="row">
+                    <div class="col-sm-12 col-lg-4">
+                        @include('front.form.group', ['key' => 'ru_shipping_amounts[]', 'label' => trans('front.shipping_amount'), 'options' => ['class' => 'form-control', 'data-validation' => 'required number', 'data-validation-allowing' => "float"]])
+                    </div>
+                    <div class="col-sm-12 col-lg-4">
+                        @include('front.form.group', ['key' => 'ru_items[]', 'label' => trans('front.number_items'), 'options' => ['class' => 'form-control', 'data-validation' => 'required number', 'data-validation-allowing' => "range[1;10000]"]])
+                    </div>
+		    <div id="add_box" class="col-sm-12 col-lg-2">
+		      <span id="add_type" class="btn btn-primary btn-icon" style="margin-top: 28px; padding: 17px; "><i class="fa fa-plus"></i></span>
+		    </div>
+		    <div id="rem_box" class="col-sm-12 col-lg-2"  style="display:none;">
+		      <span id="rem_type" class="btn btn-danger btn-icon btn_minus" style="margin-top: 28px; padding: 17px; "><i class="fa fa-minus"></i></span>
+		    </div>
+                  </div>
+		</div>
+		</div>
+
+                @include('front.form.group', ['type' => 'textarea', 'key' => 'user_comment', 'label' => trans('front.note'), 'options' => ['rows' => 3, 'class' => 'form-control']])
+
+                <div class="form-group" id="invoice_item" style="margin-top: 10px">
+                    <label>{{ __('front.invoice') }}</label>
+                    <input name="invoice" type="file" class="form-control-file" data-validation="required mime size"
+                           data-validation-allowing="jpg, png, pdf, doc, docx, jpeg"
+                           data-validation-max-size="3M"/>
+                    @if ($errors->has('invoice'))
+                        <span class="help-block">
+                            <strong>{!! $errors->first('invoice') !!}</strong>
+                        </span>
+                    @endif
+                </div>
+
+                <div class="form-group mt30">
+                    <div class="col-sm-12 text-center">
+                        <button type="submit" class="btn btn-default">{{ __('front.save') }}</button>
+                    </div>
+                </div>
+            </div>
+
+            {{ Form::close() }}
+        </div>
+    </div>
+    {!! Form::close() !!}
+</div>
+
+@if(in_array(app()->getLocale(), ['az', 'ru']))
+    <script src="{{ asset('langs/form/' . app()->getLocale() . '.js') }}?v=1.0.0"></script>
+@endif
+<script src="{{ asset('front/js/types.js') }}?v=1.0.0.8"></script>
+<script>
+    $(document).ready(function () {
+        $('select[name="country_id"]').on("change", function () {
+            var val = $("option:selected", this).val();
+            var noDec = [<?= implode(",", $noDecCountries)?>];
+
+            if (noDec.includes(parseInt(val))) {
+                $("#show_dec_message").show();
+                $("#dec_content").hide();
+            } else {
+                $("#show_dec_message").hide();
+                $("#dec_content").show();
+            }
+        });
+
+        $('.select').select2();
+
+        var other_type = $("#other_type");
+        $("#type_id").on('change', function () {
+            var id = $(this).val();
+            if (id == <?= env('OTHER_ID', 10) ?>) {
+                other_type.show();
+            } else {
+                other_type.hide();
+            }
+        })
+    });
+    $.validate({
+        modules: 'file'
+        @if(in_array(app()->getLocale(), ['az', 'ru']))
+        , language: myLanguage
+        @endif
+    });
+</script>
