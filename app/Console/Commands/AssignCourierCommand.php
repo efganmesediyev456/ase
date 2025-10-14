@@ -27,6 +27,8 @@ class AssignCourierCommand extends Command
             ->limit(300)
             ->get();
 
+//        dd($tracks);
+
         foreach ($tracks as $track) {
             if($track->debt_price > 0 && $track->paid_debt == 0){
                 $this->error("Track ID {$track->id} borcu ödənməyib.");

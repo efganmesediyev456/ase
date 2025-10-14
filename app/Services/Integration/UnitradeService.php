@@ -410,6 +410,7 @@ class UnitradeService extends BaseService
     }
 
 
+
     public function updateStatus(Track $track, $status = null,$date = null)
     {
 
@@ -451,75 +452,44 @@ class UnitradeService extends BaseService
             ]];
 
 
-//            $curl = curl_init();
-//            curl_setopt_array($curl, array(
-//                CURLOPT_URL => $uri,
-//                CURLOPT_RETURNTRANSFER => true,
-//                CURLOPT_ENCODING => '',
-//                CURLOPT_MAXREDIRS => 10,
-//                CURLOPT_TIMEOUT => 0,
-//                CURLOPT_FOLLOWLOCATION => true,
-//                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-//                CURLOPT_CUSTOMREQUEST => 'POST',
-//                CURLOPT_POSTFIELDS => json_encode($body),
-//                CURLOPT_HTTPHEADER => array(
-//                    'Accept: application/json',
-//                    'Content-Type: application/json',
-//                    'Authorization: Bearer ' . $this->token
-//                ),
-//            ));
+            $curl = curl_init();
+            curl_setopt_array($curl, array(
+                CURLOPT_URL => $uri,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'POST',
+                CURLOPT_POSTFIELDS => json_encode($body),
+                CURLOPT_HTTPHEADER => array(
+                    'Accept: application/json',
+                    'Content-Type: application/json',
+                    'Authorization: Bearer ' . $this->token
+                ),
+            ));
 
+            
 
-            $maxAttempts = 5;
-            $attempt = 0;
-            $success = false;
-
-            while ($attempt < $maxAttempts && !$success) {
-                $attempt++;
-
-                $curl = curl_init();
-                curl_setopt_array($curl, [
-                    CURLOPT_URL => $uri,
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_ENCODING => '',
-                    CURLOPT_MAXREDIRS => 10,
-                    CURLOPT_TIMEOUT => 0,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                    CURLOPT_CUSTOMREQUEST => 'POST',
-                    CURLOPT_POSTFIELDS => json_encode($body),
-                    CURLOPT_HTTPHEADER => $headers,
-                ]);
-
-                $response = curl_exec($curl);
-                $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-                curl_close($curl);
-
-                $decoded = json_decode($response, true) ?? [];
-
-                if (array_key_exists('errors', $decoded)
-                    and array_key_exists(0, $decoded['errors'])
-                    and $decoded['errors'][0]['code'] != 'unknown'
-                ) {
-                    $success = true;
-                    break;
-                }else{
-                    $success = false;
-                }
-
-                if ($attempt < $maxAttempts) {
-                    sleep(180);
-                }
-
-            }
-
-//            $response = curl_exec($curl);
+            $response = curl_exec($curl);
 
 //            $responseCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 //            dd([
 //                'code' => $responseCode,
 //                'response' => $response
 //            ]);
+
+
+
+
+
+
+
+
+
+
+
             $trackStatus->update([
                 'note' => $response
             ]);
@@ -528,7 +498,7 @@ class UnitradeService extends BaseService
 //                'updated_at' => now(),
 //                'response' => $responseCode . ':' . $response,
 //            ]);
-            // curl_close($curl);
+            curl_close($curl);
 
             return true;
         } catch (Exception $e) {
@@ -537,7 +507,6 @@ class UnitradeService extends BaseService
             return false;
         }
     }
-
     public function updateStatusNew(Track $track, $status = null)
     {
         if ($status == 16) {

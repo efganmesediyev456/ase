@@ -2,6 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\SendTrackStatusJob;
+use App\Jobs\SendTrackStatusJobLast;
+use App\Jobs\SendTrackStatusJobLast2;
 use App\Models\CD;
 use App\Models\Customer;
 use App\Models\Extra\Whatsapp;
@@ -44,27 +47,16 @@ class Test extends Command
      *
      * @return void
      */
+
+    public $token;
     public function __construct()
     {
         parent::__construct();
-        $this->token = $this->getAccessToken();
+         $this->token = $this->getAccessToken();
         $this->client = curl_init();
     }
 
-    /**
-     * Execute the console command.
-     *
-     * @return mixed
-     */
-    const CLIENT_AUTH_URL = 'https://oauth.unitrade.space';
-    const CLIENT_URL = 'https://api.unitrade.space';
-    const CLIENT_ID = 'ase_az';
-    const CLIENT_SECRET = 'kqqCGmGMNyPWNPSdSyDmrkHnpCJonFFP';
-    private $token;
-    private $client;
-
-
-    private function getAccessToken()
+     private function getAccessToken()
     {
         $token = DB::table('tokens')->where('name', 'api_access_token')->first();
 
@@ -73,13 +65,13 @@ class Test extends Command
         }
 
         $client = new Client();
-        $response = $client->post(self::CLIENT_AUTH_URL . '/connect/token', [
+        $response = $client->post(UnitradeService::CLIENT_AUTH_URL . '/connect/token', [
             'headers' => [
                 'Content-Type' => 'application/x-www-form-urlencoded'
             ],
             'form_params' => [
-                'client_id' => self::CLIENT_ID,
-                'client_secret' => self::CLIENT_SECRET,
+                'client_id' => UnitradeService::CLIENT_ID,
+                'client_secret' => UnitradeService::CLIENT_SECRET,
                 'grant_type' => 'client_credentials',
             ]
         ]);
@@ -99,102 +91,115 @@ class Test extends Command
         return $data['access_token'];
     }
 
+    /**
+     * Execute the console command.
+     *
+     * @return mixed
+     */
+
+
     public function handle()
     {
 
 
-        $uri = "https://api.unitrade.space/v3/tracking/status";
-
-        $body = [[
-            "trackNumber" => '850568601271000',
-            "place" => '67e81fdf-d6c5-428c-9b30-6d73a0b7b786',
-            "eventCode" => 10001,
-            "moment" => now('UTC')->format('Y-m-d\TH:i:s.v\Z'),
-        ]];
-
-        $headers = [
-            'Accept: application/json',
-            'Content-Type: application/json',
-            'Authorization: ' . 'Bearer ' . $this->token,
-        ];
-
-        $maxAttempts = 5;
-        $attempt = 0;
-        $success = false;
-
-        while ($attempt < $maxAttempts && !$success) {
-            $attempt++;
-
-            $curl = curl_init();
-            curl_setopt_array($curl, [
-                CURLOPT_URL => $uri,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => '',
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 0,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_POSTFIELDS => json_encode($body),
-                CURLOPT_HTTPHEADER => $headers,
-            ]);
-
-            $response = curl_exec($curl);
-            $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-            curl_close($curl);
-
-            $decoded = json_decode($response, true) ?? [];
-
-            if (array_key_exists('errors', $decoded)
-                and array_key_exists(0, $decoded['errors'])
-                and $decoded['errors'][0]['code'] != 'unknown'
-            ) {
-                $success = true;
-                break;
-            }else{
-                $success = false;
-            }
-
-            if ($attempt < $maxAttempts) {
-                echo "Attempt {$attempt} failed (HTTP $httpCode). Retrying in 5 minutes...\n";
-                sleep(4);
-            }
-
-        }
-
-        $decoded = json_decode($response, true);
+        $track = Track::find(506560);
+        SendTrackStatusJobLast::dispatch($track,'850568601271000', '67e81fdf-d6c5-428c-9b30-6d73a0b7b786', 10001)->onQueue('tracks');
 
 
-        dd($response);
+        exit;
+
+       $uri = "https://api.unitrade.space/v3/tracking/status";
+
+       $body = [[
+           "trackNumber" => '850568601271000',
+           "place" => '67e81fdf-d6c5-428c-9b30-6d73a0b7b786',
+           "eventCode" => 10001,
+           "moment" => now('UTC')->format('Y-m-d\TH:i:s.v\Z'),
+       ]];
+
+       $headers = [
+           'Accept: application/json',
+           'Content-Type: application/json',
+           'Authorization: ' . 'Bearer ' . $this->token,
+       ];
+
+       $maxAttempts = 5;
+       $attempt = 0;
+       $success = false;
+
+       while ($attempt < $maxAttempts && !$success) {
+           $attempt++;
+
+           $curl = curl_init();
+           curl_setopt_array($curl, [
+               CURLOPT_URL => $uri,
+               CURLOPT_RETURNTRANSFER => true,
+               CURLOPT_ENCODING => '',
+               CURLOPT_MAXREDIRS => 10,
+               CURLOPT_TIMEOUT => 0,
+               CURLOPT_FOLLOWLOCATION => true,
+               CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+               CURLOPT_CUSTOMREQUEST => 'POST',
+               CURLOPT_POSTFIELDS => json_encode($body),
+               CURLOPT_HTTPHEADER => $headers,
+           ]);
+
+           $response = curl_exec($curl);
+           $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+           curl_close($curl);
+
+           $decoded = json_decode($response, true) ?? [];
+
+           if (array_key_exists('errors', $decoded)
+               and array_key_exists(0, $decoded['errors'])
+               and $decoded['errors'][0]['code'] != 'unknown'
+           ) {
+               $success = true;
+               break;
+           }else{
+               $success = false;
+           }
+
+           if ($attempt < $maxAttempts) {
+               echo "Attempt {$attempt} failed (HTTP $httpCode). Retrying in 5 minutes...\n";
+               sleep(4);
+           }
+
+       }
+
+       $decoded = json_decode($response, true);
 
 
-//        $body = [
-//            'trackingNumber' => 'EQ0000200166AZ',
-//        ];
-//        $curl = curl_init();
-//
-//        curl_setopt_array($curl, array(
-//            CURLOPT_URL => 'https://ecarrier-fbusiness.customs.gov.az:7545/api/v2/carriers/carriersposts/0/100',
-//            CURLOPT_RETURNTRANSFER => true,
-//            CURLOPT_ENCODING => '',
-//            CURLOPT_MAXREDIRS => 10,
-//            CURLOPT_TIMEOUT => 0,
-//            CURLOPT_FOLLOWLOCATION => true,
-//            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-//            CURLOPT_CUSTOMREQUEST => 'POST',
-//            CURLOPT_POSTFIELDS => json_encode($body),
-//            CURLOPT_HTTPHEADER => array(
-//                'accept: application/json',
-//                'lang: az',
-//                'ApiKey: 8CD0F430D478F8E1DFC8E1311B20031E3A669607',
-//                'Content-Type: application/json'
-//            ),
-//        ));
-//
-//        $response = curl_exec($curl);
-//        curl_close($curl);
-//        $response = json_decode($response,true);
-//        dd($response);
+       dd($response);
+
+
+        // $body = [
+        //     'trackingNumber' => 'EQ0000200166AZ',
+        // ];
+        // $curl = curl_init();
+
+        // curl_setopt_array($curl, array(
+        //     CURLOPT_URL => 'https://ecarrier-fbusiness.customs.gov.az:7545/api/v2/carriers/carriersposts/0/100',
+        //     CURLOPT_RETURNTRANSFER => true,
+        //     CURLOPT_ENCODING => '',
+        //     CURLOPT_MAXREDIRS => 10,
+        //     CURLOPT_TIMEOUT => 0,
+        //     CURLOPT_FOLLOWLOCATION => true,
+        //     CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        //     CURLOPT_CUSTOMREQUEST => 'POST',
+        //     CURLOPT_POSTFIELDS => json_encode($body),
+        //     CURLOPT_HTTPHEADER => array(
+        //         'accept: application/json',
+        //         'lang: az',
+        //         'ApiKey: 8CD0F430D478F8E1DFC8E1311B20031E3A669607',
+        //         'Content-Type: application/json'
+        //     ),
+        // ));
+
+        // $response = curl_exec($curl);
+        // curl_close($curl);
+        // $response = json_decode($response,true);
+        // dd($response);
 
 //        $package = Track::where('id', 522591)->first();
 //        if ($package->type == 'package') {

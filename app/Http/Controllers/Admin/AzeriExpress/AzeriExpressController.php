@@ -33,6 +33,7 @@ class AzeriExpressController extends Controller
         $packagesQuery = AzeriExpressPackage::query()
             ->with(['container']);
 
+
         $packagesQuery->when($request->filled('code'), function ($query) use ($request) {
             return $query->where('barcode', 'like', '%' . $request->get('code') . '%');
         });
