@@ -3,6 +3,7 @@
 namespace App\Models\YeniPoct;
 
 use App\Models\Admin;
+use App\Models\DeliveryPoint;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -65,6 +66,9 @@ class YenipoctOrder extends Model
 
     public function yeniPoctOffice()
     {
-        return $this->belongsTo(YenipoctOffice::class);
+        return $this->belongsTo(YenipoctOffice::class, 'yenipoct_office_id', 'id');
     }
+
+
+
 }

@@ -43,7 +43,7 @@
                             @forelse($items as $row => $item)
 
                             <?php 
-                            // print_r(get_class($item));
+                            
                             ?>
                                 <?php $ctId = $item->id; ?>
                                 <?php $ctName = $item->name; ?>

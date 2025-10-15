@@ -19,7 +19,13 @@
                 @endif
             </td>
             <td>{{ __('admin.yenipoct_warehouse_package_status_' . $package->status) }}</td>
-            <td>{{ $package->container?->yeniPoctOffice?->name }}</td>
+            <td>
+                @if($package->container)
+                        @if($package->container->yeniPoctOffice)
+                            {{ $package->container->yeniPoctOffice->name }}
+                        @endif
+                @endif
+            </td>
         </tr>
     @endforeach
     </tbody>

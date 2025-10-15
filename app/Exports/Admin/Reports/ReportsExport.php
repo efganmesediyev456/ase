@@ -16,6 +16,7 @@ class ReportsExport implements FromView, ShouldAutoSize
     {
         $this->items = $items;
         $this->view = $view;
+
     }
 
     public function view(): View

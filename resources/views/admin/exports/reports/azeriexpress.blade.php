@@ -19,7 +19,11 @@
                     @endif
                 </td>
                 <td>{{ __('admin.azeriexpress_warehouse_package_status_' . $package->status) }}</td>
-                <td>{{ $package->container?->azeriExpressOffice?->name }}</td>
+                @if($package->container)
+                    @if($package->container->azeriExpressOffice)
+                        <td>{{ $package->container->azeriExpressOffice->name }}</td>
+                    @endif
+                @endif
             </tr>
         @endforeach
     </tbody>

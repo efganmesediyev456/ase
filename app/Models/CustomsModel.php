@@ -268,23 +268,32 @@ class CustomsModel extends Model
 
     function get_goods_noid_taobao($items)
     {
+//        $this->goods_idList = [];
+//        $this->name_of_goodsList = [];
+//        $symbol = [',', ';', '.', ':', '!', '?', '"', "'", '(', ')', '[', ']', '{', '}', '<', '>', '/', '\\', '|', '@', '#', '$', '%', '^', '&', '*', '+', '=', '~', '`'];
+//
+//        foreach ($items as $item) {
+//            if ($item->ru_type_id && $item->ru_type && $item->ru_type->name_ru) {
+//                $this->goods_idList[] = 0;
+//                $cleanedName = str_replace($symbol, '', $item->ru_type->name_ru);
+//                $cleanedName = substr($cleanedName, 0, 490);
+//                $this->name_of_goodsList[] = $cleanedName;
+//            }
+//        }
+//
+//        if (count($this->goods_idList) <= 0) {
+//            $this->goods_idList[] = 0;
+//            $this->name_of_goodsList[] = '-';
+//        }
+
         $this->goods_idList = [];
         $this->name_of_goodsList = [];
         $symbol = [',', ';', '.', ':', '!', '?', '"', "'", '(', ')', '[', ']', '{', '}', '<', '>', '/', '\\', '|', '@', '#', '$', '%', '^', '&', '*', '+', '=', '~', '`'];
 
-        foreach ($items as $item) {
-            if ($item->ru_type_id && $item->ru_type && $item->ru_type->name_ru) {
-                $this->goods_idList[] = 0;
-                $cleanedName = str_replace($symbol, '', $item->ru_type->name_ru);
-                $cleanedName = substr($cleanedName, 0, 490);
-                $this->name_of_goodsList[] = $cleanedName;
-            }
-        }
-
-        if (count($this->goods_idList) <= 0) {
-            $this->goods_idList[] = 0;
-            $this->name_of_goodsList[] = '-';
-        }
+        $this->goods_idList[] = 0;
+        $cleanedName = str_replace($symbol, '', $items->detailed_type);
+        $cleanedName = substr($cleanedName, 0, 490);
+        $this->name_of_goodsList[] = $cleanedName;
     }
 
     function get_goods_noid_ozon($items)

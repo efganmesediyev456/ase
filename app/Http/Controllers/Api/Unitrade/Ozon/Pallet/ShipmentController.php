@@ -10,6 +10,7 @@ use App\Models\Track;
 use App\Services\Integration\UnitradeService;
 use Illuminate\Http\Request;
 use Validator;
+use Illuminate\Support\Facades\DB;
 
 class ShipmentController
 {
@@ -19,6 +20,11 @@ class ShipmentController
             'pallet_barcodes' => 'required|array',
             'shipment.awb_number' => 'required',
         ];
+
+        DB::table('pallet_shipment_logs')->insert([
+            'action' => 'finish',
+            'request_data' => json_encode($request->all()),
+        ]);
 
         $validator = \Validator::make($request->all(), $this->rules);
         if ($validator->fails()) {

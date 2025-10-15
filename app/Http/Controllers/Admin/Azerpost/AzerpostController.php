@@ -207,7 +207,6 @@ class AzerpostController extends Controller
         }
 
         if ($request->has('export')) {
-            exit;
 //            $packages = $packages->orderBy('status')->get();
             $date = $packages->first()->container->created_at;
             $b = $date ? (clone $date->startOfDay()) : now()->startOfDay();

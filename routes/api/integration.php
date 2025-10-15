@@ -39,3 +39,4 @@ Route::group(['prefix' => "gli/", 'middleware' => ['authorize_integration', 'log
     Route::post('dwp.serpens.mawb_info_push/{id}', 'Gfs\Pallet\ShipmentController@store');
     Route::post('dwp.serpens.waybill_instruction/{id}', 'Gfs\Pallet\ShipmentController@store');
 });
+

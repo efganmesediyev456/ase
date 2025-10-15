@@ -8,6 +8,7 @@ use App\Models\Track;
 use App\Services\Integration\UnitradeService;
 use Illuminate\Http\Request;
 use Validator;
+use Illuminate\Support\Facades\DB;
 
 class PalletController
 {
@@ -19,6 +20,11 @@ class PalletController
             'total_count' => 'required',
             'sorting_letter' => 'nullable|string',
             'parcel_ids' => 'required|array',
+        ]);
+
+        DB::table('pallet_shipment_logs')->insert([
+            'action' => 'create',
+            'request_data' => json_encode($request->all()),
         ]);
 
         $from_country = isset($request->from_country) ? $request->from_country : 'RU';
@@ -73,6 +79,11 @@ class PalletController
             'total_count' => 'required',
             'sorting_letter' => 'nullable|string',
             'parcel_ids' => 'required|array',
+        ]);
+
+        DB::table('pallet_shipment_logs')->insert([
+            'action' => 'update',
+            'request_data' => json_encode($request->all()),
         ]);
 
         $from_country = isset($request->from_country) ? $request->from_country : 'RU';
