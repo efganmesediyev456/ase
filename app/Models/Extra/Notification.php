@@ -474,6 +474,8 @@ class Notification extends Model
 //        }
 
         return env('SAAS_ACTIVE') ? Whatsapp::sendByTrack($track, $data, $template, $template1) : false;
+//        return env('SAAS_ACTIVE') ? Email::sendByCustomer($track->customer_id, $data, $template, $template1) : false;
+
     }
 
     /**

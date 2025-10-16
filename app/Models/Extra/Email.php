@@ -2,9 +2,11 @@
 
 namespace App\Models\Extra;
 
+use App\Models\Customer;
 use App\Models\EmailTemplate;
 use App\Models\NotificationQueue;
 use App\Models\User;
+use App\Models\WhatsappTemplate;
 use Eloquent;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -50,6 +52,36 @@ class Email extends Model
             $template = EmailTemplate::where('key', $templateKey)->where('active', 1)->first();
 
         $user = User::find($userId);
+
+        if (!$template || !$user || !$user->email) {
+            return false;
+        }
+
+        $content = clarifyContent($template->content, $data);
+
+        $id = (isset($data['id']) ? $data['id'] : uniqid());
+
+        NotificationQueue::create([
+            'to' => $user->email,
+            'subject' => $template->name . " #" . $id,
+            'content' => $content,
+            'type' => 'EMAIL',
+            'send_for_id' => $id,
+        ]);
+
+        return true;
+    }
+
+
+    public static function sendByCustomer($userId, $data, $templateKey, $templateKey1 = null)
+    {
+        $template = null;
+        if ($templateKey1)
+            $template = WhatsappTemplate::where('key', $templateKey1)->where('active', 1)->first();
+        if (!$template)
+            $template = WhatsappTemplate::where('key', $templateKey)->where('active', 1)->first();
+
+        $user = Customer::find($userId);
 
         if (!$template || !$user || !$user->email) {
             return false;

@@ -541,9 +541,14 @@ class ContainerController extends Controller
 
     public function indexObject()
     {
-        $items = Container::with(['tracks' => function ($query) {
+        $items = Container::whereHas('tracks')->with(['tracks' => function ($query) {
             $query->with('carrier')->get()->each->append('declared_weight_goods');
         }, 'partner', 'airboxes'])->withCount(['airboxes', 'tracks', 'trackcarriers', 'trackcarriersreg', 'trackcarriersdepesh', 'track_not_completed'])->orderBy('id', 'desc')->latest();
+
+//        $items = Container::whereHas('tracks')->with(['tracks' => function ($query) {
+//            $query->with('carrier')->get()->each->append('declared_weight_goods');
+//        }, 'partner', 'airboxes'])->where('name','77110936800')->withCount(['airboxes', 'tracks', 'trackcarriers', 'trackcarriersreg', 'trackcarriersdepesh', 'track_not_completed'])->orderBy('id', 'desc')->latest();
+//
 
         if (Request::get('parcel') != null) {
             $items->where('name', Request::get('parcel'));

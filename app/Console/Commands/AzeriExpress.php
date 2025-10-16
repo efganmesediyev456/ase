@@ -45,6 +45,7 @@ class AzeriExpress extends Command
      */
     public function handle()
     {
+
         if ($this->option('type') == 'send') {
             $this->send();
         }
