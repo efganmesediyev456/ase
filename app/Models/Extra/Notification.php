@@ -478,6 +478,164 @@ class Notification extends Model
 
     }
 
+
+    public static function sendTrackTestEfgan($trackId, $status)
+    {
+        $track = Track::find($trackId);
+
+        if (!$track) {
+            return false;
+        }
+        if ($track->partner_id == 8 && !$track->container_id && in_array($status, [16, 20]) && !$track->scan_no_check) {
+            //GFS no MAWB and inBaku/inKobia
+            return false;
+        }
+
+
+        $track_filial_name = null;
+        $track_filial_address = null;
+        $track_filial_contact_name = null;
+        $track_filial_contact_phone = null;
+        $track_filial_url = null;
+        $track_filial_work_time = null;
+        $track_filial_lunch_time = null;
+        $filial = $track->filial;
+        if ($filial) {
+            $track_filial_work_time = $filial->work_time;
+            $track_filial_lunch_time = $filial->lunch_time;
+        }
+        if ($track->azerpost_office) {
+            if ($track->azerpost_office->description) {
+                $track_filial_name = $track->azerpost_office->description;
+            }
+            if ($track->azerpost_office->address) {
+                $track_filial_address = $track->azerpost_office->address;
+            }
+            if (isset($track->azerpost_office->contact_phone) && $track->azerpost_office->contact_phone) {
+                $track_filial_contact_phone = $track->azerpost_office->contact_phone;
+            }
+            if (isset($track->azerpost_office->contact_name) && $track->azerpost_office->contact_name) {
+                $track_filial_contact_name = $track->azerpost_office->contact_name;
+            }
+            $track_filial_url = locationUrl($track->azerpost_office->latitude, $track->azerpost_office->longitude);
+        } else if ($track->azeriexpress_office) {
+            if ($track->azeriexpress_office->description) {
+                $track_filial_name = $track->azeriexpress_office->description;
+            }
+            if ($track->azeriexpress_office->address) {
+                $track_filial_address = $track->azeriexpress_office->address;
+            }
+            if (isset($track->azeriexpress_office->contact_phone) && $track->azeriexpress_office->contact_phone) {
+                $track_filial_contact_phone = $track->azeriexpress_office->contact_phone;
+            }
+            if (isset($track->azeriexpress_office->contact_name) && $track->azeriexpress_office->contact_name) {
+                $track_filial_contact_name = $track->azeriexpress_office->contact_name;
+            }
+            $track_filial_url = locationUrl($track->azeriexpress_office->latitude, $track->azeriexpress_office->longitude);
+        } else if ($track->surat_office) {
+            if ($track->surat_office->description) {
+                $track_filial_name = $track->surat_office->description;
+            }
+            if ($track->surat_office->address) {
+                $track_filial_address = $track->surat_office->address;
+            }
+            if (isset($track->surat_office->contact_phone) && $track->surat_office->contact_phone) {
+                $track_filial_contact_phone = $track->surat_office->contact_phone;
+            }
+            if (isset($track->surat_office->contact_name) && $track->surat_office->contact_name) {
+                $track_filial_contact_name = $track->surat_office->contact_name;
+            }
+            $track_filial_url = locationUrl($track->surat_office->latitude, $track->surat_office->longitude);
+        } else if ($track->yenipoct_office) {
+            if ($track->yenipoct_office->description) {
+                $track_filial_name = $track->yenipoct_office->description;
+            }
+            if ($track->yenipoct_office->address) {
+                $track_filial_address = $track->yenipoct_office->address;
+            }
+            if (isset($track->yenipoct_office->contact_phone) && $track->yenipoct_office->contact_phone) {
+                $track_filial_contact_phone = $track->yenipoct_office->contact_phone;
+            }
+            if (isset($track->yenipoct_office->contact_name) && $track->yenipoct_office->contact_name) {
+                $track_filial_contact_name = $track->yenipoct_office->contact_name;
+            }
+            $track_filial_url = locationUrl($track->yenipoct_office->latitude, $track->yenipoct_office->longitude);
+        } else if ($track->kargomat_office) {
+            if ($track->kargomat_office->description) {
+                $track_filial_name = $track->kargomat_office->description;
+            }
+            if ($track->kargomat_office->address) {
+                $track_filial_address = $track->kargomat_office->address;
+            }
+            if (isset($track->kargomat_office->contact_phone) && $track->kargomat_office->contact_phone) {
+                $track_filial_contact_phone = $track->kargomat_office->contact_phone;
+            }
+            if (isset($track->kargomat_office->contact_name) && $track->kargomat_office->contact_name) {
+                $track_filial_contact_name = $track->kargomat_office->contact_name;
+            }
+            $track_filial_url = locationUrl($track->kargomat_office->latitude, $track->kargomat_office->longitude);
+        } else if ($track->delivery_point /*&& $track->store_status != 2*/) {
+            if ($track->delivery_point->description) {
+                $track_filial_name = $track->delivery_point->description;
+            }
+            if ($track->delivery_point->address) {
+                $track_filial_address = $track->delivery_point->address;
+            }
+            if (isset($track->delivery_point->contact_phone) && $track->delivery_point->contact_phone) {
+                $track_filial_contact_phone = $track->delivery_point->contact_phone;
+            }
+            if (isset($track->delivery_point->contact_name) && $track->delivery_point->contact_name) {
+                $track_filial_contact_name = $track->delivery_point->contact_name;
+            }
+            $track_filial_url = locationUrl($track->delivery_point->latitude, $track->delivery_point->longitude);
+        }
+
+        $data = [
+            'id' => $track->id,
+            'cwb' => $track->tracking_code,
+            'user' => $track->fullname,
+            'city' => $track->city_name,
+            'price' => $track->delivery_price_with_label,
+            'code' => $track->fin ?? $track->customer->fin,
+            'weight' => $track->weight,
+            'label_pdf' => str_replace('admin.', '', route('track_label', $track->tracking_code)),
+            'fin_url' => str_replace('admin.', '', route('track-fin', $track->custom_id)),
+            'pay_url' => str_replace('admin.', '', route('track-pay', $track->custom_id)),
+            'incustom_url' => str_replace('admin.', '', route('track-pay-debt', $track->custom_id)),
+            'broker_url' => str_replace('admin.', '', route('track-pay-broker', $track->custom_id)),
+            'broker_fee' => 15,
+            'incustom_price' => $track->debt_price,
+            'paid' => $track->paid,
+            'track_filial_name' => $track_filial_name,
+            'track_filial_address' => $track_filial_address,
+            'track_filial_contact_name' => $track_filial_contact_name,
+            'track_filial_contact_phone' => $track_filial_contact_phone,
+            'track_filial_url' => $track_filial_url,
+            'track_filial_work_time' => $track_filial_work_time,
+            'track_filial_lunch_time' => $track_filial_lunch_time,
+        ];
+
+        $template = ($status == 'SCL_Stopped_in_customs_overlimit' || $status == 'package_not_paid' || $status == 'courier_picked_up' || $status == 'Precint_notpaid' || $status == 'customs_storage_fee' || $status == 'OZON_RUS_SMART' || $status == 'tracking_courier_delivery' || $status == 'IHERB_RUS_SMART' || $status == 'TAOBAO_SENT_PAYMENT' || $status == 'TAOBAO_SENT_UNDECLARED' || $status == 'transit_filial_added' || $status == 'PUDO_DELIVERED_STATUS' || $status == 'track_scan_diff_price' || $status == 'customs_broker_fee' ) ? $status : ('track_status_' . $status);
+
+        $template1 = 'track_status_' . $status . '_' . $track->partner_id;
+
+        if ($template1 === 'track_status_20_9' && !$track->paid) {
+            return false;
+        }
+
+//        if($template == 'customs_broker_fee'){
+//            return env('SMS_NOTIFICATION') ? SMS::sendByTrack($track, $data, $template,$template1) : false;
+//        }
+
+        dd($track, $data, $template, $template1,        $phone = $track->phone ?: ($track->customer && $track->customer->phone ? $track->customer->phone : null)
+    ,$track->partner_id,$track->customer  ? $track->customer->id : null);
+
+
+        return env('SAAS_ACTIVE') ? Whatsapp::sendByTrack($track, $data, $template, $template1) : false;
+//        return env('SAAS_ACTIVE') ? Email::sendByCustomer($track->customer_id, $data, $template, $template1) : false;
+
+    }
+
     /**
      * @param $userID
      * @param $data

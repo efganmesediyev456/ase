@@ -1222,20 +1222,55 @@ class TrackController extends Controller
                 //}
             }
 
-            if ($status == 17) { //if done
+            if ($status == 17) { // done
 
-                if(($track->partner_id == 9 && $track->debt_price > 0 && $track->paid_debt == 0 && $track->paid == 0) ||
-                    ($track->partner_id != 9 && $track->debt_price > 0 && $track->paid_debt == 0)){
-                    return \Response::json(['message' => ' Items have debt price!'],400);
-                    exit();
-                }else{
+                $isPartnerException = ($track->partner_id == 1);
+
+                $canBeDone = false;
+
+                // Əgər partner 1-dirsə (istisna hal)
+                if ($isPartnerException) {
+                    if (
+                        ($track->debt_price > 0 && $track->paid_debt > 0) || // borcu var və ödənib
+                        ($track->debt_price == 0)                            // borcu yoxdur
+                    ) {
+                        $canBeDone = true;
+                    }
+                }
+                // Normal hallar (digər partnerlər)
+                else {
+                    if (
+                        $track->paid == 1 && ( // ödəniş mütləq olmalı
+                            ($track->debt_price > 0 && $track->paid_debt > 0) || // borcu var və ödənib
+                            ($track->debt_price == 0)                            // borcu yoxdur
+                        )
+                    ) {
+                        $canBeDone = true;
+                    }
+                }
+
+                if ($canBeDone) {
+                    // ✅ done ola bilər
                     $cd = $track->courier_delivery;
-                    if ($cd && ($cd->status != 6)) { // delete courier delivery if not done
+                    if ($cd && $cd->status != 6) {
                         $cd = CD::removeTrack($cd, $track);
                     }
                     event(new TrackCell('done', $track->id));
+                } else {
+                    // ❌ şərtlər ödənməyib – səhv mesajları
+                    if ($track->debt_price > 0 && $track->paid_debt == 0) {
+                        return response()->json('Saxlanc borcu var, amma odenilmeyib.', 400);
+                    }
+
+                    if (!$isPartnerException && $track->paid == 0) {
+                        return response()->json('Baglama odenisi odenilmeyib.', 400);
+                    }
+
+                    return response()->json('Items have debt price!', 400);
                 }
             }
+
+
             if ($status == 18) { //if in customs
                 $cd = $track->courier_delivery;
                 if ($cd && ($cd->status != 6)) { // delete courier delivery if not done

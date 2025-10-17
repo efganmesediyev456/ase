@@ -276,7 +276,7 @@ class AzeriExpress extends Command
                         ->where('id', $package->id)
                         ->update([
                             'status' => AzeriExpressPackage::STATUSES['HAS_PROBLEM'],
-                            'comment' => $package->comment . '| ' . json_encode([$response['data']])
+                            'comment' => $package->comment . '| ' . json_encode([$response['data']]."--- Error: " . json_encode($result))
                         ]);
                     $this->warn("Order submission failed for Tracking Number: " . $package->barcode . "--- Error: " . json_encode($result));
                 }
