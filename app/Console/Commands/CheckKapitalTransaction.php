@@ -54,12 +54,11 @@ class CheckKapitalTransaction extends Command
         $chatId = "-1002397303546";
 
         Transaction::query()
-            ->where('id',412151)
-//            ->whereNotNull('source_id')
-//            ->where('paid_by', 'KAPITAL')
-//            ->where('type', 'PENDING')
-//            ->whereBetween('created_at', ['2025-07-01 00:00:00', now()->subMinutes(5)])
-//            ->orderBy('id')
+            ->whereNotNull('source_id')
+            ->where('paid_by', 'KAPITAL')
+            ->where('type', 'PENDING')
+            ->whereBetween('created_at', ['2025-07-01 00:00:00', now()->subMinutes(5)])
+            ->orderBy('id')
             ->chunk(100, function ($transactions) use ($kapitalBankTxpgService, $website, $chatId) {
 
                 foreach ($transactions as $transaction) {
@@ -72,7 +71,6 @@ class CheckKapitalTransaction extends Command
                         }
 
                         $status = $orderStatus['order']['status'];
-                        dd($status);
                         $transaction->extra_data = json_encode($orderStatus);
                         $transaction->request_all = json_encode($orderStatus);
 
