@@ -1287,6 +1287,8 @@ class TrackController extends Controller
             (new PackageService())->updateStatus($track, $status);
         }
 
+
+
         if ($request->get('name') === 'paid') {
             $value = $request->get('value');
 

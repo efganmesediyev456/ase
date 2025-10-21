@@ -50,6 +50,10 @@ class AzeriExpress extends Command
             $this->send();
         }
 
+        if ($this->option('type') == 'sendTest') {
+            $this->sendTest();
+        }
+
         if ($this->option('type') == 'courier') {
             $this->courier();
         }
@@ -276,8 +280,158 @@ class AzeriExpress extends Command
                         ->where('id', $package->id)
                         ->update([
                             'status' => AzeriExpressPackage::STATUSES['HAS_PROBLEM'],
-                            'comment' => $package->comment . '| ' . json_encode([$response['data']]."--- Error: " . json_encode($result))
+                            'comment' => $package->comment . '| ' . json_encode([$response])
                         ]);
+                    $this->warn("Order submission failed for Tracking Number: " . $package->barcode . "--- Error: " . json_encode($result));
+                }
+            }
+
+
+        }
+    }
+
+
+    public function sendTest()
+    {
+        $tracks = AzeriExpressPackage::withTrashed()->where('id','20077')->get();
+
+
+        $packages = collect();
+        $packages = $tracks->merge($packages);
+        
+//        if ($packages->count() < 1) {
+//            dd('boshdur');
+//        }
+        $body = [];
+
+        foreach ($packages as $package) {
+            if ($package->type == 'package') {
+                $_package = $package->package;
+                $customer = $_package->user;
+            } else {
+                $_package = $package->track;
+                $customer = $_package->customer;
+            }
+            $phone = $customer->phone != "" ? $customer->phone : $_package->phone;
+            $phone = str_replace(' ', '', $phone);
+//            if (str_starts_with($phone, '+')) {
+//                $phone = substr($phone, 1);
+//            }
+//
+//            while (substr($phone, 0, 3) === '994') {
+//                $phone = substr($phone, 3);
+//            }
+//            $phone = '994' . $phone;
+//            $mobile = $phone;
+            if (!isset($_package->azeriexpress_office->name)) {
+                $this->line('azeriexpress aid olmayan baglama: '.$package->barcode);
+                continue;
+            }
+
+            $body = [
+                "post_office_id" => $_package->azeriexpress_office->foreign_id,
+
+
+
+
+                "customer_fincode" => $customer->fin,
+                "customer_name" => $customer->first_name ?: explode(' ', $customer->fullname)[0],
+                "customer_surname" => substr(
+                    $customer->last_name ?: (explode(' ', $customer->fullname)[1] ?? '-'),
+                    0,
+                    15
+                ),
+                "customer_mobile" => $phone,
+                "address" => $customer->address,
+                "barcode" => $package->barcode.'01test',
+                "weight" => $_package->weight ?? 0.111,
+                "price" => 0.8,
+                "package_contents" => $_package->tracking_code,
+            ];
+
+            $token = $this->getToken();
+            if (!$token[1]['api_token']) {
+                dd('3rd party token error');
+            }
+
+            $postfield = json_encode($body);
+
+            $url = 'https://api.azeriexpress.com/integration/orders';
+            $multiCurl = curl_init();
+            curl_setopt($multiCurl, CURLOPT_URL, $url);
+            curl_setopt($multiCurl, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($multiCurl, CURLOPT_CUSTOMREQUEST, "POST");
+            curl_setopt($multiCurl, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($multiCurl, CURLOPT_SSL_VERIFYHOST, false);
+            curl_setopt($multiCurl, CURLOPT_POSTFIELDS, $postfield);
+            curl_setopt($multiCurl, CURLOPT_HTTPHEADER, array(
+                'accept: text/plain',
+                "lang: az",
+                "Content-Type: application/json",
+                "Authorization: Bearer " . $token[1]['api_token']
+            ));
+
+            $data = curl_exec($multiCurl);
+            $httpCode = curl_getinfo($multiCurl, CURLINFO_HTTP_CODE);
+            curl_close($multiCurl);
+            if ($data === false) {
+                $result = curl_error($multiCurl);
+            } else {
+                $result = $data;
+            }
+            $response = json_decode($data, true);
+            // dd($response,$postfield);
+            if ($httpCode == 201) {
+                AzeriExpressPackage::query()
+                    ->where('id', $package->id)
+                    ->update([
+                        'status' => AzeriExpressPackage::STATUSES['SENT'],
+                        'sent_at' => now()
+                    ]);
+
+                if ($package->type == 'package') {
+                    $_package = Package::find($package->package_id);
+                    $_package->bot_comment = "Bağlama AzerExpress-ə göndərildi";
+                    $_package->save();
+
+                } else if ($package->type == 'track') {
+                    $_track = Track::find($package->package_id);
+                    $_track->bot_comment = "Bağlama AzerExpress-ə göndərildi";
+                    $_track->save();
+                }
+                $this->line("success . Tracking Number: " . $package->barcode);
+            } else {
+                if (isset($response['errors']['barcode'][0]) && $response['errors']['barcode'][0] == 'Barkod artıq istifadə olunub') {
+                    AzeriExpressPackage::query()
+                        ->where('id', $package->id)
+                        ->update([
+                            'status' => AzeriExpressPackage::STATUSES['SENT'],
+                            'sent_at' => now()
+                        ]);
+
+
+
+                    if ($package->type == 'package') {
+                        $_package = Package::find($package->package_id);
+                        $_package->bot_comment = "Bağlama AzerExpress-ə göndərildi";
+                        $_package->save();
+
+                    } else if ($package->type == 'track') {
+                        $_track = Track::find($package->package_id);
+                        $_track->bot_comment = "Bağlama AzerExpress-ə göndərildi";
+                        $_track->save();
+                    }
+                    $this->line("success . Tracking Number: " . $package->barcode);
+                }else{
+
+                    AzeriExpressPackage::withTrashed()
+                        ->where('id', $package->id)
+                        ->update([
+                            'status' => AzeriExpressPackage::STATUSES['HAS_PROBLEM'],
+                            'comment' => $package->comment . '| ' . json_encode([$response])
+                        ]);
+
+
                     $this->warn("Order submission failed for Tracking Number: " . $package->barcode . "--- Error: " . json_encode($result));
                 }
             }

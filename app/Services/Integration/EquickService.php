@@ -304,6 +304,7 @@ class EquickService extends BaseService
 //                'request' => json_encode(['headers' => $headers, 'body' => $body]),
 //            ]);
 
+
             $curl = curl_init();
             curl_setopt_array($curl, array(
                 CURLOPT_URL => self::CLIENT_URL,
