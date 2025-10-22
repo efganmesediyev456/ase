@@ -7,8 +7,10 @@ use App\Jobs\SendTrackStatusJobLast;
 use App\Jobs\SendTrackStatusJobLast2;
 use App\Models\CD;
 use App\Models\Customer;
+use App\Models\DebtLog;
 use App\Models\Extra\Whatsapp;
 use App\Models\NotificationQueue;
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\Integration\UnitradeService;
 use GuzzleHttp\Client;
@@ -98,543 +100,864 @@ class Test extends Command
      */
 
 
+
+
+
     public function handle()
     {
 
 
-        $this->sendSms();
-        exit;
-        $track = Track::find(506560);
-        SendTrackStatusJobLast::dispatch($track,'850568601271000', '67e81fdf-d6c5-428c-9b30-6d73a0b7b786', 10001)->onQueue('tracks');
+        $packages = Package::where('status', 4)
+            ->where('paid_debt', 0)
+            ->whereNotNull('customs_at')
+            ->whereNull('deleted_at')
+            ->get();
+
+        $tracks = Track::whereIn('status', [18, 45])
+            ->where('paid_debt', 0)
+            ->where('partner_id', '!=', 3)
+            ->whereNotNull('customs_at')
+            ->whereNull('deleted_at')
+            ->get();
+
+        $now = Carbon::now();
+
+        foreach ($packages as $package) {
+            $customsTime = Carbon::parse($package->customs_at);
+            $lastDebtLog = DebtLog::where('custom_id', $package->tracking_code)->latest()->first();
+            $dueTime = $lastDebtLog ? Carbon::parse($lastDebtLog->created_at)->addHours(24) : $customsTime->addHours(24);
+
+            if ($dueTime <= $now) {
+                $priceToAdd = $lastDebtLog ? Setting::find(1)->debt_price_day : Setting::find(1)->debt_price_first_day;
+
+                $debtLog = new DebtLog();
+                $debtLog->custom_id = $package->tracking_code;
+                $debtLog->price = $package->debt_price;
+                $debtLog->after_price = $package->debt_price + $priceToAdd;
+                $debtLog->save();
+
+                $package->debt_price += $priceToAdd;
+                $package->save();
+            }
+        }
+
+        foreach ($tracks as $track) {
 
 
-        exit;
+            $customsTime = Carbon::parse($track->customs_at);
+            $lastDebtLog = DebtLog::where('custom_id', $track->custom_id)->latest()->first();
+            $initialDueTime = ($track->partner_id == 3) ? $customsTime->addHours(72) : $customsTime->addHours(24);
+            $dueTime = $lastDebtLog ? Carbon::parse($lastDebtLog->created_at)->addHours(24) : $initialDueTime;
 
-       $uri = "https://api.unitrade.space/v3/tracking/status";
+            if ($dueTime <= $now) {
+                $priceToAdd = $lastDebtLog ? Setting::find(1)->debt_price_day : Setting::find(1)->debt_price_first_day;
 
-       $body = [[
-           "trackNumber" => '850568601271000',
-           "place" => '67e81fdf-d6c5-428c-9b30-6d73a0b7b786',
-           "eventCode" => 10001,
-           "moment" => now('UTC')->format('Y-m-d\TH:i:s.v\Z'),
-       ]];
+                $debtLog = new DebtLog();
+                $debtLog->custom_id = $track->custom_id;
+                $debtLog->price = $track->debt_price;
+                $debtLog->after_price = $track->debt_price + $priceToAdd;
+                $debtLog->save();
 
-       $headers = [
-           'Accept: application/json',
-           'Content-Type: application/json',
-           'Authorization: ' . 'Bearer ' . $this->token,
-       ];
+                $track->debt_price += $priceToAdd;
+                $track->save();
 
-       $maxAttempts = 5;
-       $attempt = 0;
-       $success = false;
+                if (in_array($track->partner_id, [1, 9]) && $track->courier_delivery) {
+                    CD::removeTrack($track->courier_delivery, $track);
+                }
 
-       while ($attempt < $maxAttempts && !$success) {
-           $attempt++;
+            }
+        }
 
-           $curl = curl_init();
-           curl_setopt_array($curl, [
-               CURLOPT_URL => $uri,
-               CURLOPT_RETURNTRANSFER => true,
-               CURLOPT_ENCODING => '',
-               CURLOPT_MAXREDIRS => 10,
-               CURLOPT_TIMEOUT => 0,
-               CURLOPT_FOLLOWLOCATION => true,
-               CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-               CURLOPT_CUSTOMREQUEST => 'POST',
-               CURLOPT_POSTFIELDS => json_encode($body),
-               CURLOPT_HTTPHEADER => $headers,
-           ]);
-
-           $response = curl_exec($curl);
-           $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-           curl_close($curl);
-
-           $decoded = json_decode($response, true) ?? [];
-
-           if (array_key_exists('errors', $decoded)
-               and array_key_exists(0, $decoded['errors'])
-               and $decoded['errors'][0]['code'] != 'unknown'
-           ) {
-               $success = true;
-               break;
-           }else{
-               $success = false;
-           }
-
-           if ($attempt < $maxAttempts) {
-               echo "Attempt {$attempt} failed (HTTP $httpCode). Retrying in 5 minutes...\n";
-               sleep(4);
-           }
-
-       }
-
-       $decoded = json_decode($response, true);
+        $this->info('Success');
 
 
-       dd($response);
-
-
-        // $body = [
-        //     'trackingNumber' => 'EQ0000200166AZ',
-        // ];
-        // $curl = curl_init();
-
-        // curl_setopt_array($curl, array(
-        //     CURLOPT_URL => 'https://ecarrier-fbusiness.customs.gov.az:7545/api/v2/carriers/carriersposts/0/100',
-        //     CURLOPT_RETURNTRANSFER => true,
-        //     CURLOPT_ENCODING => '',
-        //     CURLOPT_MAXREDIRS => 10,
-        //     CURLOPT_TIMEOUT => 0,
-        //     CURLOPT_FOLLOWLOCATION => true,
-        //     CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-        //     CURLOPT_CUSTOMREQUEST => 'POST',
-        //     CURLOPT_POSTFIELDS => json_encode($body),
-        //     CURLOPT_HTTPHEADER => array(
-        //         'accept: application/json',
-        //         'lang: az',
-        //         'ApiKey: 8CD0F430D478F8E1DFC8E1311B20031E3A669607',
-        //         'Content-Type: application/json'
-        //     ),
-        // ));
-
-        // $response = curl_exec($curl);
-        // curl_close($curl);
-        // $response = json_decode($response,true);
-        // dd($response);
-
-//        $package = Track::where('id', 522591)->first();
-//        if ($package->type == 'package') {
-//            $_package = $package->package;
-//            $customer = $_package->user;
-//        } else {
-//            $_package = $package->track;
-//            $customer = $_package->customer;
-//        }
-//        $phone = $customer->phone != "" ? $customer->phone : $_package->phone;
-//        $phone = str_replace(' ', '', $phone);
+//        $packages = Package::where('custom_id','ASE3908019478272')->where('status',4)->where('paid_debt',0)->where('customs_at','!=',null)->where('deleted_at',null)->get();
+//        $tracks = Track::where('status',18)->where('paid_debt',0)->where('customs_at')->where('deleted_at',null)->get();
 //
-//        if (!isset($_package->azeriexpress_office->name)) {
-//            $this->line('azeriexpress aid olmayan baglama: '.$package->barcode);
-//        }
+//        $yesterday = Carbon::yesterday()->toDateString();
 //
-//        $body = [
-//            "post_office_id" => $_package->azeriexpress_office->foreign_id,
-//            "payment_method" => 1,
-//            "is_paid" => $package->payment_status,
-//            "customer_number" => $package->type == 'package' ? $customer->customer_id : "ASE" . $customer->id,
-//            "customer_passport" => $customer->passpot,//
-//            "customer_fincode" => $customer->fin,
-//            "customer_name" => $customer->first_name ?: explode(' ', $customer->fullname)[0],
-//            "customer_surname" => substr(
-//                $customer->last_name ?: (explode(' ', $customer->fullname)[1] ?? '-'),
-//                0,
-//                15
-//            ),
-//            "customer_mobile" => $phone,
-//            "address" => $customer->address,
-//            "barcode" => $package->barcode,
-//            "weight" => $_package->weight ?? 0.111,
-//            "price" => 0.8,
-//            "package_contents" => $_package->tracking_code,
-//        ];
+//        foreach ($packages as $package){
 //
-//        $token = $this->getToken();
-//        if (!$token[1]['api_token']) {
-//            dd('3rd party token error');
-//        }
+//            if(Carbon::parse($package->customs_at)->format('Y-m-d') == $yesterday){
 //
-//        $postfield = json_encode($body);
-//        $url = 'https://api.azeriexpress.com/integration/orders';
-//        $multiCurl = curl_init();
-//        curl_setopt($multiCurl, CURLOPT_URL, $url);
-//        curl_setopt($multiCurl, CURLOPT_RETURNTRANSFER, true);
-//        curl_setopt($multiCurl, CURLOPT_CUSTOMREQUEST, "POST");
-//        curl_setopt($multiCurl, CURLOPT_SSL_VERIFYPEER, false);
-//        curl_setopt($multiCurl, CURLOPT_SSL_VERIFYHOST, false);
-//        curl_setopt($multiCurl, CURLOPT_POSTFIELDS, $postfield);
-//        curl_setopt($multiCurl, CURLOPT_HTTPHEADER, array(
-//            'accept: text/plain',
-//            "lang: az",
-//            "Content-Type: application/json",
-//            "Authorization: Bearer " . $token[1]['api_token']
-//        ));
+//                $firstDayPrice = Setting::find(1)->debt_price_first_day;
 //
-//        $data = curl_exec($multiCurl);
-//        $httpCode = curl_getinfo($multiCurl, CURLINFO_HTTP_CODE);
-//        curl_close($multiCurl);
-//        if ($data === false) {
-//            $result = curl_error($multiCurl);
-//        } else {
-//            $result = $data;
-//        }
-//        $response = json_decode($data, true);
-//        dd($response);
-//        $body = [
-////            "trackingNumber"=> 'KGO9920215439302'
-//            "trackingNumber"=> 'ASE4112615445397'
-//        ];
-//        $curl = curl_init();
+//                $debtLog = new DebtLog();
+//                $debtLog->custom_id = $package->tracking_code;
+//                $debtLog->price = $package->debt_price;
+//                $debtLog->after_price = $package->debt_price + $firstDayPrice;
+//                $debtLog->save();
 //
-//        curl_setopt_array($curl, array(
-//            CURLOPT_URL => 'https://ecarrier-fbusiness.customs.gov.az:7545/api/v2/carriers/deleteddeclarations/0/100',
-//            CURLOPT_RETURNTRANSFER => true,
-//            CURLOPT_ENCODING => '',
-//            CURLOPT_MAXREDIRS => 10,
-//            CURLOPT_TIMEOUT => 0,
-//            CURLOPT_FOLLOWLOCATION => true,
-//            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-//            CURLOPT_CUSTOMREQUEST => 'POST',
-//            CURLOPT_POSTFIELDS =>json_encode($body),
-//            CURLOPT_HTTPHEADER => array(
-//                'accept: application/json',
-//                'lang: az',
-//                'ApiKey: 8CD0F430D478F8E1DFC8E1311B20031E3A669607',
-//                'Content-Type: application/json'
-//            ),
-//        ));
+//                $package->debt_price += $firstDayPrice;
+//                $package->save();
+//            }elseif (Carbon::parse($package->customs_at)->format('Y-m-d') < $yesterday){
 //
-//        $response = curl_exec($curl);
+//                $dayPrice = Setting::find(1)->debt_price_day;
 //
-//        curl_close($curl);
-////        $response = json_decode($response,true);
-//        dd($response);
-
-
-
-//        $body          = [
-////            "status" => 0,
-//            "trackingNumber" => "ASE3556048787552"
-////            'OSS-1001899885'
-////            "dateFrom"       => $date_from."501Z",
-////            "dateTo"         => $date_to."501Z",
-//        ];
-//        $regNumbers     = [];
-//        $statuses       = [3,8];
-//        $approvesearch  = [];
-//        $addToBoxBodies = [];
-//        $addToboxes     = null;
+//                $debtLog = new DebtLog();
+//                $debtLog->custom_id = $package->tracking_code;
+//                $debtLog->price = $package->debt_price;
+//                $debtLog->after_price = $package->debt_price + $dayPrice;
+//                $debtLog->save();
 //
-////        $body = [
+//                $package->debt_price += $dayPrice;
+//                $package->save();
 //
-////            "dateFrom"       => "2023-08-16T07:11:10.501Z",
-////            "dateTo"         => "2023-08-16T07:11:10.501Z",
-////            "documentNumber" => "string",
-////            "trackingNumber" => "string",
-////            "status"         => 0
-////        ];
-//        $curl = curl_init();
-//        curl_setopt_array($curl, array(
-//            CURLOPT_URL => 'https://ecarrier-fbusiness.customs.gov.az:7545/api/v2/carriers/declarations/0/100',
-//            CURLOPT_RETURNTRANSFER => true,
-//            CURLOPT_ENCODING => '',
-//            CURLOPT_MAXREDIRS => 10,
-//            CURLOPT_TIMEOUT => 0,
-//            CURLOPT_FOLLOWLOCATION => true,
-//            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-//            CURLOPT_CUSTOMREQUEST => 'POST',
-//            CURLOPT_POSTFIELDS =>json_encode($body),
-//            CURLOPT_HTTPHEADER => array(
-//                'accept: application/json',
-//                'lang: az',
-//                'ApiKey: 8CD0F430D478F8E1DFC8E1311B20031E3A669607',
-//                'Content-Type: application/json'
-//            ),
-//        ));
-//
-//        $response = curl_exec($curl);
-//        dd($response);
-//        die('declarations');
-//
-//        $body = [
-//            "trackingNumber"=> 'EQ0000129904AZ'
-//        ];
-//        $curl = curl_init();
-//
-//        curl_setopt_array($curl, array(
-//            CURLOPT_URL => 'https://ecarrier-fbusiness.customs.gov.az:7545/api/v2/carriers/declarations/0/100',
-//            CURLOPT_RETURNTRANSFER => true,
-//            CURLOPT_ENCODING => '',
-//            CURLOPT_MAXREDIRS => 10,
-//            CURLOPT_TIMEOUT => 0,
-//            CURLOPT_FOLLOWLOCATION => true,
-//            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-//            CURLOPT_CUSTOMREQUEST => 'POST',
-//            CURLOPT_POSTFIELDS =>json_encode($body),
-//            CURLOPT_HTTPHEADER => array(
-//                'accept: application/json',
-//                'lang: az',
-//                'ApiKey: 8CD0F430D478F8E1DFC8E1311B20031E3A669607',
-//                'Content-Type: application/json'
-//            ),
-//        ));
-//
-//        $response = curl_exec($curl);
-//
-//        curl_close($curl);
-////        $response = json_decode($response,true);
-//        dd($response);
-
-//        Artisan::call('carriers:update', [
-//            'package' => 1,
-//            'package_id' => 311312,
-//            'checkonly' => 0,
-//            'htmlformat' => 0,
-//            'deleteonly' => 1
-//        ]);
-
-//        Artisan::call('carriers:update', [
-//            'package' => 1,
-//            'package_id' => 311312,
-//            'checkonly' => 0,
-//            'htmlformat' => 0
-//        ]);
-
-
-
-
-
-
-//        $customers = Customer::query()->whereNull('courier_id')->get();
-//
-//        foreach ($customers as $customer) {
-//            $prevTrack = Track::where('customer_id', $customer->id)
-//                ->where('status',17)
-//                ->whereNotNull('courier_delivery_id')
-//                ->orderByDesc('id')
-//                ->with('courier_delivery')
-//                ->first();
-//
-//            if ($prevTrack && $prevTrack->courier_delivery) {
-//                $customer->courier_id = $prevTrack->courier_delivery->courier_id;
-//                $customer->save();
-//
-//                $this->info("Courier assigned to customer ID {$customer->id}");
-//            } else {
-//                $this->warn("No valid track for customer ID {$customer->id}");
-//            }
-//        }
-
-
-//        $tracks = Track::query()
-//            ->where('delivery_type', 'HD')
-//            ->whereIn('partner_id', [9, 1])
-//            ->whereDoesntHave('courier_delivery')
-//            ->whereNull('courier_delivery_id')->get();
-
-//        $tracks = Track::query()
-//            ->where('delivery_type', 'HD')
-//            ->whereIn('partner_id', [9, 1])
-//            ->whereNull('courier_delivery_id')
-//            ->where('created_at', '>=', '2025-07-01 00:00:00')
-//            ->get();
-//
-//        foreach ($tracks as $track) {
-//            if ($track->debt_price > 0 && $track->paid_debt == 0) {
-//                $this->error("Items have debt price for track: {$track->id}");
-//                continue;
 //            }
 //
-//            if ($track->customer_id) {
-//                $customer = $track->customer;
-//                $courier_id = null;
+//        }
 //
-//                $prevTrack = Track::where('customer_id', $customer->id)
-//                    ->whereHas('courier_delivery')
-//                    ->where('status', 17)
-//                    ->where('id', '!=', $track->id)
-//                    ->with('courier_delivery')
-//                    ->orderByDesc('id')
-//                    ->first();
+//        foreach ($tracks as $track){
 //
-//                if (
-//                    $prevTrack &&
-//                    $prevTrack->courier_delivery &&
-//                    $prevTrack->courier_delivery->address === $customer->address
-//                ) {
-//                    $courier_id = $customer->courier_id ?? $prevTrack->courier_delivery->courier_id;
-//                }
+//            if(Carbon::parse($track->customs_at)->format('Y-m-d') == $yesterday){
 //
-//                $cd_status = 1;
-//                $cd = $track->courier_delivery;
+//                $firstDayPrice = Setting::find(1)->debt_price_first_day;
 //
-//                if ($cd) {
-//                    $cd_status = $cd->status;
-//                }
+//                $debtLog = new DebtLog();
+//                $debtLog->custom_id = $track->custom_id;
+//                $debtLog->price = $track->debt_price;
+//                $debtLog->after_price = $track->debt_price + $firstDayPrice;
+//                $debtLog->save();
 //
-//                $str = $track->worker_comments;
+//                $track->debt_price += $firstDayPrice;
+//                $track->save();
+//            }elseif (Carbon::parse($track->customs_at)->format('Y-m-d') < $yesterday){
 //
-//                if (isOfficeWord($str)) {
-//                    CD::removeTrack($cd, $track);
-//                    $this->info("Track {$track->id} removed from delivery.");
-//                    continue;
-//                }
+//                $dayPrice = Setting::find(1)->debt_price_day;
 //
-//                if ($cd && (($cd->courier_id != $courier_id) || ($cd->address != $customer->address))) {
-//                    $cd = CD::updateTrack($cd, $track, $courier_id);
-//                }
+//                $debtLog = new DebtLog();
+//                $debtLog->custom_id = $track->custom_id;
+//                $debtLog->price = $track->debt_price;
+//                $debtLog->after_price = $track->debt_price + $dayPrice;
+//                $debtLog->save();
 //
-//                if (!$cd) {
-//                    $cd = CD::newCD($track, $courier_id, $cd_status);
-//                }
-//
-//                $cd->save();
-//                $track->courier_delivery_id = $cd->id;
+//                $track->debt_price += $dayPrice;
 //                $track->save();
 //
-//                if (!$customer->courier_id) {
-//                    $customer->courier_id = $courier_id;
-//                    $customer->save();
-//                }
-//
-//                $this->info('Courier assigned');
 //            }
+//
 //        }
+//
+//        echo 'Success';
 
-
-
-
-//        $tracks = Track::where('status', 17)
-//            ->where('created_at', '>=', Carbon::parse('2025-06-15 00:00:00'))
-//            ->where('partner_id', 3)
+    }
+//    public function handle()
+//    {
+//        $packages = Package::where('status', 3)
+//            ->where('paid_debt', 0)
+//            ->whereNotNull('customs_at')
+//            ->whereNull('deleted_at')->where('id',365147)
 //            ->get();
 //
-//        $service = new PackageService();
+//        $package = $packages->first();
+//        $package->status =  4;
 //
-//        foreach ($tracks as $track) {
 //
-//            $service->updateStatus($track, $track->status);
-//            $this->info("Status sent for Track ID: $track->id");
+//        $tracks = [];
 //
-//        }
+////        dd($packages->count());
 //
-//        $this->info("Finished processing all track IDs.");
-
-//        $ids = [
-//            350321984886000,900826777789000,800830127764000,300831501563000,350316695131000,750316259221000,650312617651000,950316632672000,250313679780000,201051461109000,450315310979000,900828379718000,201052270854000,201052270859000,900827767224000,800825106207000,600825314771000,201051532584000,550300955934000,250313458096000,950315033652000,800819325291000,900833138603000,700829775604000,550314589430000,650317210368000,850312939500000,750317853952000,700828135134000,250317624485000,850318032613000,201054920944000,700829946812000,900825381677000,900825381877000,650317533821000,350321349867000,550307822090000,300830446499000,950316506130000,900827060144000,400822441183000,201048104473000,350300944021000,750305829794000,600827621896000
-//        ];
 //
-//        $service = new PackageService();
+////        dd($packages->count());
 //
-//        foreach ($ids as $id) {
-//            $track = Track::where('tracking_code', $id)->first();
+//        $now = Carbon::parse('2025-10-24 15:30:00');
 //
-//            if (!$track) {
-//                $this->error("Track not found for ID: $id");
+//        foreach ($packages as $package) {
+//
+//            $lastDebtLog = DebtLog::where('custom_id', $package->tracking_code)
+//                ->whereDate('created_at', $now->toDateString())
+//                ->latest()
+//                ->first();
+//
+//
+//
+//            if ($lastDebtLog) {
 //                continue;
 //            }
 //
-//            $service->updateStatus($track, $track->status);
-//            $this->info("Status sent for Track ID: $id");
+//
+//
+//
+//            $customsTime = Carbon::parse($package->customs_at);
+//
+////            dd($customsTime);
+//            $lastDebtLog = DebtLog::where('custom_id', $package->tracking_code)->latest()->first();
+//            $dueTime = $lastDebtLog ? Carbon::parse($lastDebtLog->created_at)->addHours(24) : $customsTime->addHours(24);
+//
+//
+////            dd($customsTime,$package->customs_at);
+//
+//
+////            dd($dueTime, $now);
+//            if ($dueTime <= $now) {
+//                $priceToAdd = $lastDebtLog ? Setting::find(1)->debt_price_day : Setting::find(1)->debt_price_first_day;
+//
+//                $debtLog = new DebtLog();
+//                $debtLog->custom_id = $package->tracking_code;
+//                $debtLog->price = $package->debt_price;
+//                $debtLog->after_price = $package->debt_price + $priceToAdd;
+//                $debtLog->created_at = $now;
+//                $debtLog->save();
+//
+//
+//                $package->debt_price += $priceToAdd;
+////                $package->save();
+//            }
 //        }
 //
-//        $this->info("Finished processing all track IDs.");
-
-
-
+//        dd($package->debt_price);
 //
-//        exit();
+//
+//
+//
+//        foreach ($tracks as $track) {
+//
+//            $lastDebtLog = DebtLog::where('custom_id', $track->custom_id)
+//                ->whereDate('created_at', now()->toDateString())
+//                ->latest()
+//                ->first();
+//
+//            if ($lastDebtLog) {
+//                continue;
+//            }
+//
+//            $customsTime = Carbon::parse($track->customs_at);
+//            $lastDebtLog = DebtLog::where('custom_id', $track->custom_id)->latest()->first();
+//            $initialDueTime = ($track->partner_id == 3) ? $customsTime->addHours(72) : $customsTime->addHours(24);
+//            $dueTime = $lastDebtLog ? Carbon::parse($lastDebtLog->created_at)->addHours(24) : $initialDueTime;
+//
+//            if ($dueTime <= $now) {
+//                $priceToAdd = $lastDebtLog ? Setting::find(1)->debt_price_day : Setting::find(1)->debt_price_first_day;
+//
+//                $debtLog = new DebtLog();
+//                $debtLog->custom_id = $track->custom_id;
+//                $debtLog->price = $track->debt_price;
+//                $debtLog->after_price = $track->debt_price + $priceToAdd;
+//                $debtLog->save();
+//
+//                $track->debt_price += $priceToAdd;
+//                $track->save();
+//
+//                if (in_array($track->partner_id, [1, 9]) && $track->courier_delivery) {
+//                    CD::removeTrack($track->courier_delivery, $track);
+//                }
+//
+//            }
+//        }
+//
+//        $this->info('Success');
+//
+//
+////        $packages = Package::where('custom_id','ASE3908019478272')->where('status',4)->where('paid_debt',0)->where('customs_at','!=',null)->where('deleted_at',null)->get();
+////        $tracks = Track::where('status',18)->where('paid_debt',0)->where('customs_at')->where('deleted_at',null)->get();
+////
+////        $yesterday = Carbon::yesterday()->toDateString();
+////
+////        foreach ($packages as $package){
+////
+////            if(Carbon::parse($package->customs_at)->format('Y-m-d') == $yesterday){
+////
+////                $firstDayPrice = Setting::find(1)->debt_price_first_day;
+////
+////                $debtLog = new DebtLog();
+////                $debtLog->custom_id = $package->tracking_code;
+////                $debtLog->price = $package->debt_price;
+////                $debtLog->after_price = $package->debt_price + $firstDayPrice;
+////                $debtLog->save();
+////
+////                $package->debt_price += $firstDayPrice;
+////                $package->save();
+////            }elseif (Carbon::parse($package->customs_at)->format('Y-m-d') < $yesterday){
+////
+////                $dayPrice = Setting::find(1)->debt_price_day;
+////
+////                $debtLog = new DebtLog();
+////                $debtLog->custom_id = $package->tracking_code;
+////                $debtLog->price = $package->debt_price;
+////                $debtLog->after_price = $package->debt_price + $dayPrice;
+////                $debtLog->save();
+////
+////                $package->debt_price += $dayPrice;
+////                $package->save();
+////
+////            }
+////
+////        }
+////
+////        foreach ($tracks as $track){
+////
+////            if(Carbon::parse($track->customs_at)->format('Y-m-d') == $yesterday){
+////
+////                $firstDayPrice = Setting::find(1)->debt_price_first_day;
+////
+////                $debtLog = new DebtLog();
+////                $debtLog->custom_id = $track->custom_id;
+////                $debtLog->price = $track->debt_price;
+////                $debtLog->after_price = $track->debt_price + $firstDayPrice;
+////                $debtLog->save();
+////
+////                $track->debt_price += $firstDayPrice;
+////                $track->save();
+////            }elseif (Carbon::parse($track->customs_at)->format('Y-m-d') < $yesterday){
+////
+////                $dayPrice = Setting::find(1)->debt_price_day;
+////
+////                $debtLog = new DebtLog();
+////                $debtLog->custom_id = $track->custom_id;
+////                $debtLog->price = $track->debt_price;
+////                $debtLog->after_price = $track->debt_price + $dayPrice;
+////                $debtLog->save();
+////
+////                $track->debt_price += $dayPrice;
+////                $track->save();
+////
+////            }
+////
+////        }
+////
+////        echo 'Success';
+//
+//    }
 
-//        $twoWeeksAgo = Carbon::now()->subWeeks(2);
 
-//        $tracks = Track::where('status', 17)->whereIn('tracking_code', ['500831717190000','950321394949000','750318710134000','850318992252000','750319671392000','350320384731000','950320039176000','350319915475000','900831950788000','500832279847000','201055299620000','400829106133000','350320568244000','300835192391000','250318690289000','350319915476000','400825583004000','700825590607000','850314433580000','300831314213000','800826934580000','550317106838000','300831094799000','300833457806000','550317399555000','300831314214000','950314119061000','450315945112000','250315648537000','201049065767000','950318016069000','600828114082000','750309944703000','350316128910000','350315171751000','201052016518000','600829246199000','600829246909000','300831368960000','400825569150000','250315477265000','950315690765000','500827252183000','850313651195000','350315844570000','900826730558000','300830038682000','950315010334000','750312467620000','350314678055000','201048633680000','600825093926000','700820585160000','900817269558000','500818465610000'
-//        ])
-//            ->get();
+
+//    public function handle()
+//    {
+//
+//
+//        $this->sendSms();
+//        exit;
+//        $track = Track::find(506560);
+//        SendTrackStatusJobLast::dispatch($track,'850568601271000', '67e81fdf-d6c5-428c-9b30-6d73a0b7b786', 10001)->onQueue('tracks');
+//
+//
+//        exit;
+//
+//       $uri = "https://api.unitrade.space/v3/tracking/status";
+//
+//       $body = [[
+//           "trackNumber" => '850568601271000',
+//           "place" => '67e81fdf-d6c5-428c-9b30-6d73a0b7b786',
+//           "eventCode" => 10001,
+//           "moment" => now('UTC')->format('Y-m-d\TH:i:s.v\Z'),
+//       ]];
+//
+//       $headers = [
+//           'Accept: application/json',
+//           'Content-Type: application/json',
+//           'Authorization: ' . 'Bearer ' . $this->token,
+//       ];
+//
+//       $maxAttempts = 5;
+//       $attempt = 0;
+//       $success = false;
+//
+//       while ($attempt < $maxAttempts && !$success) {
+//           $attempt++;
+//
+//           $curl = curl_init();
+//           curl_setopt_array($curl, [
+//               CURLOPT_URL => $uri,
+//               CURLOPT_RETURNTRANSFER => true,
+//               CURLOPT_ENCODING => '',
+//               CURLOPT_MAXREDIRS => 10,
+//               CURLOPT_TIMEOUT => 0,
+//               CURLOPT_FOLLOWLOCATION => true,
+//               CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+//               CURLOPT_CUSTOMREQUEST => 'POST',
+//               CURLOPT_POSTFIELDS => json_encode($body),
+//               CURLOPT_HTTPHEADER => $headers,
+//           ]);
+//
+//           $response = curl_exec($curl);
+//           $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+//           curl_close($curl);
+//
+//           $decoded = json_decode($response, true) ?? [];
+//
+//           if (array_key_exists('errors', $decoded)
+//               and array_key_exists(0, $decoded['errors'])
+//               and $decoded['errors'][0]['code'] != 'unknown'
+//           ) {
+//               $success = true;
+//               break;
+//           }else{
+//               $success = false;
+//           }
+//
+//           if ($attempt < $maxAttempts) {
+//               echo "Attempt {$attempt} failed (HTTP $httpCode). Retrying in 5 minutes...\n";
+//               sleep(4);
+//           }
+//
+//       }
+//
+//       $decoded = json_decode($response, true);
+//
+//
+//       dd($response);
+//
+//
+//        // $body = [
+//        //     'trackingNumber' => 'EQ0000200166AZ',
+//        // ];
+//        // $curl = curl_init();
+//
+//        // curl_setopt_array($curl, array(
+//        //     CURLOPT_URL => 'https://ecarrier-fbusiness.customs.gov.az:7545/api/v2/carriers/carriersposts/0/100',
+//        //     CURLOPT_RETURNTRANSFER => true,
+//        //     CURLOPT_ENCODING => '',
+//        //     CURLOPT_MAXREDIRS => 10,
+//        //     CURLOPT_TIMEOUT => 0,
+//        //     CURLOPT_FOLLOWLOCATION => true,
+//        //     CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+//        //     CURLOPT_CUSTOMREQUEST => 'POST',
+//        //     CURLOPT_POSTFIELDS => json_encode($body),
+//        //     CURLOPT_HTTPHEADER => array(
+//        //         'accept: application/json',
+//        //         'lang: az',
+//        //         'ApiKey: 8CD0F430D478F8E1DFC8E1311B20031E3A669607',
+//        //         'Content-Type: application/json'
+//        //     ),
+//        // ));
+//
+//        // $response = curl_exec($curl);
+//        // curl_close($curl);
+//        // $response = json_decode($response,true);
+//        // dd($response);
+//
+////        $package = Track::where('id', 522591)->first();
+////        if ($package->type == 'package') {
+////            $_package = $package->package;
+////            $customer = $_package->user;
+////        } else {
+////            $_package = $package->track;
+////            $customer = $_package->customer;
+////        }
+////        $phone = $customer->phone != "" ? $customer->phone : $_package->phone;
+////        $phone = str_replace(' ', '', $phone);
+////
+////        if (!isset($_package->azeriexpress_office->name)) {
+////            $this->line('azeriexpress aid olmayan baglama: '.$package->barcode);
+////        }
+////
+////        $body = [
+////            "post_office_id" => $_package->azeriexpress_office->foreign_id,
+////            "payment_method" => 1,
+////            "is_paid" => $package->payment_status,
+////            "customer_number" => $package->type == 'package' ? $customer->customer_id : "ASE" . $customer->id,
+////            "customer_passport" => $customer->passpot,//
+////            "customer_fincode" => $customer->fin,
+////            "customer_name" => $customer->first_name ?: explode(' ', $customer->fullname)[0],
+////            "customer_surname" => substr(
+////                $customer->last_name ?: (explode(' ', $customer->fullname)[1] ?? '-'),
+////                0,
+////                15
+////            ),
+////            "customer_mobile" => $phone,
+////            "address" => $customer->address,
+////            "barcode" => $package->barcode,
+////            "weight" => $_package->weight ?? 0.111,
+////            "price" => 0.8,
+////            "package_contents" => $_package->tracking_code,
+////        ];
+////
+////        $token = $this->getToken();
+////        if (!$token[1]['api_token']) {
+////            dd('3rd party token error');
+////        }
+////
+////        $postfield = json_encode($body);
+////        $url = 'https://api.azeriexpress.com/integration/orders';
+////        $multiCurl = curl_init();
+////        curl_setopt($multiCurl, CURLOPT_URL, $url);
+////        curl_setopt($multiCurl, CURLOPT_RETURNTRANSFER, true);
+////        curl_setopt($multiCurl, CURLOPT_CUSTOMREQUEST, "POST");
+////        curl_setopt($multiCurl, CURLOPT_SSL_VERIFYPEER, false);
+////        curl_setopt($multiCurl, CURLOPT_SSL_VERIFYHOST, false);
+////        curl_setopt($multiCurl, CURLOPT_POSTFIELDS, $postfield);
+////        curl_setopt($multiCurl, CURLOPT_HTTPHEADER, array(
+////            'accept: text/plain',
+////            "lang: az",
+////            "Content-Type: application/json",
+////            "Authorization: Bearer " . $token[1]['api_token']
+////        ));
+////
+////        $data = curl_exec($multiCurl);
+////        $httpCode = curl_getinfo($multiCurl, CURLINFO_HTTP_CODE);
+////        curl_close($multiCurl);
+////        if ($data === false) {
+////            $result = curl_error($multiCurl);
+////        } else {
+////            $result = $data;
+////        }
+////        $response = json_decode($data, true);
+////        dd($response);
+////        $body = [
+//////            "trackingNumber"=> 'KGO9920215439302'
+////            "trackingNumber"=> 'ASE4112615445397'
+////        ];
+////        $curl = curl_init();
+////
+////        curl_setopt_array($curl, array(
+////            CURLOPT_URL => 'https://ecarrier-fbusiness.customs.gov.az:7545/api/v2/carriers/deleteddeclarations/0/100',
+////            CURLOPT_RETURNTRANSFER => true,
+////            CURLOPT_ENCODING => '',
+////            CURLOPT_MAXREDIRS => 10,
+////            CURLOPT_TIMEOUT => 0,
+////            CURLOPT_FOLLOWLOCATION => true,
+////            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+////            CURLOPT_CUSTOMREQUEST => 'POST',
+////            CURLOPT_POSTFIELDS =>json_encode($body),
+////            CURLOPT_HTTPHEADER => array(
+////                'accept: application/json',
+////                'lang: az',
+////                'ApiKey: 8CD0F430D478F8E1DFC8E1311B20031E3A669607',
+////                'Content-Type: application/json'
+////            ),
+////        ));
+////
+////        $response = curl_exec($curl);
+////
+////        curl_close($curl);
+//////        $response = json_decode($response,true);
+////        dd($response);
+//
+//
+//
+////        $body          = [
+//////            "status" => 0,
+////            "trackingNumber" => "ASE3556048787552"
+//////            'OSS-1001899885'
+//////            "dateFrom"       => $date_from."501Z",
+//////            "dateTo"         => $date_to."501Z",
+////        ];
+////        $regNumbers     = [];
+////        $statuses       = [3,8];
+////        $approvesearch  = [];
+////        $addToBoxBodies = [];
+////        $addToboxes     = null;
+////
+//////        $body = [
+////
+//////            "dateFrom"       => "2023-08-16T07:11:10.501Z",
+//////            "dateTo"         => "2023-08-16T07:11:10.501Z",
+//////            "documentNumber" => "string",
+//////            "trackingNumber" => "string",
+//////            "status"         => 0
+//////        ];
+////        $curl = curl_init();
+////        curl_setopt_array($curl, array(
+////            CURLOPT_URL => 'https://ecarrier-fbusiness.customs.gov.az:7545/api/v2/carriers/declarations/0/100',
+////            CURLOPT_RETURNTRANSFER => true,
+////            CURLOPT_ENCODING => '',
+////            CURLOPT_MAXREDIRS => 10,
+////            CURLOPT_TIMEOUT => 0,
+////            CURLOPT_FOLLOWLOCATION => true,
+////            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+////            CURLOPT_CUSTOMREQUEST => 'POST',
+////            CURLOPT_POSTFIELDS =>json_encode($body),
+////            CURLOPT_HTTPHEADER => array(
+////                'accept: application/json',
+////                'lang: az',
+////                'ApiKey: 8CD0F430D478F8E1DFC8E1311B20031E3A669607',
+////                'Content-Type: application/json'
+////            ),
+////        ));
+////
+////        $response = curl_exec($curl);
+////        dd($response);
+////        die('declarations');
+////
+////        $body = [
+////            "trackingNumber"=> 'EQ0000129904AZ'
+////        ];
+////        $curl = curl_init();
+////
+////        curl_setopt_array($curl, array(
+////            CURLOPT_URL => 'https://ecarrier-fbusiness.customs.gov.az:7545/api/v2/carriers/declarations/0/100',
+////            CURLOPT_RETURNTRANSFER => true,
+////            CURLOPT_ENCODING => '',
+////            CURLOPT_MAXREDIRS => 10,
+////            CURLOPT_TIMEOUT => 0,
+////            CURLOPT_FOLLOWLOCATION => true,
+////            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+////            CURLOPT_CUSTOMREQUEST => 'POST',
+////            CURLOPT_POSTFIELDS =>json_encode($body),
+////            CURLOPT_HTTPHEADER => array(
+////                'accept: application/json',
+////                'lang: az',
+////                'ApiKey: 8CD0F430D478F8E1DFC8E1311B20031E3A669607',
+////                'Content-Type: application/json'
+////            ),
+////        ));
+////
+////        $response = curl_exec($curl);
+////
+////        curl_close($curl);
+//////        $response = json_decode($response,true);
+////        dd($response);
+//
+////        Artisan::call('carriers:update', [
+////            'package' => 1,
+////            'package_id' => 311312,
+////            'checkonly' => 0,
+////            'htmlformat' => 0,
+////            'deleteonly' => 1
+////        ]);
+//
+////        Artisan::call('carriers:update', [
+////            'package' => 1,
+////            'package_id' => 311312,
+////            'checkonly' => 0,
+////            'htmlformat' => 0
+////        ]);
+//
+//
+//
+//
+//
+//
+////        $customers = Customer::query()->whereNull('courier_id')->get();
+////
+////        foreach ($customers as $customer) {
+////            $prevTrack = Track::where('customer_id', $customer->id)
+////                ->where('status',17)
+////                ->whereNotNull('courier_delivery_id')
+////                ->orderByDesc('id')
+////                ->with('courier_delivery')
+////                ->first();
+////
+////            if ($prevTrack && $prevTrack->courier_delivery) {
+////                $customer->courier_id = $prevTrack->courier_delivery->courier_id;
+////                $customer->save();
+////
+////                $this->info("Courier assigned to customer ID {$customer->id}");
+////            } else {
+////                $this->warn("No valid track for customer ID {$customer->id}");
+////            }
+////        }
+//
+//
+////        $tracks = Track::query()
+////            ->where('delivery_type', 'HD')
+////            ->whereIn('partner_id', [9, 1])
+////            ->whereDoesntHave('courier_delivery')
+////            ->whereNull('courier_delivery_id')->get();
+//
+////        $tracks = Track::query()
+////            ->where('delivery_type', 'HD')
+////            ->whereIn('partner_id', [9, 1])
+////            ->whereNull('courier_delivery_id')
+////            ->where('created_at', '>=', '2025-07-01 00:00:00')
+////            ->get();
+////
+////        foreach ($tracks as $track) {
+////            if ($track->debt_price > 0 && $track->paid_debt == 0) {
+////                $this->error("Items have debt price for track: {$track->id}");
+////                continue;
+////            }
+////
+////            if ($track->customer_id) {
+////                $customer = $track->customer;
+////                $courier_id = null;
+////
+////                $prevTrack = Track::where('customer_id', $customer->id)
+////                    ->whereHas('courier_delivery')
+////                    ->where('status', 17)
+////                    ->where('id', '!=', $track->id)
+////                    ->with('courier_delivery')
+////                    ->orderByDesc('id')
+////                    ->first();
+////
+////                if (
+////                    $prevTrack &&
+////                    $prevTrack->courier_delivery &&
+////                    $prevTrack->courier_delivery->address === $customer->address
+////                ) {
+////                    $courier_id = $customer->courier_id ?? $prevTrack->courier_delivery->courier_id;
+////                }
+////
+////                $cd_status = 1;
+////                $cd = $track->courier_delivery;
+////
+////                if ($cd) {
+////                    $cd_status = $cd->status;
+////                }
+////
+////                $str = $track->worker_comments;
+////
+////                if (isOfficeWord($str)) {
+////                    CD::removeTrack($cd, $track);
+////                    $this->info("Track {$track->id} removed from delivery.");
+////                    continue;
+////                }
+////
+////                if ($cd && (($cd->courier_id != $courier_id) || ($cd->address != $customer->address))) {
+////                    $cd = CD::updateTrack($cd, $track, $courier_id);
+////                }
+////
+////                if (!$cd) {
+////                    $cd = CD::newCD($track, $courier_id, $cd_status);
+////                }
+////
+////                $cd->save();
+////                $track->courier_delivery_id = $cd->id;
+////                $track->save();
+////
+////                if (!$customer->courier_id) {
+////                    $customer->courier_id = $courier_id;
+////                    $customer->save();
+////                }
+////
+////                $this->info('Courier assigned');
+////            }
+////        }
+//
+//
+//
 //
 ////        $tracks = Track::where('status', 17)
-////            ->whereBetween('created_at', ['2025-05-20 00:00:00', '2025-05-31 23:59:59'])
+////            ->where('created_at', '>=', Carbon::parse('2025-06-15 00:00:00'))
+////            ->where('partner_id', 3)
 ////            ->get();
+////
+////        $service = new PackageService();
+////
+////        foreach ($tracks as $track) {
+////
+////            $service->updateStatus($track, $track->status);
+////            $this->info("Status sent for Track ID: $track->id");
+////
+////        }
+////
+////        $this->info("Finished processing all track IDs.");
 //
-//        foreach ($tracks as  $track){
-//            $this->line($track->id. ' tehvil verildi statusu yeniden gonderildi');
-//            (new PackageService())->updateStatus($track, 17);
-//        }
-//        dd($tracks);
-//        die();
-//        $tracks = Track::where('tracking_code','700785058743000')->first();
-//        $data = $this->get_goods_noid($tracks->goods);
-//        dd($data);
-//        die();
-//        $packages = Package::with(["user","user.delivery_point","user.delivery_point"])->where('id',325323)->get();
-//        foreach ($packages as $package){
-//            $this->info($package->custom_id);
-//            $user = $package->user;
-//            dd($user->delivery_point->work_time);
-////            dd($user->delivery_point);
-////            dd($package->delivery_point->work_time);
-////            $filial_work_time=$user->delivery_point->work_time;
-////            dd($filial_work_time);
-//            Notification::sendPackage($package->id, 2);
-//        }
-//        dd('bitdi');
-//        die();
-//    //dd($tracks->count());
-//    foreach ($tracks as $track){
+////        $ids = [
+////            350321984886000,900826777789000,800830127764000,300831501563000,350316695131000,750316259221000,650312617651000,950316632672000,250313679780000,201051461109000,450315310979000,900828379718000,201052270854000,201052270859000,900827767224000,800825106207000,600825314771000,201051532584000,550300955934000,250313458096000,950315033652000,800819325291000,900833138603000,700829775604000,550314589430000,650317210368000,850312939500000,750317853952000,700828135134000,250317624485000,850318032613000,201054920944000,700829946812000,900825381677000,900825381877000,650317533821000,350321349867000,550307822090000,300830446499000,950316506130000,900827060144000,400822441183000,201048104473000,350300944021000,750305829794000,600827621896000
+////        ];
+////
+////        $service = new PackageService();
+////
+////        foreach ($ids as $id) {
+////            $track = Track::where('tracking_code', $id)->first();
+////
+////            if (!$track) {
+////                $this->error("Track not found for ID: $id");
+////                continue;
+////            }
+////
+////            $service->updateStatus($track, $track->status);
+////            $this->info("Status sent for Track ID: $id");
+////        }
+////
+////        $this->info("Finished processing all track IDs.");
 //
-////        $sendWpAboutPayment = $this->sendTrack($track->id,5);
-////        echo $sendWpAboutPayment;
 //
-//        $text="OZON saytından $track->tracking_code izləmə nömrəli bağlamanız sistemə daxil olmuşdur. Xahiş edirik ki, elektron gömrük portalına (Smart Customs) əlavə olunmuş bəyannaməni *bu gün ərzində* təcili doldurub təsdiqləyəsiniz.
-//        *Diqqət!*
-//        -*Bəyannamə Smart-ın “Bəyan edilməmişlər” bölməsində çıxmadısa, zəhmət olmasa FİN-kod/pasport nömrəsi məlumatını qeyd edin!*
-//        - Bəyannamədəki izləmə nömrəsinin hansı məhsula aid olduğunu əks olunan invoys dəyərindən və ya OZON saytından təyin edə bilərsiniz.
-//        - Dəyər KZT-USD çevirinə uyğun Dollarla qeyd edilməlidir.
 //
-//        *Bəyannamə mümkün qədər tez daxil edilməlidir, əks halda bağlamanız gömrük tərəfindən ödənişli olaraq saxlanılacaq!*
+////
+////        exit();
 //
-//        Əlaqə nömrəsi: +994 50 256 0075";
+////        $twoWeeksAgo = Carbon::now()->subWeeks(2);
 //
-//        $queue = [
-//            'type' => 'TRACK',
-//            'user_id' => $track->user->id,
-//        ];
+////        $tracks = Track::where('status', 17)->whereIn('tracking_code', ['500831717190000','950321394949000','750318710134000','850318992252000','750319671392000','350320384731000','950320039176000','350319915475000','900831950788000','500832279847000','201055299620000','400829106133000','350320568244000','300835192391000','250318690289000','350319915476000','400825583004000','700825590607000','850314433580000','300831314213000','800826934580000','550317106838000','300831094799000','300833457806000','550317399555000','300831314214000','950314119061000','450315945112000','250315648537000','201049065767000','950318016069000','600828114082000','750309944703000','350316128910000','350315171751000','201052016518000','600829246199000','600829246909000','300831368960000','400825569150000','250315477265000','950315690765000','500827252183000','850313651195000','350315844570000','900826730558000','300830038682000','950315010334000','750312467620000','350314678055000','201048633680000','600825093926000','700820585160000','900817269558000','500818465610000'
+////        ])
+////            ->get();
+////
+//////        $tracks = Track::where('status', 17)
+//////            ->whereBetween('created_at', ['2025-05-20 00:00:00', '2025-05-31 23:59:59'])
+//////            ->get();
+////
+////        foreach ($tracks as  $track){
+////            $this->line($track->id. ' tehvil verildi statusu yeniden gonderildi');
+////            (new PackageService())->updateStatus($track, 17);
+////        }
+////        dd($tracks);
+////        die();
+////        $tracks = Track::where('tracking_code','700785058743000')->first();
+////        $data = $this->get_goods_noid($tracks->goods);
+////        dd($data);
+////        die();
+////        $packages = Package::with(["user","user.delivery_point","user.delivery_point"])->where('id',325323)->get();
+////        foreach ($packages as $package){
+////            $this->info($package->custom_id);
+////            $user = $package->user;
+////            dd($user->delivery_point->work_time);
+//////            dd($user->delivery_point);
+//////            dd($package->delivery_point->work_time);
+//////            $filial_work_time=$user->delivery_point->work_time;
+//////            dd($filial_work_time);
+////            Notification::sendPackage($package->id, 2);
+////        }
+////        dd('bitdi');
+////        die();
+////    //dd($tracks->count());
+////    foreach ($tracks as $track){
+////
+//////        $sendWpAboutPayment = $this->sendTrack($track->id,5);
+//////        echo $sendWpAboutPayment;
+////
+////        $text="OZON saytından $track->tracking_code izləmə nömrəli bağlamanız sistemə daxil olmuşdur. Xahiş edirik ki, elektron gömrük portalına (Smart Customs) əlavə olunmuş bəyannaməni *bu gün ərzində* təcili doldurub təsdiqləyəsiniz.
+////        *Diqqət!*
+////        -*Bəyannamə Smart-ın “Bəyan edilməmişlər” bölməsində çıxmadısa, zəhmət olmasa FİN-kod/pasport nömrəsi məlumatını qeyd edin!*
+////        - Bəyannamədəki izləmə nömrəsinin hansı məhsula aid olduğunu əks olunan invoys dəyərindən və ya OZON saytından təyin edə bilərsiniz.
+////        - Dəyər KZT-USD çevirinə uyğun Dollarla qeyd edilməlidir.
+////
+////        *Bəyannamə mümkün qədər tez daxil edilməlidir, əks halda bağlamanız gömrük tərəfindən ödənişli olaraq saxlanılacaq!*
+////
+////        Əlaqə nömrəsi: +994 50 256 0075";
+////
+////        $queue = [
+////            'type' => 'TRACK',
+////            'user_id' => $track->user->id,
+////        ];
+////
+////        $content = json_encode([
+////            'whatsapp' => $text,
+////            'sms' => "OZON-dan $track->tracking_code baglamaniz sisteme daxil olmushdur. Beyannameni Smart Customs-da tecili beyan edin, eks halda baglamaniz gomrukde qalacaq
+////            +994502560075
+////            Hormetle, ASE Shop"
+////        ]);
+////
+////        NotificationQueue::create([
+////            'user_id' => $track->user->id,
+////            'type' => 'WHATSAPP',
+////            'to' => $track->user->phone,
+////            'sent' => 0,
+////            'content' => $content,
+////        ]);
+////
+//////        $data = $this->sendWhatsappMessage($track->user->phone, $text, (object)$queue);
+////    }
+////        dd('bitdi qaqasim');
+////        return;
+////	 $this->resetOzon2();
+////	 return;
+////         $track = Track::where('tracking_code','GE2411216004103')->first();
+////	 $track->carrierReset();
+////	 return;
+//// //        $shippingAmount = $package->getShippingAmountUSD();
+//// //        if (!$shippingAmount)
+//// //             $shippingAmount = 0;
+//////	 $cm->invoyS_PRICE = $shippingAmount;
+//////         $cm->trackingNumber = $package->custom_id;
+////// 	 $track = Track::where('tracking_code','200740659378000')->first();
+////	 $cm->airwaybill=NULL;
+////	 $cm->depesH_NUMBER=NULL;
+////         if($track->container && $track->container->name) {
+////            $cm->airwaybill = $track->container->name;
+////         }
+////         if($track->airbox && $track->airbox->name) {
+////            $cm->depesH_NUMBER = $track->airbox->name;
+////	 }
+////	 $cm->quantitY_OF_GOODS=1;
+////         $cm->trackingNumber = $track->tracking_code;
+////	 $cm->weighT_GOODS = $track->weight;
+////	 $cm->get_goods_noid($track->goods);
+////         $cpost = $cm->weight_carriers();
 //
-//        $content = json_encode([
-//            'whatsapp' => $text,
-//            'sms' => "OZON-dan $track->tracking_code baglamaniz sisteme daxil olmushdur. Beyannameni Smart Customs-da tecili beyan edin, eks halda baglamaniz gomrukde qalacaq
-//            +994502560075
-//            Hormetle, ASE Shop"
-//        ]);
 //
-//        NotificationQueue::create([
-//            'user_id' => $track->user->id,
-//            'type' => 'WHATSAPP',
-//            'to' => $track->user->phone,
-//            'sent' => 0,
-//            'content' => $content,
-//        ]);
-//
-////        $data = $this->sendWhatsappMessage($track->user->phone, $text, (object)$queue);
 //    }
-//        dd('bitdi qaqasim');
-//        return;
-//	 $this->resetOzon2();
-//	 return;
-//         $track = Track::where('tracking_code','GE2411216004103')->first();
-//	 $track->carrierReset();
-//	 return;
-// //        $shippingAmount = $package->getShippingAmountUSD();
-// //        if (!$shippingAmount)
-// //             $shippingAmount = 0;
-////	 $cm->invoyS_PRICE = $shippingAmount;
-////         $cm->trackingNumber = $package->custom_id;
-//// 	 $track = Track::where('tracking_code','200740659378000')->first();
-//	 $cm->airwaybill=NULL;
-//	 $cm->depesH_NUMBER=NULL;
-//         if($track->container && $track->container->name) {
-//            $cm->airwaybill = $track->container->name;
-//         }
-//         if($track->airbox && $track->airbox->name) {
-//            $cm->depesH_NUMBER = $track->airbox->name;
-//	 }
-//	 $cm->quantitY_OF_GOODS=1;
-//         $cm->trackingNumber = $track->tracking_code;
-//	 $cm->weighT_GOODS = $track->weight;
-//	 $cm->get_goods_noid($track->goods);
-//         $cpost = $cm->weight_carriers();
-
-
-    }
 
 //    function get_goods_noid($items)
 //    {

@@ -156,6 +156,11 @@ class YeniPoct extends Command
             }
             $response = json_decode($data, true);
 
+
+            Log::channel('yenipoct')->info("Yeni poct response", [
+                'response_body' => $response,
+            ]);
+
             if (isset($response["status"]) and $response["status"]) {
 
                 if ($response["status"] == 'ok') {
@@ -176,10 +181,7 @@ class YeniPoct extends Command
                         $_track->bot_comment = "Bağlama YeniPoct-a göndərildi";
                         $_track->save();
                     }
-                    Log::channel('yenipoct')->info("Yeni poct createOrder Success", [
-                        'response_status' => $response->status(),
-                        'response_body' => $response->json(),
-                    ]);
+
                     $this->line("success . Tracking Number: " . $package->barcode);
 
                 } else {
