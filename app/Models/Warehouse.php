@@ -219,16 +219,16 @@ class Warehouse extends Authenticatable
     }
 
     public function calculateDeliveryPrice(
-        $weight,
-        $weightUnit = 0,
-        $width = null,
-        $height = null,
-        $length = null,
-        $sizeUnit = 0,
+        $weight, //0.2
+        $weightUnit = 0, //0
+        $width = null, //null
+        $height = null, //null
+        $length = null, //null
+        $sizeUnit = 0, // 0
         $showCurrency = false,
         $discountPercent = 0,
-        $azerpoct = 0,
-        $city_id = 0,
+        $azerpoct = 0, //1
+        $city_id = 0, //10
         $additional_delivery_price = 0
     )
     {
@@ -236,7 +236,7 @@ class Warehouse extends Authenticatable
         if (!$this->country)
             return $result;
 
-        $weight = ((float)str_replace(",", ".", $weight)) * config('ase.attributes.weightConvert')[$weightUnit];
+        $weight = ((float)str_replace(",", ".", $weight)) * config('ase.attributes.weightConvert')[$weightUnit]; //0.2kg
 
         if ($width) {
             $width = ((float)$width) * config('ase.attributes.lengthConvert')[$sizeUnit];
@@ -352,6 +352,173 @@ class Warehouse extends Authenticatable
         else if ($discountPercent >= 100) $result = 0;
         return $result ? (round($result, 2) . ($showCurrency ? " " . $this->currency_with_label : null)) : False;
     }
+
+
+
+    public function calculateDeliveryPrice2(
+        $weight, //0.2
+        $weightUnit = 0, //0
+        $width = null, //null
+        $height = null, //null
+        $length = null, //null
+        $sizeUnit = 0, // 0
+        $showCurrency = false,
+        $discountPercent = 0,
+        $azerpoct = 0, //1
+        $city_id = 0, //10
+        $additional_delivery_price = 0
+    )
+    {
+
+
+        $result = 0;
+        if (!$this->country)
+            return $result;
+
+
+
+        $weight = ((float)str_replace(",", ".", $weight)) * config('ase.attributes.weightConvert')[$weightUnit]; //0.2kg
+
+        if ($width) {
+            $width = ((float)$width) * config('ase.attributes.lengthConvert')[$sizeUnit];
+        }
+        if ($height) {
+            $height = ((float)$height) * config('ase.attributes.lengthConvert')[$sizeUnit];
+        }
+        if ($length) {
+            $length = ((float)$length) * config('ase.attributes.lengthConvert')[$sizeUnit];
+        }
+
+        $size_index = ($this->country->delivery_index && ($width >= 100 || $height >= 100 || $length >= 100)) ? ($width * $height * $length / $this->country->delivery_index) : 0;
+
+        $kq = $size_index > $weight ? $size_index : $weight;
+
+
+        if ($kq) {
+            $tariff_price = null;
+            $weightPrice = null;
+
+            $tariffs = $this->active_tariffs;
+
+
+            if ($tariffs && count($tariffs) > 0) {
+                foreach ($tariffs as $tariff) {
+                    if (!$tariff->tariff_weights || count($tariff->tariff_weights) <= 0)
+                        continue;
+
+//                    dd($tariff->tariff_weights->toArray());
+                    foreach ($tariff->tariff_weights as $tariffWeight) {
+
+                        $tariffPrices = null;
+                        if ($azerpoct)
+                            $tariffPrices = $tariffWeight->azerpoct_tariff_prices;
+                        else
+                            $tariffPrices = $tariffWeight->non_azerpoct_tariff_prices;
+                        if (!$tariffPrices || count($tariffPrices) <= 0)
+                            continue;
+                        //echo "kq=".$kq." from_weight=".$tariffWeight->from_weight." to_weight=".$tariffWeight->to_weight." <br> ";
+                        if (
+                            ($tariffWeight->from_weight <= $kq || !$tariffWeight->from_weight || $tariffWeight->from_weight <= 0)
+                            &&
+                            ($tariffWeight->to_weight > $kq || !$tariffWeight->to_weight || $tariffWeight->to_weight <= 0)
+                        ) {
+                            //echo "  twid=".$tariffWeight->id." pw=".$tariffWeight->per_weight." cid=".$city_id;
+
+                            foreach ($tariffPrices as $tariffPrice) {
+                                if ($tariffPrice->city_id && $tariffPrice->city_id == $city_id) {
+                                    //echo "tpid=".$tariffPrice->id."  twid=".$tariffWeight->id." pw=".$tariffWeight->per_weight." tp=".$tariffPrice->price." tp=".$tariff_price." cid=".$city_id."  tcid=".$tariffPrice->city_id;
+                                    if ($tariffWeight->per_weight && $tariffWeight->per_weight > 0)
+                                        $tariff_price = ($kq / $tariffWeight->per_weight) * $tariffPrice->price;
+                                    else
+                                        $tariff_price = $tariffPrice->price;
+                                    break;
+                                }
+                            }
+
+                            if (!$tariff_price)
+                                foreach ($tariffPrices as $tariffPrice) {
+                                    //echo "tpid=".$tariffPrice->id."  twid=".$tariffWeight->id." pw=".$tariffWeight->per_weight." tp=".$tariffPrice->price." tp=".$tariff_price." cid=".$city_id."  tcid=".$tariffPrice->city_id;
+                                    if (!$tariffPrice->city_id) {
+                                        if ($tariffWeight->per_weight && $tariffWeight->per_weight > 0)
+                                            $tariff_price = ($kq / $tariffWeight->per_weight) * $tariffPrice->price;
+                                        else
+                                            $tariff_price = $tariffPrice->price;
+                                        break;
+                                    }
+                                }
+                        }
+                        if ($tariff_price)
+                            break;
+                    }
+                    if ($tariff_price)
+                        break;
+                }
+            }
+
+            dd($city_id);
+
+
+
+            //$weightPrice=WeightPrice::where('warehouse_id',$this->id)->where("is_active",1)
+            //	->where(function ($q) use($kq) {$q->where('weight_from','<=',$kq)->orWhereNull('weight_from')->orWhere('weight_from','=',0);})
+            //	->where(function ($q) use($kq) {$q->where('weight_to','>',$kq)->orWhereNull('weight_to')->orWhere('weight_to','=',0);})
+            //	->orderBy('updated_at', 'desc')->first();
+
+//            dd($tariff_price,$weightPrice);
+
+
+
+            if ($tariff_price) {
+                $result = $tariff_price;
+            } else if ($weightPrice) {
+                $result = $weightPrice->shipping_amount;
+            } else {
+                if ($this->per_g) {
+                    if ($kq <= 0.5) {
+                        $result = $this->half_kg;
+                    } else {
+                        $result = $this->half_kg + ($this->per_g * ($kq - 0.5) * 1000);
+                    }
+                } else {
+//                    dd($this->id);
+//                    dd($this->per_kg,$this->half_kg, $this->from_200g_to_500g, $this->from_100g_to_200g, $this->to_100g, $this->up_10_kg);
+
+
+                    $result = $this->per_kg * $kq;
+                    if ($kq < 1)
+                        $result = $this->per_kg;
+                    if ($kq < 1 && $this->from_750g_to_1kq)
+                        $result = $this->from_750g_to_1kq;
+                    if ($kq < 0.75 && $this->from_500g_to_750g)
+                        $result = $this->from_500g_to_750g;
+                    if ($kq <= 0.5 && $this->half_kg)
+                        $result = $this->half_kg;
+                    if ($kq < 0.5 && $this->from_200g_to_500g)
+                        $result = $this->from_200g_to_500g;
+                    if ($kq < 0.2 && $this->from_100g_to_200g)
+                        $result = $this->from_100g_to_200g;
+                    if ($kq < 0.1 && $this->to_100g)
+                        $result = $this->to_100g;
+                    if ($kq >= 10 && $this->up_10_kg)
+                        $result = $this->up_10_kg * $kq;
+
+
+                }
+            }
+        }
+
+
+
+
+        //echo "d=".$discountPercent." ";
+        if ($result && $additional_delivery_price && $additional_delivery_price > 0)
+            $result = $result + $additional_delivery_price;
+        if ($discountPercent > 0 && $discountPercent < 100)
+            $result = $result - round($result * $discountPercent / 100, 2);
+        else if ($discountPercent >= 100) $result = 0;
+        return $result ? (round($result, 2) . ($showCurrency ? " " . $this->currency_with_label : null)) : False;
+    }
+
 
     public function calculateDeliveryPriceWithManat(
         $weight,

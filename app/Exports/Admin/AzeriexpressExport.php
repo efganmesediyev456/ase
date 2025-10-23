@@ -19,7 +19,6 @@ class AzeriexpressExport implements FromView, ShouldAutoSize
     {
         $containers = $this->items;
 
-        exit;
         return view('admin.exports.azeriexpress', [
             'containers' => $containers
         ]);

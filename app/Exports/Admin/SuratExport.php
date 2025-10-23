@@ -19,7 +19,7 @@ class SuratExport implements FromView, ShouldAutoSize
     {
         $containers = $this->items;
 
-        return view('admin.exports.azeriexpress', [
+        return view('admin.exports.suratexport', [
             'containers' => $containers
         ]);
     }

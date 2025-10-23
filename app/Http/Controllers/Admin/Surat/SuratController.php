@@ -85,6 +85,7 @@ class SuratController extends Controller
         if ($request->filled('export') && $request->get('export') == 1) {
             $excel = app()->make(Excel::class);
             $date = now()->format('Y-m-d-m-Y-H-i-s');
+
             return $excel->download(new ReportsExport($packagesQuery->get(), 'surat'), 'surat-report-' . $date . '.xlsx');
         }
 
@@ -200,12 +201,13 @@ class SuratController extends Controller
             });
 
         if ($request->has('export')) {
+
             $date = $packages->first()->container->created_at;
             $b = $date ? (clone $date->startOfDay()) : now()->startOfDay();
             $e = $date ? (clone $date->endOfDay()) : now()->endOfDay();
             $_containers = SuratOrder::query()->with(['packages.package.user', 'packages.track.customer'])->whereBetween('created_at', [$b, $e])->get();
             $excel = app()->make(Excel::class);
-            return $excel->download(new SuratExport($_containers), 'surat_container_' . $id . '.xlsx');
+            return $excel->download(new SuratExport($_containers), 'surat_container_' .$id . '_' . time() . '.xlsx');
         }
 
         $packages = $packages->orderByRaw('CAST(status AS UNSIGNED) ASC')->paginate(100);

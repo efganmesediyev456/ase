@@ -29,7 +29,7 @@
                         {{ $package->track->customer_id }}
                     @endif
                 </td>
-                <td>{{ $row->azeriExpressOffice->name }}</td>
+                <td>{{ $row->suratOffice->name }}</td>
                 <td>{{ $row->created_at->format('d-m-Y') }}</td>
                 <td></td>
                 <td></td>

@@ -6,12 +6,17 @@ use App\Jobs\SendTrackStatusJob;
 use App\Jobs\SendTrackStatusJobLast;
 use App\Jobs\SendTrackStatusJobLast2;
 use App\Models\CD;
+use App\Models\City;
 use App\Models\Customer;
+use App\Models\CustomsType;
 use App\Models\DebtLog;
+use App\Models\Discount;
 use App\Models\Extra\Whatsapp;
 use App\Models\NotificationQueue;
+use App\Models\PackageType;
 use App\Models\Setting;
 use App\Models\User;
+use App\Models\Warehouse;
 use App\Services\Integration\UnitradeService;
 use GuzzleHttp\Client;
 use Illuminate\Console\Command;
@@ -27,6 +32,7 @@ use App\Models\Extra\Notification;
 use App\Models\ExclusiveLock;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use mysql_xdevapi\Collection;
 
 class Test extends Command
 {
@@ -93,11 +99,6 @@ class Test extends Command
         return $data['access_token'];
     }
 
-    /**
-     * Execute the console command.
-     *
-     * @return mixed
-     */
 
 
 
@@ -105,6 +106,173 @@ class Test extends Command
 
     public function handle()
     {
+
+
+//        $packageData = [
+//            'show_label' => 1,
+//            'detailed_type' => '',
+//            'width' => null,
+//            'height' => null,
+//            'length' => null,
+//            'length_type' => 0,
+//            'tracking_code' => 'H023FA1122539354',
+//            'user_id' => 35831,
+//            'website_name' => '-',
+//            'seller_name' => '',
+//            'weight' => 0.2,
+//            'weight_type' => 0,
+//            'number_items' => null,
+//            'shipping_amount' => null,
+//            'shipping_amount_cur' => 0,
+//            'warehouse_comment' => '',
+//            'warehouse_id' => 20,
+//            'custom_id' => 'ASE6403766657182',
+//            'additional_delivery_final_price' => 0,
+//            'battery_price' => 0,
+//            'insurance_price' => 0,
+//            'weight_goods' => 0.2,
+//            'updated_at' => '2025-10-21 14:43:42',
+//            'created_at' => '2025-10-21 14:43:42',
+////            'id' => 368648
+//        ];
+
+        $query = new Package();
+
+        $query->show_label = 1;
+        $query->detailed_type = '';
+        $query->width = null;
+        $query->height = null;
+        $query->length = null;
+        $query->length_type = 0;
+        $query->tracking_code = 'H023FA1122539354';
+        $query->user_id = 35831;
+        $query->website_name = '-';
+        $query->seller_name = '';
+        $query->weight = 0.2;
+        $query->weight_type = 0;
+        $query->number_items = null;
+        $query->shipping_amount = null;
+        $query->shipping_amount_cur = 0;
+        $query->warehouse_comment = '';
+        $query->warehouse_id = 20; // override
+        $query->custom_id = 'ASE6403766657182';
+        $query->additional_delivery_final_price = 0;
+        $query->battery_price = 0;
+        $query->insurance_price = 0;
+        $query->weight_goods = 0.2;
+        $query->updated_at = '2025-10-21 14:43:42';
+        $query->created_at = '2025-10-21 14:43:42';
+        $query->user_id = 35831;
+
+
+
+
+
+
+        $user = null;
+        if ($query->user_id)
+            $user = User::find($query->user_id);
+
+//        dd($user);
+        $azerpoct = 0;
+        $city_id = 0;
+        if ($user) {
+            $azerpoct = $user->azerpoct_send;
+            $city_id = $user->city_id;
+        }
+        $query->custom_id = $query->custom_id ?: self::generateCustomId();
+
+        $webSiteName = getOnlyDomainWithExt($query->website_name);
+        $query->website_name = $webSiteName ?: $query->website_name;
+
+        $type_id = $query->type_id;
+        $customs_type_id = null;
+        if (isset($query->customs_type_id))
+            $customs_type_id = $query->customs_type_id;
+        $number_items = $query->number_items;
+
+        if (!empty($number_items) && !empty($customs_type_id)) {
+            $customsType = CustomsType::find($customs_type_id);
+            if ($customsType)
+                $query->detailed_type = $number_items . ' x ' . $customsType->name_en_with_parent;
+        } else if (!empty($number_items) && !empty($type_id)) {
+            $type = PackageType::find($type_id);
+            if ($type)
+                $query->detailed_type = $number_items . ' x ' . $type->translateOrDefault('en')->name;
+        }
+
+        //if ($query->country_id and ! $query->warehouse_id) {
+        if ($query->country_id || $query->warehouse_id) {
+            $warehouse = null;
+            if ($query->country_id)
+                $warehouse = Warehouse::whereCountryId($query->country_id)->latest()->first();
+            else if ($query->warehouse_id)
+                $warehouse = Warehouse::where('id', $query->warehouse_id)->latest()->first();
+
+
+            if ($warehouse) {
+                $query->warehouse_id = $warehouse->id;
+                $weight = $query->weight_goods;
+                $curShippingAmount = Package::s_getShippingAmountUSD($query);
+                if (empty($weight))
+                    $weight = $query->weight;
+                $weight_type = $query->weight_type;
+                if (!$weight_type) $weight_type = 0;
+                $length_type = $query->length_type;
+                if (!$length_type) $length_type = 0;
+                if ($weight && !request()->has('delivery_price') && request()->get('name') != 'delivery_price') {
+
+                    $additionalDeliveryPrice = 0;
+
+                    $additional_delivery_final_price = 0;
+                    if (isset($query->additional_delivery_price) && $query->additional_delivery_price && $query->additional_delivery_price > 0 && $warehouse->use_additional_delivery_price)
+                        $additional_delivery_final_price = $query->additional_delivery_price * 1.2;
+                    $query->additional_delivery_final_price = $additional_delivery_final_price;
+                    $additionalDeliveryPrice += $additional_delivery_final_price;
+
+                    $battery_price = 0;
+                    if (isset($query->has_battery) && $query->has_battery && $warehouse->battery_price && $warehouse->battery_price > 0)
+                        $battery_price = $warehouse->battery_price;
+                    $query->battery_price = $battery_price;
+                    $additionalDeliveryPrice += $battery_price;
+
+                    $insurance_price = 0;
+                    if ($curShippingAmount && isset($query->has_insurance) && $query->has_insurance)
+                        $insurance_price = $curShippingAmount * 0.01;
+                    $query->insurance_price = $insurance_price;
+                    $additionalDeliveryPrice += $insurance_price;
+
+
+
+//                    dd([
+//                        $weight, $weight_type, $query->width, $query->height, $query->length, $length_type, false, 0, $azerpoct, $city_id, $additionalDeliveryPrice
+//                    ]);
+                    $deliveryPrice = $warehouse->calculateDeliveryPrice2($weight, $weight_type, $query->width, $query->height, $query->length, $length_type, false, 0, 1, $city_id, $additionalDeliveryPrice);
+//                    dd($deliveryPrice);
+                    $query->delivery_price = $deliveryPrice;
+                }
+            }
+        }
+
+
+
+
+        $query->shipping_amount_cur = 5;
+        $query->shipping_amount = 16.11;
+        $query->declaration = true;
+        $query->website_name = 'shein';
+        $query->invoice ='jsjjs';
+
+        $query->number_items = 1;
+        $query->processed_at = '2025-10-21 14:43:42';
+
+
+
+
+        dd($query->delivery_price);
+
+
+
 
 
         $packages = Package::where('status', 4)
@@ -122,24 +290,33 @@ class Test extends Command
 
         $now = Carbon::now();
 
+        $collection = collect();
+        $collection2 = collect();
+
         foreach ($packages as $package) {
             $customsTime = Carbon::parse($package->customs_at);
             $lastDebtLog = DebtLog::where('custom_id', $package->tracking_code)->latest()->first();
             $dueTime = $lastDebtLog ? Carbon::parse($lastDebtLog->created_at)->addHours(24) : $customsTime->addHours(24);
 
+
             if ($dueTime <= $now) {
+                $collection->push($package);
                 $priceToAdd = $lastDebtLog ? Setting::find(1)->debt_price_day : Setting::find(1)->debt_price_first_day;
-
-                $debtLog = new DebtLog();
-                $debtLog->custom_id = $package->tracking_code;
-                $debtLog->price = $package->debt_price;
-                $debtLog->after_price = $package->debt_price + $priceToAdd;
-                $debtLog->save();
-
+//
+//                $debtLog = new DebtLog();
+//                $debtLog->custom_id = $package->tracking_code;
+//                $debtLog->price = $package->debt_price;
+//                $debtLog->after_price = $package->debt_price + $priceToAdd;
+//                $debtLog->save();
+//
                 $package->debt_price += $priceToAdd;
-                $package->save();
+                $collection2->push($package->debt_price);
+
+//                $package->save();
             }
         }
+
+        dd($collection->count(), $collection2);
 
         foreach ($tracks as $track) {
 
