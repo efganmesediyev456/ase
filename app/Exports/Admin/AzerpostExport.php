@@ -18,10 +18,10 @@ class AzerpostExport implements FromView, ShouldAutoSize
 
     public function view(): View
     {
-        $_containers = $this->items;
+        $packages = $this->items;
 
         return view('admin.exports.azerpost', [
-            'containers' => $_containers,
+            'packages' => $packages,
         ]);
     }
 }

@@ -202,12 +202,15 @@ class SuratController extends Controller
 
         if ($request->has('export')) {
 
-            $date = $packages->first()->container->created_at;
-            $b = $date ? (clone $date->startOfDay()) : now()->startOfDay();
-            $e = $date ? (clone $date->endOfDay()) : now()->endOfDay();
-            $_containers = SuratOrder::query()->with(['packages.package.user', 'packages.track.customer'])->whereBetween('created_at', [$b, $e])->get();
+            $packages = $packages->orderBy('status')->get();
             $excel = app()->make(Excel::class);
-            return $excel->download(new SuratExport($_containers), 'surat_container_' .$id . '_' . time() . '.xlsx');
+
+//            $date = $packages->first()->container->created_at;
+//            $b = $date ? (clone $date->startOfDay()) : now()->startOfDay();
+//            $e = $date ? (clone $date->endOfDay()) : now()->endOfDay();
+//            $_containers = SuratOrder::query()->with(['packages.package.user', 'packages.track.customer'])->whereBetween('created_at', [$b, $e])->get();
+            $excel = app()->make(Excel::class);
+            return $excel->download(new SuratExport($packages), 'surat_container_' .$id . '_' . time() . '.xlsx');
         }
 
         $packages = $packages->orderByRaw('CAST(status AS UNSIGNED) ASC')->paginate(100);

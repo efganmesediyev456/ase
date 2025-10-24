@@ -11,7 +11,9 @@ class PackageTrackInBaku extends Model
     use SoftDeletes;
 
     public $with = ['warehouse', 'user.dealer', 'country'];
-    protected $table = "inbaku_v";
+
+    //saalmm
+    protected $table = "inbaku_v2";
 
     public $dates = ['deleted_at'];
 

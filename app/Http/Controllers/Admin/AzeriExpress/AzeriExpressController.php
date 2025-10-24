@@ -236,13 +236,17 @@ class AzeriExpressController extends Controller
             });
 
         if ($request->has('export')) {
-            $date = $packages->first()->container->created_at;
-            $b = $date ? (clone $date->startOfDay()) : now()->startOfDay();
-            $e = $date ? (clone $date->endOfDay()) : now()->endOfDay();
-            $_containers = AzeriExpressOrder::query()->with(['packages.package.user', 'packages.track.customer'])->whereBetween('created_at', [$b, $e])->get();
+//            $date = $packages->first()->container->created_at;
+//            $b = $date ? (clone $date->startOfDay()) : now()->startOfDay();
+//            $e = $date ? (clone $date->endOfDay()) : now()->endOfDay();
+//            $_containers = AzeriExpressOrder::query()->with(['packages.package.user', 'packages.track.customer'])->whereBetween('created_at', [$b, $e])->get();
 //            $packages = $packages->orderBy('status')->get();
+
+            $packages = $packages->orderBy('status')->get();
             $excel = app()->make(Excel::class);
-            return $excel->download(new AzeriexpressExport($_containers), 'azeriexpress_container_' . $id . '.xlsx');
+
+
+            return $excel->download(new AzeriexpressExport($packages), 'azeriexpress_container_' . $id . '.xlsx');
         }
 
         $packages = $packages->orderByRaw('CAST(status AS UNSIGNED) ASC')->paginate(100);

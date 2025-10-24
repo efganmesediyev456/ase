@@ -208,12 +208,14 @@ class AzerpostController extends Controller
 
         if ($request->has('export')) {
 //            $packages = $packages->orderBy('status')->get();
-            $date = $packages->first()->container->created_at;
-            $b = $date ? (clone $date->startOfDay()) : now()->startOfDay();
-            $e = $date ? (clone $date->endOfDay()) : now()->endOfDay();
-            $_containers = AzerpostOrder::query()->with(['packages.package.user', 'packages.track.customer'])->whereBetween('created_at', [$b, $e])->get();
+//            $date = $packages->first()->container->created_at;
+//            $b = $date ? (clone $date->startOfDay()) : now()->startOfDay();
+//            $e = $date ? (clone $date->endOfDay()) : now()->endOfDay();
+//            $_containers = AzerpostOrder::query()->with(['packages.package.user', 'packages.track.customer'])->whereBetween('created_at', [$b, $e])->get();
+//            $excel = app()->make(Excel::class);
+            $packages = $packages->orderBy('status')->get();
             $excel = app()->make(Excel::class);
-            return $excel->download(new AzerpostExport($_containers), 'azerpost_container_' . $id . '.xlsx');
+            return $excel->download(new AzerpostExport($packages), 'azerpost_container_' . $id . '.xlsx');
 //            return view('admin.azerpost.export', compact('_containers'));
         }
 

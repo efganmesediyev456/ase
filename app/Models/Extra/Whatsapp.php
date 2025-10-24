@@ -128,8 +128,8 @@ class Whatsapp extends Model
                         'phone'        =>  $number,
                         'message_id'   =>  $message_id ?? null,
                         'text'         =>  $fullname." ".$text['whatsapp'],
-                        'response'     => json_encode($response),
-                        'sended_date'    => now()
+                        'response'     =>  json_encode($response),
+                        'sended_date'  =>  now()
                     ]
                 );
                 return ['success' => true, 'message' => 'WP sent to customer'];

@@ -264,10 +264,13 @@ class Warehouse extends Authenticatable
                         continue;
                     foreach ($tariff->tariff_weights as $tariffWeight) {
                         $tariffPrices = null;
-                        if ($azerpoct)
-                            $tariffPrices = $tariffWeight->azerpoct_tariff_prices;
-                        else
-                            $tariffPrices = $tariffWeight->non_azerpoct_tariff_prices;
+//                        if ($azerpoct)
+//                            $tariffPrices = $tariffWeight->azerpoct_tariff_prices;
+//                        else
+//                            $tariffPrices = $tariffWeight->non_azerpoct_tariff_prices;
+
+                        $tariffPrices = $tariffWeight->withoutAzerpoctTariffPrices;
+
                         if (!$tariffPrices || count($tariffPrices) <= 0)
                             continue;
                         //echo "kq=".$kq." from_weight=".$tariffWeight->from_weight." to_weight=".$tariffWeight->to_weight." <br> ";
@@ -401,6 +404,7 @@ class Warehouse extends Authenticatable
             $tariffs = $this->active_tariffs;
 
 
+
             if ($tariffs && count($tariffs) > 0) {
                 foreach ($tariffs as $tariff) {
                     if (!$tariff->tariff_weights || count($tariff->tariff_weights) <= 0)
@@ -410,10 +414,14 @@ class Warehouse extends Authenticatable
                     foreach ($tariff->tariff_weights as $tariffWeight) {
 
                         $tariffPrices = null;
-                        if ($azerpoct)
-                            $tariffPrices = $tariffWeight->azerpoct_tariff_prices;
-                        else
-                            $tariffPrices = $tariffWeight->non_azerpoct_tariff_prices;
+//                        if ($azerpoct)
+//                            $tariffPrices = $tariffWeight->azerpoct_tariff_prices;
+//                        else
+//                            $tariffPrices = $tariffWeight->non_azerpoct_tariff_prices;
+
+                        $tariffPrices = $tariffWeight->withoutAzerpoctTariffPrices;
+
+
                         if (!$tariffPrices || count($tariffPrices) <= 0)
                             continue;
                         //echo "kq=".$kq." from_weight=".$tariffWeight->from_weight." to_weight=".$tariffWeight->to_weight." <br> ";
@@ -424,6 +432,7 @@ class Warehouse extends Authenticatable
                         ) {
                             //echo "  twid=".$tariffWeight->id." pw=".$tariffWeight->per_weight." cid=".$city_id;
 
+//                            dd($tariffPrices);
                             foreach ($tariffPrices as $tariffPrice) {
                                 if ($tariffPrice->city_id && $tariffPrice->city_id == $city_id) {
                                     //echo "tpid=".$tariffPrice->id."  twid=".$tariffWeight->id." pw=".$tariffWeight->per_weight." tp=".$tariffPrice->price." tp=".$tariff_price." cid=".$city_id."  tcid=".$tariffPrice->city_id;
@@ -455,7 +464,8 @@ class Warehouse extends Authenticatable
                 }
             }
 
-            dd($city_id);
+//            dd($city_id);
+
 
 
 
@@ -464,7 +474,6 @@ class Warehouse extends Authenticatable
             //	->where(function ($q) use($kq) {$q->where('weight_to','>',$kq)->orWhereNull('weight_to')->orWhere('weight_to','=',0);})
             //	->orderBy('updated_at', 'desc')->first();
 
-//            dd($tariff_price,$weightPrice);
 
 
 

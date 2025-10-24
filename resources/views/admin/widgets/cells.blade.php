@@ -40,33 +40,49 @@ foreach($cells1 as $cell1) {
 }
 
 ?>
+
+<style>
+    .light.select_cell{
+        @media(max-width: 900px){
+            padding: 16px;
+        }
+    }
+    .table-responsive th{
+        @media(max-width: 900px){
+            padding:16px;
+        }
+    }
+</style>
+
     <div style="margin-top: 30px">
-    <table style="margin: 0 auto;" class="chess-board">
-        <tbody>
-        <tr>
-            <th></th>
-            <?php $max = 0; ?>
-            @foreach (cellStructure() as $let => $value)
-                <?php $max = $value > $max ? $value : $max; ?>
-                <th>{{ $let }}</th>
-            @endforeach
-        </tr>
-        @for($i = 1; $i <= $max; $i++)
+    <div class="table-responsive">
+        <table style="margin: 0 auto;" class="chess-board">
+            <tbody>
             <tr>
-                <th>{{ $i }}</th>
+                <th></th>
+                    <?php $max = 0; ?>
                 @foreach (cellStructure() as $let => $value)
-                    @if($i <= $value)
-                        <?php $cellName = $let . $i; $numPack = isset($cells[$cellName]) ? $cells[$cellName] : 0; ?>
-                        <td data-id="{{ $cellName }}" class="light select_cell" style="background: {{ luminance($numPack) }}"><div class="@if((isset($nearBy) && $nearBy == $cellName) || (isset($item->cell) && $item->cell ==$cellName )) pulse @endif">{{ $numPack }}</div></td>
-		    @else
-			<td></td>
-                    @endif
+                        <?php $max = $value > $max ? $value : $max; ?>
+                    <th>{{ $let }}</th>
                 @endforeach
-
             </tr>
-        @endfor
+            @for($i = 1; $i <= $max; $i++)
+                <tr>
+                    <th>{{ $i }}</th>
+                    @foreach (cellStructure() as $let => $value)
+                        @if($i <= $value)
+                                <?php $cellName = $let . $i; $numPack = isset($cells[$cellName]) ? $cells[$cellName] : 0; ?>
+                            <td data-id="{{ $cellName }}" class="light select_cell" style="background: {{ luminance($numPack) }}"><div class="@if((isset($nearBy) && $nearBy == $cellName) || (isset($item->cell) && $item->cell ==$cellName )) pulse @endif">{{ $numPack }}</div></td>
+                        @else
+                            <td></td>
+                        @endif
+                    @endforeach
 
-        </tbody>
-    </table>
+                </tr>
+            @endfor
+
+            </tbody>
+        </table>
+    </div>
 </div>
 @endif

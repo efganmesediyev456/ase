@@ -17,10 +17,10 @@ class AzeriexpressExport implements FromView, ShouldAutoSize
 
     public function view(): View
     {
-        $containers = $this->items;
+        $packages = $this->items;
 
         return view('admin.exports.azeriexpress', [
-            'containers' => $containers
+            'packages' => $packages
         ]);
     }
 }

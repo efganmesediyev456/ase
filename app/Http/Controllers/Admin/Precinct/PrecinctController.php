@@ -256,14 +256,20 @@ class PrecinctController extends Controller
             ->with(['container', 'package.user', 'track.customer']);
 
         if ($request->has('export')) {
-            $date = $packages->first()->container->created_at;
-            $b = $date ? (clone $date->startOfDay()) : now()->startOfDay();
-            $e = $date ? (clone $date->endOfDay()) : now()->endOfDay();
-            $_containers = PrecinctOrder::query()->with(['packages.package.user', 'packages.track.customer'])->whereBetween('created_at', [$b, $e])->get();
+
+//            dump($packages->get());
+
+//            $date = $packages->first()->container->created_at;
+//            $b = $date ? (clone $date->startOfDay()) : now()->startOfDay();
+//            $e = $date ? (clone $date->endOfDay()) : now()->endOfDay();
+//            $_containers = PrecinctOrder::query()->with(['packages.package.user', 'packages.track.customer'])->whereBetween('created_at', [$b, $e])->get();
 //            $packages = $packages->orderBy('status')->get();
 //            return (new PrecinctExport($_containers))->view();
+
+            $packages = $packages->orderBy('status')->get();
             $excel = app()->make(Excel::class);
-            return $excel->download(new PrecinctExport($_containers), 'precinct_container_' . $id . '.xlsx');
+
+            return $excel->download(new PrecinctExport ($packages), 'precinct_container_' . $id . '.xlsx');
         }
 
         if ($request->filled('status') && $request->filled('status') == PrecinctPackage::STATUSES['HAS_PROBLEM']) {
@@ -271,6 +277,8 @@ class PrecinctController extends Controller
         }
 
         $packages = $packages->orderByRaw('CAST(status AS UNSIGNED) ASC')->paginate(100);
+
+//        dd($packages);
 
         return view('admin.precinct.containers.show', compact('group', 'packages', 'packagesCount', 'packagesProblemCount', 'sentPackagesCount', 'notSentPackagesCount'));
     }

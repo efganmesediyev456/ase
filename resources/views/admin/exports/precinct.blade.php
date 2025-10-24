@@ -11,8 +11,8 @@
     </tr>
     </thead>
     <tbody>
-    @foreach($containers as $row)
-        @foreach($row->packages as $package)
+{{--    @foreach($containers as $row)--}}
+        @foreach($packages as $package)
             <tr>
                 <td>{{ $package->barcode }}</td>
                 <td>
@@ -29,8 +29,8 @@
                         {{ $package->track->customer_id }}
                     @endif
                 </td>
-                <td>{{ $row->precinctOffice->name }}</td>
-                <td>{{ $row->created_at->format('d-m-Y') }}</td>
+                <td>{{ $package->container->precinctOffice->name }}</td>
+                <td>{{ $package->container->created_at->format('d-m-Y') }}</td>
                 <td></td>
                 <td></td>
             </tr>
@@ -38,16 +38,14 @@
         <tr>
             <td></td>
         </tr>
-    @endforeach
+{{--    @endforeach--}}
     </tbody>
 </table>
 
 
 
 @php
-    $totalPackages = $containers->sum(function ($container) {
-        return $container->packages->count();
-    });
+    $totalPackages = $packages->count();
 @endphp
 
 <br>

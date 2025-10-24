@@ -349,7 +349,10 @@ class CellController extends Controller
                 })->orWhere(function ($sub) {
                     $sub->where('track', true)
                         ->where('status', 16);
-                });
+                })->orWhere(function ($sub) {
+                        $sub->where('track', true)
+                            ->where('status', 19)->orWhere('status', 27);
+                    });
             });
         } elseif ($admin->store_status == 2) {
             $items->where(function ($q) {
@@ -359,6 +362,9 @@ class CellController extends Controller
                 })->orWhere(function ($sub) {
                     $sub->where('track', true)
                         ->where('status', 20);
+                })->orWhere(function ($sub) {
+                    $sub->where('track', true)
+                        ->where('status', 19)->orWhere('status', 27);
                 });
             });
         }

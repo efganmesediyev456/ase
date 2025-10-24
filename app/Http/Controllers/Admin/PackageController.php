@@ -2231,6 +2231,7 @@ class PackageController extends Controller
             ]);
         }
 
+
         if ($code == 'courier-page') {
             return response()->json([
                 'redirect' => route('courier.shelf.add.product'),
@@ -2256,14 +2257,14 @@ class PackageController extends Controller
             $package = Package::whereTrackingCode($code)->orWhere('custom_id', $code)->first();
         }
 
-        if (isset($track) && in_array($track->status, [19, 27])) {
-            $track->scanned_at = Carbon::now();
-            $track->save();
-            //(new PackageService())->updateStatus($track, 19);
-            return response()->json([
-                'error' => 'Rejected statusunda olan bağlama',
-            ]);
-        }
+//        if (isset($track) && in_array($track->status, [19, 27])) {
+//            $track->scanned_at = Carbon::now();
+//            $track->save();
+//            //(new PackageService())->updateStatus($track, 19);
+//            return response()->json([
+//                'error' => 'Rejected statusunda olan bağlama',
+//            ]);
+//        }
 
         if (isset($track) && in_array($track->status, [45])) {
             $track->scanned_at = Carbon::now();
@@ -2632,8 +2633,8 @@ class PackageController extends Controller
             $notification = false;
             $status = $track->status;
             if ($admin->store_status == 2 && !($track->store_status == 2 && in_array($track->partner_id, [3, 8, 9]))) { //In Kobia
-                if (!($track->partner_id == 3 && in_array($status, [27, 28]))) {
-                    if ($status <= 16 || in_array($status, [18, 19, 21, 22, 23, 25, 44])) {
+                if (!($track->partner_id == 3 && in_array($status, [ 28]))) {
+                    if ($status <= 16 || in_array($status, [18, 21, 22, 23, 25, 44])) {
                         $track->status = 20;
                         $notification = true;
                     }
@@ -2677,8 +2678,8 @@ class PackageController extends Controller
                     ]);
                 }
                 //-----------
-                if (!($track->partner_id == 3 && in_array($status, [27, 28]))) {
-                    if ($status < 16 || in_array($status, [18, 19, 20, 21, 22, 23, 25, 44])) {
+                if (!($track->partner_id == 3 && in_array($status, [28]))) {
+                    if ($status < 16 || in_array($status, [18, 20, 21, 22, 23, 25, 44])) {
                         $track->status = 16;
                         $notification = true;
                     }

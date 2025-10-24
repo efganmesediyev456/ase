@@ -18,10 +18,9 @@ class PrecinctExport implements FromView, ShouldAutoSize
 
     public function view(): View
     {
-        $containers = $this->items;
-
+        $packages = $this->items;
         return view('admin.exports.precinct', [
-            'containers' => $containers
+            'packages' => $packages
         ]);
     }
 }

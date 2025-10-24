@@ -108,70 +108,41 @@ class Test extends Command
     {
 
 
-//        $packageData = [
-//            'show_label' => 1,
-//            'detailed_type' => '',
-//            'width' => null,
-//            'height' => null,
-//            'length' => null,
-//            'length_type' => 0,
-//            'tracking_code' => 'H023FA1122539354',
-//            'user_id' => 35831,
-//            'website_name' => '-',
-//            'seller_name' => '',
-//            'weight' => 0.2,
-//            'weight_type' => 0,
-//            'number_items' => null,
-//            'shipping_amount' => null,
-//            'shipping_amount_cur' => 0,
-//            'warehouse_comment' => '',
-//            'warehouse_id' => 20,
-//            'custom_id' => 'ASE6403766657182',
-//            'additional_delivery_final_price' => 0,
-//            'battery_price' => 0,
-//            'insurance_price' => 0,
-//            'weight_goods' => 0.2,
-//            'updated_at' => '2025-10-21 14:43:42',
-//            'created_at' => '2025-10-21 14:43:42',
-////            'id' => 368648
-//        ];
 
         $query = new Package();
-
         $query->show_label = 1;
-        $query->detailed_type = '';
+        $query->detailed_type = null;
         $query->width = null;
         $query->height = null;
         $query->length = null;
         $query->length_type = 0;
         $query->tracking_code = 'H023FA1122539354';
-        $query->user_id = 35831;
+        $query->user_id = 35831; // Shola Qahramanova
         $query->website_name = '-';
-        $query->seller_name = '';
+        $query->seller_name = null;
         $query->weight = 0.2;
         $query->weight_type = 0;
         $query->number_items = null;
         $query->shipping_amount = null;
         $query->shipping_amount_cur = 0;
-        $query->warehouse_comment = '';
-        $query->warehouse_id = 20; // override
+        $query->warehouse_comment = null;
+        $query->warehouse_id = 20;
         $query->custom_id = 'ASE6403766657182';
         $query->additional_delivery_final_price = 0;
         $query->battery_price = 0;
         $query->insurance_price = 0;
+        $query->delivery_price = 6.2;
         $query->weight_goods = 0.2;
         $query->updated_at = '2025-10-21 14:43:42';
         $query->created_at = '2025-10-21 14:43:42';
-        $query->user_id = 35831;
-
-
-
 
 
 
         $user = null;
         if ($query->user_id)
             $user = User::find($query->user_id);
+
+
 
 //        dd($user);
         $azerpoct = 0;
@@ -180,6 +151,7 @@ class Test extends Command
             $azerpoct = $user->azerpoct_send;
             $city_id = $user->city_id;
         }
+
         $query->custom_id = $query->custom_id ?: self::generateCustomId();
 
         $webSiteName = getOnlyDomainWithExt($query->website_name);
@@ -247,7 +219,7 @@ class Test extends Command
 //                    dd([
 //                        $weight, $weight_type, $query->width, $query->height, $query->length, $length_type, false, 0, $azerpoct, $city_id, $additionalDeliveryPrice
 //                    ]);
-                    $deliveryPrice = $warehouse->calculateDeliveryPrice2($weight, $weight_type, $query->width, $query->height, $query->length, $length_type, false, 0, 1, $city_id, $additionalDeliveryPrice);
+                    $deliveryPrice = $warehouse->calculateDeliveryPrice2($weight, $weight_type, $query->width, $query->height, $query->length, $length_type, false, 0, $azerpoct, $city_id, $additionalDeliveryPrice);
 //                    dd($deliveryPrice);
                     $query->delivery_price = $deliveryPrice;
                 }
@@ -269,7 +241,7 @@ class Test extends Command
 
 
 
-        dd($query->delivery_price);
+        dd($query->delivery_price,'test');
 
 
 

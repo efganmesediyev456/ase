@@ -33,6 +33,10 @@ class TariffWeight extends Model
         return $this->hasMany('App\Models\TariffPrice')->where('azerpoct', 0);
     }
 
+    public function withoutAzerpoctTariffPrices(){
+        return $this->hasMany('App\Models\TariffPrice');
+    }
+
     public function azerpoct_tariff_prices()
     {
         return $this->hasMany('App\Models\TariffPrice')->where('azerpoct', 1);
