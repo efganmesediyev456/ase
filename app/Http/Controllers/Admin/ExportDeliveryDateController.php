@@ -70,8 +70,11 @@ class ExportDeliveryDateController extends \App\Http\Controllers\Controller
                     });
                 } else {
                     $status = 17;
-                    $join->where(DB::raw("JSON_EXTRACT(activities.details, '$.status')"), '=', $status);
-//                        ->orWhere(DB::raw("JSON_EXTRACT(activities.details, '$.status')"), '=', (string)$status);
+
+                    $join->where(function ($query) use ($status) {
+                        $query->where(DB::raw("JSON_EXTRACT(activities.details, '$.status')"), '=', $status);
+                        $query->orwhere(DB::raw("CAST(JSON_EXTRACT(activities.details, '$.status') AS UNSIGNED)"), '=', $status);
+                    });
                 }
             })
             ->whereIn('tracks.tracking_code', $trackingCodes)

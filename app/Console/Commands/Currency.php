@@ -43,7 +43,7 @@ class Currency extends Command
         echo $ldate;
         DB::delete("delete from currency_rate where TIMESTAMPDIFF(MONTH, created_at, '" . $ldate . "')>3");
 
-        $url = "http://apilayer.net/api/live?access_key=" . env('APILAYER') . "&currencies=TRY,AZN,GBP,RUB,EUR,AED,CNY,KZT,USD&source=USD&format=1";
+        $url = "http://apilayer.net/api/live?access_key=" . env('APILAYER') . "&currencies=TRY,AZN,GBP,RUB,EUR,AED,CNY,KZT,USD,KRW&source=USD&format=1";
         //$url = "http://api.currencylayer.com/live?access_key=d2674a1e7f00bc353c8229fe6430a721&&currencies=TRY,AZN,GBP,RUB,EUR,AED,CNY,USD&source=USD&format=1";
         $currency = 'TRY';
         $ch = curl_init();

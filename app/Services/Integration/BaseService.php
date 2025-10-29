@@ -37,7 +37,7 @@ class BaseService
         'Undelivered' => 23,    //
         'Deleted' => 4,     // The package information has been deleted from the system.
         'Rejected' => 19,     // The package information has been deleted from the system.
-	'DeliveredByCourier' => 50, // Unitrade Delivered By Courier
+	    'DeliveredByCourier' => 50, // Unitrade Delivered By Courier
     ];
 
     const WAREHOUSE = [

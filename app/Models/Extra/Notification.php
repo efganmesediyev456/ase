@@ -260,6 +260,7 @@ class Notification extends Model
      * @param $template
      * @return bool
      */
+
     public static function sendBoth($userID, $data, $template, $template1 = NULL)
     {
         $userID = self::determineUser($userID);
@@ -313,7 +314,6 @@ class Notification extends Model
     public static function sendWhatsapp($userID, $data, $template, $template1 = NULL)
     {
         $userID = self::determineUser($userID);
-
         return env('SAAS_ACTIVE') ? Whatsapp::sendByUser($userID, $data, $template, $template1) : false;
     }
 

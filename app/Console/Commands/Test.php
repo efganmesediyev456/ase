@@ -17,6 +17,7 @@ use App\Models\PackageType;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Services\Integration\EquickService;
 use App\Services\Integration\UnitradeService;
 use GuzzleHttp\Client;
 use Illuminate\Console\Command;
@@ -107,7 +108,19 @@ class Test extends Command
     public function handle()
     {
 
+//        Notification::sendPackage(311312, 12);
+        exit;
 
+
+
+
+        $service  = new UnitradeService();
+        $track = Track::find(538807);
+
+        $service->updateStatusTest($track, 17);
+
+
+        dd("yes");
 
         $query = new Package();
         $query->show_label = 1;

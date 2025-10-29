@@ -563,6 +563,8 @@ class UkraineExpress2 extends Command
             $ldate = date('Y-m-d H:i:s');
             $this->line($ldate . " " . $cnt . " " . $user->customer_id . " " . $user->full_name);
             $cnt++;
+
+
             $res_ok = $this->ue->user_register($user);
             if (!$res_ok) {
                 $user->ukr_express_error_at = $ldate;

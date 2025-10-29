@@ -64,9 +64,10 @@ return [
             5 => 'GBP',
             6 => 'CNY',
             7 => 'AED',
-            8 => 'KZT'
+            8 => 'KZT',
+            9 => 'KRW'
         ],
-        'currencies2' => ['TRY' => 3, 'USD' => 0, 'AZN' => 1, 'EUR' => 2, 'RUB' => 4, 'GBP' => 5, 'CNY' => 6, 'AED' => 7, 'KZT' => 8],
+        'currencies2' => ['TRY' => 3, 'USD' => 0, 'AZN' => 1, 'EUR' => 2, 'RUB' => 4, 'GBP' => 5, 'CNY' => 6, 'AED' => 7, 'KZT' => 8,'KRW' => 9],
         'customsCurrencies' => [
             840 => 'USD',
             932 => 'AZN',
@@ -77,7 +78,8 @@ return [
             156 => 'CNY',
             784 => 'AED',
             398 => 'KZT',
-            728 => 'SSP'
+            728 => 'SSP',
+            410 => 'KRW'
         ],
         'currenciesConvert' => [1, 1.7, 0.9068732, 5.97619, 63.3873, 0.764390, 7.28, 378.77, 477.83],
         'length' => ['cm', 'in'],

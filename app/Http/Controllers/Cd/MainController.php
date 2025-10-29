@@ -1184,6 +1184,8 @@ class MainController extends Controller
 
     public function barcodeScan($code)
     {
+
+        //$code
         try {
 
             $checkDraftLabel = 0;

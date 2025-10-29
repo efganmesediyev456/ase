@@ -21,7 +21,7 @@ class CourierAuth
     {
         $login = $request->header('login');
         $token = $request->header('token');
-        $ip = $request->ip();
+        $ip    =    $request->ip();
 	$courier = Courier::where('email',$login)->where('remember_token',$token)->first();
 	if(!$courier) {
             file_put_contents('/var/log/ase_cd_api.log',   date('Y-m-d H:i:s').' auth: failed ' . $ip . ' ' . $login . "\n", FILE_APPEND);

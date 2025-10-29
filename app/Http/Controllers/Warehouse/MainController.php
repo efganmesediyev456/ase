@@ -1194,6 +1194,8 @@ class MainController extends Controller
 
     public function barcodeScan($code)
     {
+
+        //$code
         try {
 	    $check_carriers=auth()->guard('worker')->user()->warehouse->check_carriers;
 

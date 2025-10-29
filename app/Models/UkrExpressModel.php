@@ -1720,6 +1720,8 @@ class UkrExpressModel extends Model
         }
         $this->log($str);
         $this->log($output);
+
+
         $this->err("Error adding user " . $output);
         return false;
     }

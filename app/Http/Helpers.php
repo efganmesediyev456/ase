@@ -319,7 +319,7 @@ function getBarcodeImage($text, $dir = '', $file_name = '')
 function getCustomsCurrencyRate($customsCurrency)
 {
     $currencyIndex = 0;
-    $customs_currencies = array(840 => 'USD', 932 => 'AZN', 978 => 'EUR', 949 => 'TRY', 643 => 'RUB', 826 => 'GBP', 156 => 'CNY', 784 => 'AED',398 => 'KZT');
+    $customs_currencies = array(840 => 'USD', 932 => 'AZN', 978 => 'EUR', 949 => 'TRY', 643 => 'RUB', 826 => 'GBP', 156 => 'CNY', 784 => 'AED',398 => 'KZT',410 => 'KRW');
     if (array_key_exists($customsCurrency, $customs_currencies))
         $currencyIndex = $customs_currencies[$customsCurrency];
     return getCurrencyRate($currencyIndex);
@@ -373,7 +373,7 @@ function getCurrencyRate($currencyIndex)
     if ($currencyIndex == 0) {
         return 1;
     }
-    $currencies = ['USD', 'AZN', 'EUR', 'TRY', 'RUB', 'GBP', 'CNY', 'AED','KZT'];
+    $currencies = ['USD', 'AZN', 'EUR', 'TRY', 'RUB', 'GBP', 'CNY', 'AED','KZT','KRW'];
     $currency = $currencies[$currencyIndex];
     $rates = [
         'USD' => 1,
@@ -384,6 +384,7 @@ function getCurrencyRate($currencyIndex)
         'GBP' => 0.84675,
         'CNY' => 7.167301,
         'AED' => 3.67301,
+        'KRW' => 1433.6
     ];
 
     $rates = DB::select("select rate from currency_rate where code=? order by created_at desc limit 1", ['USD' . $currency]);
@@ -403,7 +404,7 @@ function getCurrencyRate($currencyIndex)
             $currency,
             $rates
         ) {
-            $url = "http://apilayer.net/api/live?access_key=" . env('APILAYER') . "&currencies=TRY,AZN,GBP,RUB,EUR,AED,CNY,USD,KZT&source=USD&format=1";
+            $url = "http://apilayer.net/api/live?access_key=" . env('APILAYER') . "&currencies=TRY,AZN,GBP,RUB,EUR,AED,CNY,USD,KZT,KRW&source=USD&format=1";
             //$url = "http://api.currencylayer.com/live?access_key=d2674a1e7f00bc353c8229fe6430a721&&currencies=TRY,AZN,GBP,RUB,EUR,AED,CNY,USD&source=USD&format=1";
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url);

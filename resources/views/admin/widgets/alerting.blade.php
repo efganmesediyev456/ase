@@ -50,9 +50,12 @@ if ($user) {
         }
         if ($package->store_status != 2 || $user->real_store_status != 2) {
             if ($package->paid == 1 || in_array($package->store_status, [1, 3, 4, 5, 6, 7, 8])) {
-                $serviceStatus = (new  PackageService())->addPackageToContainer('precinct', $user->real_store_status, 'package', $package->custom_id);
+                if(!($package->debt_price > 0 && !$package->paid_debt)){
+                    $serviceStatus = (new  PackageService())->addPackageToContainer('precinct', $user->real_store_status, 'package', $package->custom_id);
+                }
             }
         }
+
 
     } else if ($package->is_unknown_office()) {
         $alertText = "FILIAL: <b>" . $package->unknown_office->description . "</b>";
@@ -98,9 +101,11 @@ if ($user) {
         $package->azeri_express_office_id = NULL;
         $package->surat_office_id = NULL;
         $package->save();
-        if ($package->paid) {
+
+        if ($package->paid and !($package->debt_price > 0 && !$package->paid_debt)) {
             $serviceStatus = (new  PackageService())->addPackageToContainer('azerpost', $user->azerpost_office->id, 'package', $package->custom_id);
         }
+
     } else if ($user->real_azeri_express_use && $user->real_azeri_express_office_id && $user->azeri_express_office) {
         $alertText = "Azeri Express: <b>" . $user->azeri_express_office->description . "</b><br>address: " . $user->azeri_express_office->address;
         if ($package->scanned_at) {
@@ -124,7 +129,7 @@ if ($user) {
         $package->azerpost_office_id = NULL;
 
         $package->save();
-        if ($package->paid) {
+        if ($package->paid && !($package->debt_price > 0 && !$package->paid_debt)) {
             $serviceStatus = (new  PackageService())->addPackageToContainer('azeriexpress', $user->real_azeri_express_office_id, 'package', $package->custom_id);
         }
     } else if ($user->real_surat_use && $user->real_surat_office_id && $user->surat_office) {
@@ -149,7 +154,7 @@ if ($user) {
         $package->azeri_express_office_id = NULL;
         $package->azerpost_office_id = NULL;
         $package->save();
-        if ($package->paid) {
+        if ($package->paid and !($package->debt_price > 0 && !$package->paid_debt)) {
             $serviceStatus = (new  PackageService())->addPackageToContainer('surat', $user->real_surat_office_id, 'package', $package->custom_id);
         }
     } else if ($user->real_yenipoct_use && $user->real_yenipoct_office_id && $user->yenipoct_office) {
@@ -175,7 +180,7 @@ if ($user) {
         $package->surat_office_id = NULL;
         $package->azerpost_office_id = NULL;
         $package->save();
-        if ($package->paid) {
+        if ($package->paid and !($package->debt_price > 0 && !$package->paid_debt)) {
             $serviceStatus = (new  PackageService())->addPackageToContainer('yenipoct', $user->real_yenipoct_office_id, 'package', $package->custom_id);
         }
     } else if ($user->real_kargomat_use && $user->real_kargomat_office_id && $user->kargomat_office) {
@@ -201,7 +206,7 @@ if ($user) {
         $package->surat_office_id = NULL;
         $package->azerpost_office_id = NULL;
         $package->save();
-        if ($package->paid) {
+        if ($package->paid and !($package->debt_price > 0 && !$package->paid_debt)) {
             $serviceStatus = (new  PackageService())->addPackageToContainer('kargomat', $user->real_kargomat_office_id, 'package', $package->custom_id);
         }
     } else if ($store_status != $user->real_store_status /*user filial differs from worker */) {
@@ -257,9 +262,12 @@ if ($user) {
                     ($store_status == 1 || $store_status == 2 /* worker In Baku or In Kobia */)
                     && ($user->real_store_status != 2 /* user Not In Baku or In Kobia */)
                 ) {
-                    if ($package->paid == 1 || in_array($user->real_store_status, [1, 3, 4, 5, 6, 7, 8])) {
-                        $serviceStatus = (new  PackageService())->addPackageToContainer('precinct', $user->real_store_status, 'package', $package->custom_id);
+                    if(!($package->debt_price > 0 && !$package->paid_debt)){
+                        if ($package->paid == 1 || in_array($user->real_store_status, [1, 3, 4, 5, 6, 7, 8])) {
+                            $serviceStatus = (new  PackageService())->addPackageToContainer('precinct', $user->real_store_status, 'package', $package->custom_id);
+                        }
                     }
+
                 }
                 $package->store_status = $user->real_store_status;
                 $package->azeri_express_office_id = NULL;
@@ -390,7 +398,7 @@ if ($track) {
         if (($track->store_status && $track->store_status != $store_status) || $store_status == 2) {
             $alertType = 'danger';
             if ($track->store_status != 2 && ($track->paid || ($track->partner_id == 9 && $track->status == 20))) {
-                if (!($track->partner_id == 9 && !$track->paid)) {
+                if (!($track->partner_id == 9 && !$track->paid) and !($track->debt_price > 0 && !$track->paid_debt)) {
                     $serviceStatus = (new  PackageService())->addPackageToContainer('precinct', $track->store_status, 'track', $track->tracking_code);
                 }
             }
@@ -417,7 +425,7 @@ if ($track) {
         }
         $alertType = 'danger';
         $alertSize = 'font-size:20px';
-        if (!($track->partner_id == 9 && !$track->paid)) {
+        if (!($track->partner_id == 9 && !$track->paid) and !($track->debt_price > 0 && !$track->paid_debt)) {
             $serviceStatus = (new  PackageService())->addPackageToContainer('azerpost', $track->azerpost_office->id, 'track', $track->tracking_code);
         }
     } else if ($track->azeriexpress_office) {
@@ -438,7 +446,7 @@ if ($track) {
         }
         $alertType = 'danger';
         $alertSize = 'font-size:20px';
-        if (!($track->partner_id == 9 && !$track->paid)) {
+        if (!($track->partner_id == 9 && !$track->paid) and !($track->debt_price > 0 && !$track->paid_debt)) {
             $serviceStatus = (new  PackageService())->addPackageToContainer('azeriexpress', $track->azeriexpress_office_id, 'track', $track->tracking_code);
         }
     } else if ($track->surat_office) {
@@ -459,7 +467,7 @@ if ($track) {
         }
         $alertType = 'danger';
         $alertSize = 'font-size:20px';
-        if (!($track->partner_id == 9 && !$track->paid)) {
+        if (!($track->partner_id == 9 && !$track->paid) and !($track->debt_price > 0 && !$track->paid_debt)) {
             $serviceStatus = (new  PackageService())->addPackageToContainer('surat', $track->surat_office_id, 'track', $track->tracking_code);
         }
     } else if ($track->kargomat_office) {
@@ -480,7 +488,7 @@ if ($track) {
         }
         $alertType = 'danger';
         $alertSize = 'font-size:20px';
-        if (!($track->partner_id == 9 && !$track->paid)) {
+        if (!($track->partner_id == 9 && !$track->paid) and !($track->debt_price > 0 && !$track->paid_debt)) {
             $serviceStatus = (new  PackageService())->addPackageToContainer('kargomat', $track->kargomat_office_id, 'track', $track->tracking_code);
         }
     } else if ($track->yenipoct_office) {
@@ -501,7 +509,7 @@ if ($track) {
         }
         $alertType = 'danger';
         $alertSize = 'font-size:20px';
-        if (!($track->partner_id == 9 && !$track->paid)) {
+        if (!($track->partner_id == 9 && !$track->paid) and !($track->debt_price > 0 && !$track->paid_debt)) {
             $serviceStatus = (new  PackageService())->addPackageToContainer('yenipoct', $track->yenipoct_office_id, 'track', $track->tracking_code);
         }
     } else if ($track->unknown_office) {

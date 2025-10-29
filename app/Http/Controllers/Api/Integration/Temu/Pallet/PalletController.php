@@ -6,11 +6,14 @@ use App\Models\Airbox;
 use App\Models\Track;
 use App\Services\Integration\UnitradeService;
 use Illuminate\Http\Request;
+use DB;
+use Log;
 
 class PalletController
 {
     public function store(Request $request)
     {
+
         $request->validate([
             'barcode' => 'required|string|max:255',
             'total_weight' => 'required',
@@ -19,45 +22,68 @@ class PalletController
             'parcel_ids' => 'required|array',
         ]);
 
-        $box = Airbox::updateOrCreate([
+        try {
+            Log::channel('equick_pallets')->debug("Request store: ", [$request->all()]);
+
+            DB::beginTransaction();
+            $box = Airbox::updateOrCreate([
             "name" => $request->barcode,
             "partner_id" => UnitradeService::PARTNERS_MAP['TAOBAO'],
         ],[
-            "container_id" => null,
-            "total_weight" => $request->total_weight,
-            "total_count" => $request->total_count,
-        ]);
+                "container_id" => null,
+                "total_weight" => $request->total_weight,
+                "total_count" => $request->total_count,
+            ]);
 
-        $notExistsTracks = [];
-        $exists = [];
-        foreach ($request->parcel_ids as $trackingCode) {
-            $track = Track::where("tracking_code", $trackingCode)->first();
-            if ($track) {
-                $exists[] = $track->id;
-            } else {
-                $notExistsTracks[] = $trackingCode;
+            $notExistsTracks = [];
+            $exists = [];
+            foreach ($request->parcel_ids as $trackingCode) {
+                $track = Track::where("tracking_code", $trackingCode)->first();
+                if ($track) {
+                    $exists[] = $track->id;
+                } else {
+                    $notExistsTracks[] = $trackingCode;
+                }
             }
-        }
-        Track::query()->whereIn('id', $exists)->update([
-            'airbox_id' => $box->id
-        ]);
+            Track::query()->whereIn('id', $exists)->update([
+                'airbox_id' => $box->id
+            ]);
+            DB::commit();
+            $response = [
+                "status" => true,
+                "message" => "Pallet created.",
+                "data" => [
+                    "uuid" => $box->id,
+                    "barcode" => $box->name,
+                    "total_weight" => $box->total_weight,
+                    "total_count" => $box->total_count,
+                    "createdAt" => $box->created_at,
+                    "updatedAt" => $box->updated_at,
+                ],
+                'errors' => [
+                    'message' => "Packages not found",
+                    'data' => $notExistsTracks
+                ]
+            ];
 
-        return response()->json([
-            "status" => true,
-            "message" => "Pallet created.",
-            "data" => [
-                "uuid" => $box->id,
-                "barcode" => $box->name,
-                "total_weight" => $box->total_weight,
-                "total_count" => $box->total_count,
-                "createdAt" => $box->created_at,
-                "updatedAt" => $box->updated_at,
-            ],
-            'errors' => [
-                'message' => "Packages not found",
-                'data' => $notExistsTracks
-            ]
-        ]);
+            Log::channel('equick_pallets')->debug("Request store success: ", $response);
+
+
+            return response()->json($response);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            $message = [
+                "status" => false,
+                "message" => "An error occurred while creating pallet.",
+                "error" => $e->getMessage(),
+                "trace" => config('app.debug') ? $e->getTrace() : null,
+            ];
+
+            Log::channel('equick_pallets')->debug("Request store error: ", $message);
+
+            return response()->json($message, 500);
+        }
     }
 
     public function update($partnerCompany, Request $request)
@@ -70,40 +96,61 @@ class PalletController
             'parcel_ids' => 'required|array',
         ]);
 
-        $box = Airbox::query()->where('name', $request->barcode)->first();
+        try {
 
-        $box->update([
-            "total_weight" => $request->total_weight,
-            "total_count" => $request->total_count,
-            "sorting_letter" => $request->sorting_letter ?? '',
-        ]);
+            DB::beginTransaction();
 
-        $notExistsTracks = [];
-        foreach ($request->parcel_ids as $trackingCode) {
-            $track = Track::where("tracking_code", $trackingCode)->first();
-            if ($track) {
-                $track->airbox_id = $box->id;
-            } else {
-                $notExistsTracks[] = $trackingCode;
+            Log::channel('equick_pallets')->debug("Request update: ", [$request->all()]);
+
+
+            $box = Airbox::query()->where('name', $request->barcode)->first();
+
+            $box->update([
+                "total_weight" => $request->total_weight,
+                "total_count" => $request->total_count,
+                "sorting_letter" => $request->sorting_letter ?? '',
+            ]);
+
+            $notExistsTracks = [];
+            foreach ($request->parcel_ids as $trackingCode) {
+                $track = Track::where("tracking_code", $trackingCode)->first();
+                if ($track) {
+                    $track->airbox_id = $box->id;
+                } else {
+                    $notExistsTracks[] = $trackingCode;
+                }
             }
-        }
+            DB::commit();
 
-        return response()->json([
-            "status" => true,
-            "message" => "Pallet updated Successfully.",
-            "data" => [
-                "uuid" => $box->id,
-                "barcode" => $box->name,
-                "total_weight" => $box->total_weight,
-                "total_count" => $box->total_count,
-                "sorting_letter" => "",
-                "createdAt" => $box->created_at,
-                "updatedAt" => $box->updated_at,
-            ],
-            'errors' => [
-                'message' => "Packages not found",
-                'data' => $notExistsTracks
-            ]
-        ]);
+            $response = [
+                "status" => true,
+                "message" => "Pallet updated Successfully.",
+                "data" => [
+                    "uuid" => $box->id,
+                    "barcode" => $box->name,
+                    "total_weight" => $box->total_weight,
+                    "total_count" => $box->total_count,
+                    "sorting_letter" => "",
+                    "createdAt" => $box->created_at,
+                    "updatedAt" => $box->updated_at,
+                ],
+                'errors' => [
+                    'message' => "Packages not found",
+                    'data' => $notExistsTracks
+                ]
+            ];
+            Log::channel('equick_pallets')->debug("Request store success: ", $response);
+            return response()->json($response);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            $message = [
+                "status" => false,
+                "message" => "An error occurred while updating pallet.",
+                "error" => $e->getMessage(),
+                "trace" => config('app.debug') ? $e->getTrace() : null,
+            ];
+            Log::channel('equick_pallets')->debug("Request store error: ", $message);
+            return response()->json($message, 500);
+        }
     }
 }

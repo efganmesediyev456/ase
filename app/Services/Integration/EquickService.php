@@ -8,6 +8,7 @@ use App\Models\Track;
 use App\Models\TrackStatus;
 use App\Models\UnitradePackage;
 use Exception;
+use Log;
 
 class EquickService extends BaseService
 {
@@ -273,11 +274,19 @@ class EquickService extends BaseService
         } else {
             $statusString = array_search($track->status, self::STATES, true);
         }
+
         if ($statusString === false || ($statusString && !array_key_exists($statusString, self::STATE_MAP))) {
             $track->error_txt = $track->error_txt . "{ status not found: $status | " . $track->status . " | $statusString }";
             $track->save();
             return false;
         }
+
+        Log::channel('taobao_status')->debug($track->tracking_code.' is started', [
+            'tracking_code' => $track->tracking_code,
+            'status' => $status,
+            'statusString' => $statusString
+        ]);
+
         try {
             $trackStatus = TrackStatus::query()->create([
                 'track_id' => $track->id,
@@ -295,6 +304,108 @@ class EquickService extends BaseService
                 "state" => self::STATE_MAP[$statusString],
                 "date" => now('UTC')->format('Y-m-d H:i')
             ]];
+
+            Log::channel('taobao_status')->debug($track->tracking_code.' body', [
+                'body' => $body
+            ]);
+
+//            $requestLog = Request::create([
+//                'created_at' => now(),
+//                'updated_at' => now(),
+//                'body' => json_encode($body),
+//                'method' => 'POST',
+//                'uri' => self::CLIENT_URL,
+//                'request' => json_encode(['headers' => $headers, 'body' => $body]),
+//            ]);
+
+
+
+
+            $curl = curl_init();
+            curl_setopt_array($curl, array(
+                CURLOPT_URL => self::CLIENT_URL,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'POST',
+                CURLOPT_POSTFIELDS => json_encode($body),
+                CURLOPT_HTTPHEADER => array(
+                    'Accept: application/json',
+                    'Content-Type: application/json',
+                ),
+            ));
+
+            $response = curl_exec($curl);
+            $trackStatus->update([
+                'note' => $response
+            ]);
+            Log::channel('taobao_status')->debug($track->tracking_code.' body', [
+                'response' => $response
+            ]);
+            $responseCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+//            $requestLog->update([
+//                'updated_at' => now(),
+//                'response' => $responseCode . ':' . $response,
+//            ]);
+            curl_close($curl);
+            return true;
+        } catch (Exception $e) {
+            $track->error_txt = $track->error_txt . "| " . $e->getMessage() . " ";
+            $track->save();
+
+            Log::channel('taobao_status')->debug($track->tracking_code.' body', [
+                'body' => $body,
+                'error' => $e->getMessage()
+            ]);
+
+            return false;
+        }
+    }
+
+    public function updateStatusTest(Track $track, $status = null)
+    {
+        if ($status) {
+            $statusString = array_search((int)$status, self::STATES, true);
+        } else {
+            $statusString = array_search($track->status, self::STATES, true);
+        }
+        if ($statusString === false || ($statusString && !array_key_exists($statusString, self::STATE_MAP))) {
+            $track->error_txt = $track->error_txt . "{ status not found: $status | " . $track->status . " | $statusString }";
+            $track->save();
+            return false;
+        }
+        Log::channel('taobao_status')->debug($track->tracking_code.' is started', [
+            'tracking_code' => $track->tracking_code,
+            'status' => $status,
+            'statusString' => $statusString
+        ]);
+
+
+        try {
+            $trackStatus = TrackStatus::query()->create([
+                'track_id' => $track->id,
+                'user_id' => auth()->id() ?? 1,
+                'status' => $status ?: $track->status,
+                'note' => null,
+            ]);
+            $headers = [
+                'Content-Type' => 'application/json',
+            ];
+            $body = [[
+                "parcel_ids" => [$track->tracking_code],
+                "author" => auth()->id() ?? "-",
+                "comment" => "",
+                "state" => self::STATE_MAP[$statusString],
+                "date" => now('UTC')->format('Y-m-d H:i')
+            ]];
+
+            Log::channel('taobao_status')->debug($track->tracking_code.' body', [
+                'body' => $body
+            ]);
+
 //            $requestLog = Request::create([
 //                'created_at' => now(),
 //                'updated_at' => now(),
@@ -326,6 +437,11 @@ class EquickService extends BaseService
             $trackStatus->update([
                 'note' => $response
             ]);
+
+            Log::channel('taobao_status')->debug($track->tracking_code.' body', [
+                'response' => $response
+            ]);
+
             $responseCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 //            $requestLog->update([
 //                'updated_at' => now(),
