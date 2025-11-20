@@ -37,6 +37,12 @@ Route::group([
     ]);
 
 
+    Route::match(['post', 'get'], '/surat/update-package-status2', [
+        'uses' => 'SuratController@updateStatus2',
+        'as' => 'surat.update-package-status2',
+    ]);
+
+
     Route::group([
         'prefix' => '/kuryera',
     ], function(){

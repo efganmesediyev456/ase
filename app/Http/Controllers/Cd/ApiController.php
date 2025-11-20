@@ -473,6 +473,9 @@ class ApiController extends Controller
 
     public function cd_list()
     {
+
+
+
 	$this->log('cd list '.json_encode(Request::all()));
 	$courier=auth()->guard('courier')->user();
         $arr_status=[3,7];
@@ -503,6 +506,19 @@ class ApiController extends Controller
 	    $arr_status[]=2;
 	    $track=Track::where('tracking_code',$barCode)->first();
 	    if($track) {
+
+            if (in_array($track->status, [19, 27])) {
+//                $track->scanned_at = Carbon::now();
+//                $track->save();
+                $this->log('Rejected statusunda olan bağlama '.$track->id);
+                return response()->json([
+                    'status' => 200,
+                    'result' => 2,
+                    'data'  => $data,
+                    'message' => 'Rejected statusunda olan bağlama',
+                ]);
+            }
+
 	        if($track->debt_price && $track->debt_price>0 && !$track->paid_debt) {
                     $this->log('Debt Price');
                     return Response::json([

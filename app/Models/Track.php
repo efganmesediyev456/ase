@@ -25,6 +25,7 @@ class Track extends Model
         'InKobia' => 20,
         'Done' => 17,
         'Undelivered' => 23,
+        'Rejected' => 19,
     ];
 
     public $uploadDir = 'uploads/packages/';
@@ -122,7 +123,12 @@ class Track extends Model
             if ($_package->status == 18 || $_package->status == 45) {
 
                 if ($query->status == 20 && $_package->debt_price > 0 && $_package->paid_debt == 0) {
-                    Notification::sendTrack($_package->id, 'customs_storage_fee');
+
+                    if($query->status == 20 and $query->store_status==2){
+                        Notification::sendTrack($_package->id, 'customs_storage_fee',now()->addHours(3));
+                    }else{
+                        Notification::sendTrack($_package->id, 'customs_storage_fee');
+                    }
 
                     $_package->debt_sms_count += 1;
                     $_package->save();

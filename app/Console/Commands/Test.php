@@ -5,8 +5,11 @@ namespace App\Console\Commands;
 use App\Jobs\SendTrackStatusJob;
 use App\Jobs\SendTrackStatusJobLast;
 use App\Jobs\SendTrackStatusJobLast2;
+use App\Models\Airbox;
 use App\Models\CD;
 use App\Models\City;
+use App\Models\UkrExpressModel;
+use Illuminate\Http\Request;
 use App\Models\Customer;
 use App\Models\CustomsType;
 use App\Models\DebtLog;
@@ -60,6 +63,8 @@ class Test extends Command
     public $token;
     public function __construct()
     {
+
+        $this->ue = new UkrExpressModel();
         parent::__construct();
 //         $this->token = $this->getAccessToken();
 //        $this->client = curl_init();
@@ -108,202 +113,112 @@ class Test extends Command
     public function handle()
     {
 
-//        Notification::sendPackage(311312, 12);
+
+        $package = Package::find(374123);
+        $ukraineExpress = new UkraineExpress2();
+
+        $ukraineExpress->package_add($package, true);
+
+        exit;
+        $ldate = date('Y-m-d H:i:s');
+        //$this->info("===== update packing data =====");
+        $warehouse = Warehouse::find(11);
+
+
+        $packages = Package::with(['parcel', 'bag', 'user']);
+        $packages->whereRaw("(packages.ukr_express_error_at is null or TIME_TO_SEC(TIMEDIFF('" . $ldate . "',packages.ukr_express_error_at))>3*3600)");
+        if ($warehouse->check_carriers) {
+            $packages = $packages->leftJoin('package_carriers', 'packages.id', 'package_carriers.package_id')->select('packages.*', 'package_carriers.inserT_DATE')->whereRaw('((package_carriers.ecoM_REGNUMBER is not null) or (package_carriers.is_commercial=1))');
+        }
+        $packages = $packages->where(function ($q) use ($warehouse) {
+            $q->orWhere('packages.warehouse_id', $warehouse->id)->orWhere('packages.country_id', $warehouse->country_id);
+        })->whereNotNull('packages.ukr_express_id')->whereNull('packages.ukr_express_parcel_id')->whereRaw('(packages.ukr_express_pd is null or packages.ukr_express_pd < 2)')->whereIn('packages.status', [0, 1, 6])->limit(100)->get();
+
+
+        $packages = Package::where('id','366313')->get();
+
+
+
+
+        //if(!$reload) {
+        //    $packages=$packages->where('packages.ukr_express_pd', 0);
+        //}
+        //})->where('tracking_code','393798232483')->limit(1)->get();
+        if (count($packages) > 0) {
+            $this->info(count($packages) . " packages to update packing data");
+        }
+        $cnt = 1;
+        foreach ($packages as $package) {
+            $ldate = date('Y-m-d H:i:s');
+            $this->line($ldate . " " . $cnt . " track: " . $package->tracking_code . " tracking_id: " . $package->ukr_express_id . " customer_id:" . $package->user->ukr_express_id);
+            $this->line("  invoice: " . $package->generateHtmlInvoice());
+            $cnt++;
+            //if($reload)
+            //continue;
+            //continue;
+            $res_ok = $this->ue->change_customer($package);
+            if (!$res_ok) {
+                $this->info("   warging: " . $this->ue->code . " " . $this->ue->message);
+                $this->err("packing_data", "   warning: " . $package->tracking_code . " " . $this->ue->code . " " . $this->ue->message);
+                continue;
+            }
+            $res_ok = $this->ue->package_additional_info($package);
+            if (!$res_ok) {
+                $this->err("additional_info", "   error");
+            }
+            $res_ok = $this->ue->packing_data($package);
+            //continue;
+            if ($res_ok) {
+                $package->ukr_express_pd = $package->ukr_express_pd + 1;
+                $package->ukr_express_status = 9;
+                $package->ukr_express_error_at = null;
+                $package->save();
+            } else {
+                if ($this->ue->code == 'tracking_number_not_found') {
+                    $res_ok = $this->package_add($package);
+                    if ($res_ok)
+                        $res_ok = $this->ue->packing_data($package);
+                    if ($res_ok) {
+                        $package->ukr_express_pd = 1;
+                        $package->ukr_express_error_at = null;
+                        $package->save();
+                    }
+                }
+            }
+            if (!$res_ok) {
+                $message = "🛑 Eror packing data to Ukraine Express\n";
+                if ($package->user)
+                    $message .= " <b>" . $package->user->full_name . "</b>  (<a href='https://admin." . env('DOMAIN_NAME') . "/users?q=" . $package->user->customer_id . "'>" . $package->user->customer_id . "</a>)";
+                $message .= "   <a href='https://admin." . env('DOMAIN_NAME') . "/packages?q=" . $package->custom_id . "'>" . $package->tracking_code . "(" . $package->custom_id . ")</a>\n";
+                $message .= "Error: " . $this->ue->message . "\n";
+                $content = "Error packing data to Ukr Express " . $package->tracking_code . " (" . $package->custom_id . "): " . $this->ue->message;
+                $this->info("   failed: " . $this->ue->code . " " . $this->ue->message);
+                $this->err("packing_data", "   failed: " . $package->tracking_code . " " . $this->ue->code . " " . $this->ue->message);
+                $package->bot_comment = "pack error " . $this->ue->code . " " . $this->ue->message;
+                $package->ukr_express_error_at = $ldate;
+                $package->save();
+                if ($this->sendTelegram) sendTGMessage($message);
+            } else {
+                $this->info("   Ok res: " . $this->ue->code . "  message: " . $this->ue->message);
+            }
+        }
+
         exit;
 
 
 
-
-        $service  = new UnitradeService();
-        $track = Track::find(538807);
-
-        $service->updateStatusTest($track, 17);
-
-
-        dd("yes");
-
-        $query = new Package();
-        $query->show_label = 1;
-        $query->detailed_type = null;
-        $query->width = null;
-        $query->height = null;
-        $query->length = null;
-        $query->length_type = 0;
-        $query->tracking_code = 'H023FA1122539354';
-        $query->user_id = 35831; // Shola Qahramanova
-        $query->website_name = '-';
-        $query->seller_name = null;
-        $query->weight = 0.2;
-        $query->weight_type = 0;
-        $query->number_items = null;
-        $query->shipping_amount = null;
-        $query->shipping_amount_cur = 0;
-        $query->warehouse_comment = null;
-        $query->warehouse_id = 20;
-        $query->custom_id = 'ASE6403766657182';
-        $query->additional_delivery_final_price = 0;
-        $query->battery_price = 0;
-        $query->insurance_price = 0;
-        $query->delivery_price = 6.2;
-        $query->weight_goods = 0.2;
-        $query->updated_at = '2025-10-21 14:43:42';
-        $query->created_at = '2025-10-21 14:43:42';
-
-
-
-        $user = null;
-        if ($query->user_id)
-            $user = User::find($query->user_id);
-
-
-
-//        dd($user);
-        $azerpoct = 0;
-        $city_id = 0;
-        if ($user) {
-            $azerpoct = $user->azerpoct_send;
-            $city_id = $user->city_id;
-        }
-
-        $query->custom_id = $query->custom_id ?: self::generateCustomId();
-
-        $webSiteName = getOnlyDomainWithExt($query->website_name);
-        $query->website_name = $webSiteName ?: $query->website_name;
-
-        $type_id = $query->type_id;
-        $customs_type_id = null;
-        if (isset($query->customs_type_id))
-            $customs_type_id = $query->customs_type_id;
-        $number_items = $query->number_items;
-
-        if (!empty($number_items) && !empty($customs_type_id)) {
-            $customsType = CustomsType::find($customs_type_id);
-            if ($customsType)
-                $query->detailed_type = $number_items . ' x ' . $customsType->name_en_with_parent;
-        } else if (!empty($number_items) && !empty($type_id)) {
-            $type = PackageType::find($type_id);
-            if ($type)
-                $query->detailed_type = $number_items . ' x ' . $type->translateOrDefault('en')->name;
-        }
-
-        //if ($query->country_id and ! $query->warehouse_id) {
-        if ($query->country_id || $query->warehouse_id) {
-            $warehouse = null;
-            if ($query->country_id)
-                $warehouse = Warehouse::whereCountryId($query->country_id)->latest()->first();
-            else if ($query->warehouse_id)
-                $warehouse = Warehouse::where('id', $query->warehouse_id)->latest()->first();
-
-
-            if ($warehouse) {
-                $query->warehouse_id = $warehouse->id;
-                $weight = $query->weight_goods;
-                $curShippingAmount = Package::s_getShippingAmountUSD($query);
-                if (empty($weight))
-                    $weight = $query->weight;
-                $weight_type = $query->weight_type;
-                if (!$weight_type) $weight_type = 0;
-                $length_type = $query->length_type;
-                if (!$length_type) $length_type = 0;
-                if ($weight && !request()->has('delivery_price') && request()->get('name') != 'delivery_price') {
-
-                    $additionalDeliveryPrice = 0;
-
-                    $additional_delivery_final_price = 0;
-                    if (isset($query->additional_delivery_price) && $query->additional_delivery_price && $query->additional_delivery_price > 0 && $warehouse->use_additional_delivery_price)
-                        $additional_delivery_final_price = $query->additional_delivery_price * 1.2;
-                    $query->additional_delivery_final_price = $additional_delivery_final_price;
-                    $additionalDeliveryPrice += $additional_delivery_final_price;
-
-                    $battery_price = 0;
-                    if (isset($query->has_battery) && $query->has_battery && $warehouse->battery_price && $warehouse->battery_price > 0)
-                        $battery_price = $warehouse->battery_price;
-                    $query->battery_price = $battery_price;
-                    $additionalDeliveryPrice += $battery_price;
-
-                    $insurance_price = 0;
-                    if ($curShippingAmount && isset($query->has_insurance) && $query->has_insurance)
-                        $insurance_price = $curShippingAmount * 0.01;
-                    $query->insurance_price = $insurance_price;
-                    $additionalDeliveryPrice += $insurance_price;
-
-
-
-//                    dd([
-//                        $weight, $weight_type, $query->width, $query->height, $query->length, $length_type, false, 0, $azerpoct, $city_id, $additionalDeliveryPrice
-//                    ]);
-                    $deliveryPrice = $warehouse->calculateDeliveryPrice2($weight, $weight_type, $query->width, $query->height, $query->length, $length_type, false, 0, $azerpoct, $city_id, $additionalDeliveryPrice);
-//                    dd($deliveryPrice);
-                    $query->delivery_price = $deliveryPrice;
-                }
-            }
-        }
-
-
-
-
-        $query->shipping_amount_cur = 5;
-        $query->shipping_amount = 16.11;
-        $query->declaration = true;
-        $query->website_name = 'shein';
-        $query->invoice ='jsjjs';
-
-        $query->number_items = 1;
-        $query->processed_at = '2025-10-21 14:43:42';
-
-
-
-
-        dd($query->delivery_price,'test');
-
-
-
-
-
-        $packages = Package::where('status', 4)
-            ->where('paid_debt', 0)
-            ->whereNotNull('customs_at')
-            ->whereNull('deleted_at')
-            ->get();
-
         $tracks = Track::whereIn('status', [18, 45])
-            ->where('paid_debt', 0)
+            ->where('paid_debt', null)
             ->where('partner_id', '!=', 3)
             ->whereNotNull('customs_at')
             ->whereNull('deleted_at')
             ->get();
 
-        $now = Carbon::now();
+        $now = Carbon::yesterday()->setTime(22, 0);
 
-        $collection = collect();
-        $collection2 = collect();
-
-        foreach ($packages as $package) {
-            $customsTime = Carbon::parse($package->customs_at);
-            $lastDebtLog = DebtLog::where('custom_id', $package->tracking_code)->latest()->first();
-            $dueTime = $lastDebtLog ? Carbon::parse($lastDebtLog->created_at)->addHours(24) : $customsTime->addHours(24);
-
-
-            if ($dueTime <= $now) {
-                $collection->push($package);
-                $priceToAdd = $lastDebtLog ? Setting::find(1)->debt_price_day : Setting::find(1)->debt_price_first_day;
-//
-//                $debtLog = new DebtLog();
-//                $debtLog->custom_id = $package->tracking_code;
-//                $debtLog->price = $package->debt_price;
-//                $debtLog->after_price = $package->debt_price + $priceToAdd;
-//                $debtLog->save();
-//
-                $package->debt_price += $priceToAdd;
-                $collection2->push($package->debt_price);
-
-//                $package->save();
-            }
-        }
-
-        dd($collection->count(), $collection2);
 
         foreach ($tracks as $track) {
+
 
 
             $customsTime = Carbon::parse($track->customs_at);
@@ -312,97 +227,866 @@ class Test extends Command
             $dueTime = $lastDebtLog ? Carbon::parse($lastDebtLog->created_at)->addHours(24) : $initialDueTime;
 
             if ($dueTime <= $now) {
-                $priceToAdd = $lastDebtLog ? Setting::find(1)->debt_price_day : Setting::find(1)->debt_price_first_day;
+                $priceToAdd =  Setting::find(1)->debt_price_day;
 
                 $debtLog = new DebtLog();
                 $debtLog->custom_id = $track->custom_id;
                 $debtLog->price = $track->debt_price;
                 $debtLog->after_price = $track->debt_price + $priceToAdd;
+                $debtLog->created_at = $now;
+
                 $debtLog->save();
 
                 $track->debt_price += $priceToAdd;
+                $track->paid_debt = 0;
                 $track->save();
 
-                if (in_array($track->partner_id, [1, 9]) && $track->courier_delivery) {
-                    CD::removeTrack($track->courier_delivery, $track);
-                }
+
+//                if (in_array($track->partner_id, [1, 9]) && $track->courier_delivery) {
+//                    CD::removeTrack($track->courier_delivery, $track);
+//                }
 
             }
         }
 
-        $this->info('Success');
+        dd($now);
+
+        exit;
 
 
-//        $packages = Package::where('custom_id','ASE3908019478272')->where('status',4)->where('paid_debt',0)->where('customs_at','!=',null)->where('deleted_at',null)->get();
-//        $tracks = Track::where('status',18)->where('paid_debt',0)->where('customs_at')->where('deleted_at',null)->get();
-//
-//        $yesterday = Carbon::yesterday()->toDateString();
-//
-//        foreach ($packages as $package){
-//
-//            if(Carbon::parse($package->customs_at)->format('Y-m-d') == $yesterday){
-//
-//                $firstDayPrice = Setting::find(1)->debt_price_first_day;
-//
-//                $debtLog = new DebtLog();
-//                $debtLog->custom_id = $package->tracking_code;
-//                $debtLog->price = $package->debt_price;
-//                $debtLog->after_price = $package->debt_price + $firstDayPrice;
-//                $debtLog->save();
-//
-//                $package->debt_price += $firstDayPrice;
-//                $package->save();
-//            }elseif (Carbon::parse($package->customs_at)->format('Y-m-d') < $yesterday){
-//
-//                $dayPrice = Setting::find(1)->debt_price_day;
-//
-//                $debtLog = new DebtLog();
-//                $debtLog->custom_id = $package->tracking_code;
-//                $debtLog->price = $package->debt_price;
-//                $debtLog->after_price = $package->debt_price + $dayPrice;
-//                $debtLog->save();
-//
-//                $package->debt_price += $dayPrice;
-//                $package->save();
-//
-//            }
-//
-//        }
-//
-//        foreach ($tracks as $track){
-//
-//            if(Carbon::parse($track->customs_at)->format('Y-m-d') == $yesterday){
-//
-//                $firstDayPrice = Setting::find(1)->debt_price_first_day;
-//
-//                $debtLog = new DebtLog();
-//                $debtLog->custom_id = $track->custom_id;
-//                $debtLog->price = $track->debt_price;
-//                $debtLog->after_price = $track->debt_price + $firstDayPrice;
-//                $debtLog->save();
-//
-//                $track->debt_price += $firstDayPrice;
+        $body = [
+            "trackingNumber"=> 'ASE4451146862352'
+        ];
+
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => 'https://ecarrier-fbusiness.customs.gov.az:7545/api/v2/carriers/carriersposts/0/100',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS =>json_encode($body),
+            CURLOPT_HTTPHEADER => array(
+                'accept: application/json',
+                'lang: az',
+                'ApiKey: 8CD0F430D478F8E1DFC8E1311B20031E3A669607',
+                'Content-Type: application/json'
+            ),
+        ));
+
+        $response = curl_exec($curl);
+        dd($response);
+        die('declarations');
+
+
+        $data = [
+            'barcode' => 'UNI1029816BAGtest',
+            'parcel_ids' => ['UNJ90058357CN'],
+            'total_count' => 1,
+            'from_country' => 'CN',
+            'total_weight' => 17575,
+        ];
+
+        $request = new Request($data);
+
+        DB::table('pallet_shipment_logs')->insert([
+            'action' => 'create',
+            'request_data' => json_encode($request->all()),
+        ]);
+
+        $from_country = isset($request->from_country) ? $request->from_country : 'RU';
+
+        $box = Airbox::first();
+
+        $notExistsTracks = [];
+        $exists = [];
+        foreach ($request->parcel_ids as $trackingCode) {
+            $track = Track::where("tracking_code", $trackingCode)->first();
+            if ($track) {
+                $exists[] = $track->id;
+            } else {
+                $notExistsTracks[] = $trackingCode;
+            }
+        }
+
+        $tracks = Track::whereIn('id', $exists)->get();
+//        if($tracks and count($tracks) > 0){
+//            foreach ($tracks as $track) {
+//                $track->airbox_id = $box->id;
 //                $track->save();
-//            }elseif (Carbon::parse($track->customs_at)->format('Y-m-d') < $yesterday){
-//
-//                $dayPrice = Setting::find(1)->debt_price_day;
-//
-//                $debtLog = new DebtLog();
-//                $debtLog->custom_id = $track->custom_id;
-//                $debtLog->price = $track->debt_price;
-//                $debtLog->after_price = $track->debt_price + $dayPrice;
-//                $debtLog->save();
-//
-//                $track->debt_price += $dayPrice;
-//                $track->save();
-//
 //            }
-//
 //        }
-//
-//        echo 'Success';
+//        Track::query()->whereIn('id', $exists)->update([
+//            'airbox_id' => $box->id
+//        ]);
 
+
+        DB::table('pallet_shipment_logs')->insert([
+            'action' => 'create response',
+            'request_data' => json_encode($tracks).' -- '.json_encode($box),
+        ]);
+
+        return response()->json([
+            "status" => true,
+            "message" => "Pallet created.",
+            "data" => [
+                "uuid" => $box->id,
+                "barcode" => $box->name,
+                "total_weight" => $box->total_weight,
+                "total_count" => $box->total_count,
+                "createdAt" => $box->created_at,
+                "updatedAt" => $box->updated_at,
+            ],
+            'errors' => [
+                'message' => "Packages not found",
+                'data' => $notExistsTracks
+            ]
+        ]);
+
+
+        exit;
+
+
+
+        $trackIds = [33878,33942];
+
+        $tracks = \App\Models\Airbox::whereIn('id', $trackIds)->get();
+
+
+        foreach ($tracks as $track) {
+            $track->container_id = null;
+            $track->save();
+        }
+
+        dd($tracks->pluck('container_id')->toArray());
+
+
+
+
+
+
+        dd("test");
+
+
+
+
+        dd("salam");
+
+        foreach ($tracks as $track) {
+
+            dd($track->id);
+            $track->container_id = 5;  // burada 5 yazılır
+            $track->save();            // -> updated event tetiklenir, log düşür
+        }
+
+
+        exit;
+        $testMode = false;
+        $pCustomId = '';
+        if ($this->option('type') == 'test') {
+            $testMode = true;
+            $pCustomId = $this->option('cwb');
+        }
+
+        $timeToRun = 5 * 60 - 10;
+        $sendTelegram = true;
+        $begin_tm = time();
+        $ldate = date('Y-m-d H:i:s');
+        $cm = new CustomsModel();
+        $items = DB::select("select * from customs_countries");
+        $cm_countries = [];
+        foreach ($items as $item) {
+            $cm_countries[strtolower($item->CODE_C)] = $item->CODE_N;
+        }
+
+        /*$items = DB::select("select * from customs_currencies");
+        foreach($items as $item)
+        {
+            $cm_currencies[strtolower($item->CODE_C)]=$item->CODE_N;
+        }*/
+        $this->info($ldate . "  ===== Started to add new carriers =====");
+        if ($testMode)
+            $this->info($ldate . "  ===== TEST MODE =====");
+        $query = 'SELECT ';
+        $query .= ' pl.id as pl_id,pl.custom_id as pl_custom_id,b.custom_id as b_custom_id';
+        $query .= ' ,pc.id as pc_id,p.id,pc.code as pc_code';
+        $query .= ' ,p.number_items_goods,p.weight_goods,p.weight_type,p.width,p.height,p.length,p.length_type';
+        $query .= ' ,p.website_name,p.type_id,p.detailed_type,p.shipping_amount_goods,p.shipping_amount_cur,p.delivery_price,p.custom_id,p.country_id';
+        $query .= ' ,c.code,wc.code as w_code,a.zip_code,coalesce(c_en.name,c_az.name,c_ru.name) as country_name';
+        $query .= ' ,w.id as w_id,w.company_name as w_company_name,w.web_site as w_web_site,w.currency as w_currency,a.address_line_1,a.city,a.state';
+        $query .= ' ,u.name,u.surname,u.phone,u.address,u.fin,u.passport,u.customer_id as u_customer_id,u.check_customs as u_check_customs,u.is_commercial as u_is_commercial,u.voen as u_voen,u.company as u_company';
+        $query .= ' FROM packages p ';
+        $query .= ' LEFT OUTER JOIN parcel_package pp on pp.package_id=p.id';
+        $query .= ' LEFT OUTER JOIN parcels pl on pp.parcel_id=pl.id';
+        $query .= ' LEFT OUTER JOIN bag_package bp on bp.package_id=p.id';
+        $query .= ' LEFT OUTER JOIN bags b on bp.bag_id=b.id';
+        $query .= ' LEFT OUTER JOIN package_types t on p.type_id=t.id';
+        $query .= ' left outer join package_carriers pc on pc.package_id=p.id';
+
+        $query .= ' LEFT OUTER JOIN users u on p.user_id=u.id';
+        $query .= ' LEFT OUTER JOIN countries c on p.country_id=c.id';
+        $query .= ' LEFT OUTER JOIN warehouses w on w.id=p.warehouse_id';
+        $query .= ' LEFT OUTER JOIN countries wc on w.country_id=wc.id';
+
+        $query .= " left outer join country_translations c_az on (c_az.locale='az' and c_az.country_id=wc.id)";
+        $query .= " left outer join country_translations c_en on (c_en.locale='en' and c_en.country_id=wc.id)";
+        $query .= " left outer join country_translations c_ru on (c_ru.locale='ru' and c_ru.country_id=wc.id)";
+
+        $query .= ' LEFT OUTER JOIN addresses a on a.warehouse_id=w.id';
+        //$query.=" WHERE ((p.status = 0) or ((p.status=1) and (p.updated_at >= '2020-12-01 00:00:00')))";
+        if (empty($pCustomId))
+            $query .= " WHERE ((p.status = 0 or p.status=47) or ((p.status=1) and (TIME_TO_SEC(TIMEDIFF('" . $ldate . "',p.updated_at))<=30*86400)))";
+        else
+            $query .= " WHERE p.custom_id in ('$pCustomId')";
+        //$query.=" WHERE p.custom_id in ('ASE3860990266061')";
+        $query .= " and ((u.check_customs=1) or (u.check_customs=0 and pc.id is null))";
+        $query .= ' and a.id in (select max(id) from addresses group by warehouse_id)';
+        $query .= " and ((w.customs_auto_delcaration=1) or (";
+        //$query.=' and ((p.number_items_goods is not null and p.number_items_goods > 0) or (p.number_items_goods is not null and p.number_items_goods > 0)) ';
+        $query .= ' ((p.number_items_goods is not null and p.number_items_goods > 0) or (p.number_items_goods is not null and p.number_items_goods > 0)) ';
+        $query .= ' and ((p.shipping_amount is not null and p.shipping_amount > 0) or (p.shipping_amount_goods is not null and p.shipping_amount_goods > 0))';
+        $query .= " ))";
+        $query .= ' and ((p.weight is not null and p.weight > 0) or (p.weight_goods is not null and p.weight_goods > 0)) ';
+        $query .= ' and p.deleted_at is null and u.deleted_at is null';
+        if (!$testMode)
+            $query .= " and ((pc.id is null) or ((pc.status<=0) and (pc.code<>200) and (TIME_TO_SEC(TIMEDIFF('" . $ldate . "',pc.created_at))>3600)))";
+        //$query.=" and ((pc.id is null) or (pc.code<>200))";
+        //$query.=" and ((pc.id is null) or ((pc.code<>200 and pc.code<>400) and (TIME_TO_SEC(TIMEDIFF('".$ldate."',pc.created_at))>3600)))";
+        $queryOne = $query;
+        //$query.=" and ((pc.id is null) or ((pc.code<>200 and pc.code<>400) and (TIME_TO_SEC(TIMEDIFF('".$ldate."',pc.created_at))>3*60)))";
+        //$query.=' and p.id in(46738,7020)';
+        $query .= ' ORDER BY p.created_at DESC';
+        $query .= ' limit 100';
+        //$this->info($query);
+        //return;
+        $pn = 0;
+        $packages = DB::select($query);
+        //dd($packages);
+        foreach ($packages as $package) {
+            //print_r($package);
+            //continue;
+            $now_tm = time();
+            if (($now_tm - $begin_tm) >= $timeToRun) {
+                $this->info($ldate . "  ===== Timeout =====");
+                return;
+            }
+
+            if ($pn > 0)
+                sleep(3);
+
+            $pn++;
+            $ldate = date('Y-m-d H:i:s');
+
+            $cm->fin = $package->fin;
+            $cm->isCommercial = $package->u_is_commercial;
+            $cm->trackingNumber = $package->custom_id;
+
+            //Delete from customs system
+            /*            if (!empty($package->pc_id) && $package->pc_code == 400) {
+                            $res = $cm->delete_carriers();
+                            if (!isset($res->code)) {
+                                $this->info($ldate . " $pn Error Package: " . $package->id . " fin:" . $package->fin . " trackNo:" . $package->custom_id);
+                                $this->info("    Cannot remove package ");
+                                //continue;
+                            } else
+                                if ($res->code != 200)// && ($res->code != 400))
+                                {
+                                    $cm->parse_error($res);
+                                    $this->info($ldate . " $pn Error Package: " . $package->id . " fin:" . $package->fin . " trackNo:" . $package->custom_id);
+                                    $this->info("Cannot remove package from customs system(" . $res->code . "): ");
+                                    //continue;
+                                } else {
+                                    DB::delete("delete from package_carriers where id=?", [$package->pc_id]);
+                                    $this->info($ldate . " $pn Deleted Package: " . $package->id . " fin:" . $package->fin . " trackNo:" . $package->custom_id);
+                                    $package->pc_id = NULL;
+                                }
+                            sleep(3);
+                            $ldate = date('Y-m-d H:i:s');
+                    }*/
+            //---------
+            $cm->pinNumber = $package->fin;
+            $cpost = $cm->get_carrierposts2();
+            if ($cpost->code == 200 && $cpost->inserT_DATE) {
+                $this->info($ldate . " $pn Exists Package: " . $package->id . " fin:" . $package->fin . " trackNo:" . $package->custom_id);
+                $cm->updateDB2($package->id, $package->fin, $package->custom_id, $ldate, 200);
+                continue;
+            }
+
+            $pc_id = $package->pc_id;
+            if (!$package->u_check_customs) {
+                if (empty($pc_id) && !$testMode)
+                    DB::insert("insert into package_carriers (package_id,fin,trackingNumber,code,check_customs,created_at) values (?,?,?,0,0,?)"
+                        , [$package->id, $package->fin, $package->custom_id, $ldate]);
+                continue;
+            }
+            if (!empty($pc_id)) {
+                $ones = DB::select($queryOne . " and pc.id=" . $pc_id);
+                if (count($ones) <= 0) {
+                    $this->info($ldate . "    Error: DB changed ");
+                    $package = null;
+                    continue;
+                }
+                $package = $ones[0];
+            }
+            $fullName = $package->name;
+            $surname = $package->surname;
+            if (!empty($surname))
+                $fullName .= ' ' . $surname;
+            $countryCode = strtolower($package->w_code);
+            if ($countryCode == 'uk') $countryCode = 'gb';
+            if ($countryCode == 'uae') $countryCode = 'ae';
+            //check for fin
+            if (empty($package->fin) || empty(trim($package->address)) || !array_key_exists($countryCode, $cm_countries) || ($package->u_is_commercial && empty($package->u_voen))) {
+                $errorMessage = '';
+                $validationError = '';
+                $this->info($ldate . " $pn Error Package: " . $package->id . " fin:" . $package->fin . " trackNo:" . $package->custom_id);
+                $message = "🛑 Eror checking package for customs system\n";
+                $message .= "<b>" . $fullName . "</b>";
+                $message .= "  (<a href='https://admin." . env('DOMAIN_NAME') . "/users?q=" . $package->u_customer_id . "'>" . $package->u_customer_id . "</a>)";
+                $message .= "   <a href='https://admin." . env('DOMAIN_NAME') . "/packages?q=" . $package->custom_id . "'>" . $package->custom_id . "</a>\n";
+                if (empty($package->fin)) {
+                    $this->info("    Empty fin ");
+                    $message .= "Error: Empty fin code\n";
+                    $validationError = "Empty FIN Code";
+                }
+                if (empty(trim($package->address))) {
+                    $this->info("    Empty address ");
+                    $message .= "Error: Empty address\n";
+                    $validationError = "Empty ADDRESS";
+                }
+                if (!array_key_exists($countryCode, $cm_countries)) {
+                    $this->info("    Wrong country code: " . $countryCode);
+                    $message .= "Error: Wrong country code $countryCode\n";
+                    $validationError = "Wrong COUNTRY";
+                }
+                if ($package->u_is_commercial && empty($package->u_voen)) {
+                    $this->info("    Commercial user has no voen");
+                    $message .= "Commercial user has no voen\n";
+                    $validationError = "Empty VOEN";
+                }
+                if ($sendTelegram && !$testMode) sendTGMessage($message);
+                if (!$testMode) {
+                    if (!empty($pc_id)) {
+                        DB::update("update package_carriers set package_id=?,fin=?,trackingNumber=?,code=?,errorMessage=?,validationError=?,created_at=? where id=?"
+                            , [$package->id, $package->fin, $package->custom_id, 998, $errorMessage, $validationError, $ldate, $pc_id]);
+                    } else {
+                        DB::insert("insert into package_carriers (package_id,fin,trackingNumber,code,errorMessage,validationError,created_at) values (?,?,?,?,?,?,?)"
+                            , [$package->id, $package->fin, $package->custom_id, 998, $errorMessage, $validationError, $ldate]);
+                    }
+                }
+                continue;
+            }
+            //----
+            $_package = Package::find($package->id);
+            $shippingAmount = $_package->getShippingAmountUSD();
+            if (!$shippingAmount)
+                $shippingAmount = 0;
+            $deliveryAmount = $_package->delivery_usd_price_discount;
+
+
+            /*$warehouse = Warehouse::find($package->w_id);
+                if ($warehouse && $package->weight) {
+                    $deliveryAmount = $warehouse->calculateDeliveryPrice($package->weight, $package->weight_type,
+                                                                $package->width, $package->height, $package->length, $package->length_type);
+            }*/
+            $webSiteName = getOnlyDomainWithExt($package->website_name);
+            $webSiteName = $webSiteName ?: $package->website_name;
+            $TypeId = $package->type_id;
+            $TypeStr = $package->detailed_type;
+
+            $addressStr = '';
+            $str = $package->w_company_name;
+            if (!empty(trim($str))) {
+                if (!empty($addressStr))
+                    $addressStr .= ", ";
+                $addressStr .= $str;
+            }
+            $str = $package->address_line_1;
+            if (!empty(trim($str))) {
+                if (!empty($addressStr))
+                    $addressStr .= ", ";
+                $addressStr .= $str;
+            }
+            $str = $package->city;
+            if (!empty(trim($str))) {
+                if (!empty($addressStr))
+                    $addressStr .= ", ";
+                $addressStr .= $str;
+            }
+            $str = $package->state . " " . $package->zip_code;
+            if (!empty(trim($str))) {
+                if (!empty($addressStr))
+                    $addressStr .= ", ";
+                $addressStr .= $str;
+            }
+            $str = $package->country_name;
+            if (!empty(trim($str))) {
+                if (!empty($addressStr))
+                    $addressStr .= ", ";
+                $addressStr .= $str;
+            }
+            //$this->info("------------------");
+            //$this->info("id:".$package->id);
+            $cm->get_carriers_goods($_package->customs_type_id, $TypeId, $TypeStr, $package->id);
+
+            $whtsp = array("\r\n", "\n", "\r");
+            $cm->direction = 1;
+            $cm->trackinG_NO = $package->custom_id;
+            $cm->transP_COSTS = $deliveryAmount;
+            $cm->weighT_GOODS = $_package->getWeight();//weight_goods;
+            if (!$cm->weighT_GOODS)
+                $cm->weighT_GOODS = 0;
+            $cm->quantitY_OF_GOODS = $_package->getNumberItems();//number_items_goods;
+            if (!$cm->quantitY_OF_GOODS)
+                $cm->quantitY_OF_GOODS = 0;
+            $cm->invoyS_PRICE = $shippingAmount;
+            $cm->currencY_TYPE = "840";
+            $cm->fin = $package->fin;
+            $cm->document_type = "PinCode";
+            if (strtoupper($package->fin) == strtoupper($package->passport))
+                $cm->document_type = "PassportNumber";
+            $cm->idxaL_NAME = str_replace('"', '\"', $fullName);
+            $cm->idxaL_ADRESS = $package->address;
+            $cm->idxaL_ADRESS = str_replace("\\", "\\\\", $cm->idxaL_ADRESS);
+            $cm->idxaL_ADRESS = str_replace('"', '\"', $cm->idxaL_ADRESS);
+            $cm->idxaL_ADRESS = str_replace($whtsp, ' ', $cm->idxaL_ADRESS);
+            $cm->phone = $package->phone;
+            $cm->phone = str_replace("\\", "\\\\", $cm->phone);
+            $cm->ixraC_NAME = str_replace('"', '\"', $webSiteName);
+            $cm->ixraC_ADRESS = str_replace('"', '\"', $addressStr);
+            $cm->goodS_TRAFFIC_FR = $cm_countries[$countryCode];
+            $cm->goodS_TRAFFIC_TO = "031";
+
+            $cm->isCommercial = $package->u_is_commercial;
+            if ($package->u_is_commercial) {
+                $cm->voen = $package->u_voen;
+                if (empty($package->pl_custom_id))
+                    $cm->airwaybill = $package->custom_id;
+                else
+                    $cm->airwaybill = $package->pl_custom_id;
+                if (empty($package->b_custom_id))
+                    $cm->depesH_NUMBER = $package->custom_id;
+                else
+                    $cm->depesH_NUMBER = $package->b_custom_id;
+                if (!empty($package->u_company))
+                    $cm->idxaL_NAME = str_replace('"', '\"', $package->u_company);
+            }
+
+            //$this->info($cm->get_carriers_json_str());
+            if ($testMode) {
+                $this->info($cm->get_carriersposts_url());
+                $this->info($cm->get_carriers_json_str());
+                continue;
+            }
+
+            $pc_id = $package->pc_id;
+            $res = $cm->add_carriers();
+            $ldate = date('Y-m-d H:i:s');
+
+            if (!isset($res->code)) {
+                $this->info($ldate . " $pn Error Package: " . $package->id . " fin:" . $package->fin . " trackNo:" . $package->custom_id);
+                $this->info("    Empty response (retry)");
+                sleep(1);
+                $res = $cm->add_carriers();
+                $ldate = date('Y-m-d H:i:s');
+            }
+
+            $pc_id = $package->pc_id;
+
+            if (!empty($pc_id)) {
+                $ones = DB::select("select id from package_carriers where id=" . $pc_id);
+                if (count($ones) <= 0) {
+                    $pc_id = null;
+                }
+            }
+
+
+            if (!isset($res->code)) {
+                $this->info($ldate . " $pn Error Package: " . $package->id . " fin:" . $package->fin . " trackNo:" . $package->custom_id);
+                $this->info("    Empty response ");
+                $message = "🛑 Eror adding package to customs system\n";
+                $message .= "<b>" . $fullName . "</b>";
+                $message .= "  (<a href='https://admin." . env('DOMAIN_NAME') . "/users?q=" . $package->u_customer_id . "'>" . $package->u_customer_id . "</a>)";
+                $message .= "   <a href='https://admin." . env('DOMAIN_NAME') . "/packages?q=" . $package->custom_id . "'>" . $package->custom_id . "</a>\n";
+                $message .= "Error: Empty response\n";
+                $message .= "phone: " . $cm->phone . "\n";
+                $message .= "address: " . $cm->idxaL_ADRESS . "\n";
+                //$message.= $cm->get_carriers_html_str();
+                $this->info("  ----*******----- ");
+                $this->info($cm->get_carriers_json_str());
+                $this->info("  ----*******----- ");
+                print_r($res);
+                $this->info("  ----*******----- ");
+                //$message.=$cm->get_carriers_html_str();
+                if ($sendTelegram) sendTGMessage($message);
+                $cm->updateDB2($package->id, $package->fin, $package->custom_id, $ldate, 999);
+                continue;
+            }
+            //print_r($res);
+            if (($res->code == 400) && isset($res->exception) && is_object($res->exception) && isset($res->exception->status) && $res->exception->status == 'error')
+                $res->code = 888;
+            $cm->updateDB2($package->id, $package->fin, $package->custom_id, $ldate, $res->code, $package->country_id, $cm->idxaL_NAME, $cm->ixraC_NAME);
+            if ($res->code == 200) {
+                $this->info($ldate . " $pn  Ok Package: " . $package->id . " fin:" . $package->fin . " trackNo:" . $package->custom_id . " added");
+                /*
+                $message="✅ Package added to customs system (".$res->code.")\n";
+                $message.="<b>".$fullName."</b>";
+                    $message.="  (<a href='https://admin."  . env('DOMAIN_NAME') . "/users?q=" . $package->u_customer_id . "'>" . $package->u_customer_id ."</a>)";
+                    $message.="   <a href='https://admin."  . env('DOMAIN_NAME') . "/packages?q=" . $package->custom_id . "'>" . $package->custom_id ."</a>\n";
+                if($sendTelegram) sendTGMessage($message); */
+
+            } else {
+                $errorMessage = '';
+                $validationError = '';
+                if (isset($res->exception) && is_object($res->exception)) {
+                    $exception = $res->exception;
+                    $errorMessage = $exception->errorMessage;
+                    //print_r($exception);
+                    $errs = [];
+                    if (is_array($exception->validationError))
+                        $errs = $exception->validationError;
+                    if (is_object($exception->validationError))
+                        $errs = get_object_vars($exception->validationError);
+                    foreach ($errs as $x => $x_value) {
+                        if (!empty($validationError))
+                            $validationError .= " , ";
+                        $validationError .= $x . "=>" . $x_value;
+                    }
+                    //$validationError=json_encode($exception->validationError);
+                }
+                $this->info($ldate . " $pn Error (" . $res->code . ") Package: " . $package->id . " fin:" . $package->fin . " trackNo:" . $package->custom_id);
+                $this->info("    errorMessage: " . $errorMessage);
+                $this->info("    validationError: " . $validationError);
+                $this->info("  ----*******----- ");
+                print_r($res);
+                $this->info("  ----*******----- ");
+                //print_r($res);
+                //$this->info("  --------- ");
+                $this->info($cm->get_carriers_json_str());
+                $this->info("  ----*******----- ");
+                $message = "🛑 Eror adding package to customs system (" . $res->code . ")\n";
+                $message .= "<b>" . $fullName . "</b>";
+                $message .= "  (<a href='https://admin." . env('DOMAIN_NAME') . "/users?q=" . $package->u_customer_id . "'>" . $package->u_customer_id . "</a>)";
+                $message .= "   <a href='https://admin." . env('DOMAIN_NAME') . "/packages?q=" . $package->custom_id . "'>" . $package->custom_id . "</a>\n";
+                if (!empty($errorMessage))
+                    $message .= "errorMessage: " . $errorMessage . "\n";
+                if (!empty($validationError))
+                    $message .= "validationError: " . $validationError . "\n";
+                //$message.=$cm->get_carriers_html_str();
+                if ($sendTelegram && $res->code != 400) sendTGMessage($message);
+                //$this->info("Telegram message: $message");
+                //$this->info("Telegram result: $gt_res");
+            }
+        }
+        //
     }
+
+
+
+
+
+
+//    public function handle()
+//    {
+//
+////        Notification::sendPackage(311312, 12);
+//        exit;
+//
+//
+//
+//
+//        $service  = new UnitradeService();
+//        $track = Track::find(538807);
+//
+//        $service->updateStatusTest($track, 17);
+//
+//
+//        dd("yes");
+//
+//        $query = new Package();
+//        $query->show_label = 1;
+//        $query->detailed_type = null;
+//        $query->width = null;
+//        $query->height = null;
+//        $query->length = null;
+//        $query->length_type = 0;
+//        $query->tracking_code = 'H023FA1122539354';
+//        $query->user_id = 35831; // Shola Qahramanova
+//        $query->website_name = '-';
+//        $query->seller_name = null;
+//        $query->weight = 0.2;
+//        $query->weight_type = 0;
+//        $query->number_items = null;
+//        $query->shipping_amount = null;
+//        $query->shipping_amount_cur = 0;
+//        $query->warehouse_comment = null;
+//        $query->warehouse_id = 20;
+//        $query->custom_id = 'ASE6403766657182';
+//        $query->additional_delivery_final_price = 0;
+//        $query->battery_price = 0;
+//        $query->insurance_price = 0;
+//        $query->delivery_price = 6.2;
+//        $query->weight_goods = 0.2;
+//        $query->updated_at = '2025-10-21 14:43:42';
+//        $query->created_at = '2025-10-21 14:43:42';
+//
+//
+//
+//        $user = null;
+//        if ($query->user_id)
+//            $user = User::find($query->user_id);
+//
+//
+//
+////        dd($user);
+//        $azerpoct = 0;
+//        $city_id = 0;
+//        if ($user) {
+//            $azerpoct = $user->azerpoct_send;
+//            $city_id = $user->city_id;
+//        }
+//
+//        $query->custom_id = $query->custom_id ?: self::generateCustomId();
+//
+//        $webSiteName = getOnlyDomainWithExt($query->website_name);
+//        $query->website_name = $webSiteName ?: $query->website_name;
+//
+//        $type_id = $query->type_id;
+//        $customs_type_id = null;
+//        if (isset($query->customs_type_id))
+//            $customs_type_id = $query->customs_type_id;
+//        $number_items = $query->number_items;
+//
+//        if (!empty($number_items) && !empty($customs_type_id)) {
+//            $customsType = CustomsType::find($customs_type_id);
+//            if ($customsType)
+//                $query->detailed_type = $number_items . ' x ' . $customsType->name_en_with_parent;
+//        } else if (!empty($number_items) && !empty($type_id)) {
+//            $type = PackageType::find($type_id);
+//            if ($type)
+//                $query->detailed_type = $number_items . ' x ' . $type->translateOrDefault('en')->name;
+//        }
+//
+//        //if ($query->country_id and ! $query->warehouse_id) {
+//        if ($query->country_id || $query->warehouse_id) {
+//            $warehouse = null;
+//            if ($query->country_id)
+//                $warehouse = Warehouse::whereCountryId($query->country_id)->latest()->first();
+//            else if ($query->warehouse_id)
+//                $warehouse = Warehouse::where('id', $query->warehouse_id)->latest()->first();
+//
+//
+//            if ($warehouse) {
+//                $query->warehouse_id = $warehouse->id;
+//                $weight = $query->weight_goods;
+//                $curShippingAmount = Package::s_getShippingAmountUSD($query);
+//                if (empty($weight))
+//                    $weight = $query->weight;
+//                $weight_type = $query->weight_type;
+//                if (!$weight_type) $weight_type = 0;
+//                $length_type = $query->length_type;
+//                if (!$length_type) $length_type = 0;
+//                if ($weight && !request()->has('delivery_price') && request()->get('name') != 'delivery_price') {
+//
+//                    $additionalDeliveryPrice = 0;
+//
+//                    $additional_delivery_final_price = 0;
+//                    if (isset($query->additional_delivery_price) && $query->additional_delivery_price && $query->additional_delivery_price > 0 && $warehouse->use_additional_delivery_price)
+//                        $additional_delivery_final_price = $query->additional_delivery_price * 1.2;
+//                    $query->additional_delivery_final_price = $additional_delivery_final_price;
+//                    $additionalDeliveryPrice += $additional_delivery_final_price;
+//
+//                    $battery_price = 0;
+//                    if (isset($query->has_battery) && $query->has_battery && $warehouse->battery_price && $warehouse->battery_price > 0)
+//                        $battery_price = $warehouse->battery_price;
+//                    $query->battery_price = $battery_price;
+//                    $additionalDeliveryPrice += $battery_price;
+//
+//                    $insurance_price = 0;
+//                    if ($curShippingAmount && isset($query->has_insurance) && $query->has_insurance)
+//                        $insurance_price = $curShippingAmount * 0.01;
+//                    $query->insurance_price = $insurance_price;
+//                    $additionalDeliveryPrice += $insurance_price;
+//
+//
+//
+////                    dd([
+////                        $weight, $weight_type, $query->width, $query->height, $query->length, $length_type, false, 0, $azerpoct, $city_id, $additionalDeliveryPrice
+////                    ]);
+//                    $deliveryPrice = $warehouse->calculateDeliveryPrice2($weight, $weight_type, $query->width, $query->height, $query->length, $length_type, false, 0, $azerpoct, $city_id, $additionalDeliveryPrice);
+////                    dd($deliveryPrice);
+//                    $query->delivery_price = $deliveryPrice;
+//                }
+//            }
+//        }
+//
+//
+//
+//
+//        $query->shipping_amount_cur = 5;
+//        $query->shipping_amount = 16.11;
+//        $query->declaration = true;
+//        $query->website_name = 'shein';
+//        $query->invoice ='jsjjs';
+//
+//        $query->number_items = 1;
+//        $query->processed_at = '2025-10-21 14:43:42';
+//
+//
+//
+//
+//        dd($query->delivery_price,'test');
+//
+//
+//
+//
+//
+//        $packages = Package::where('status', 4)
+//            ->where('paid_debt', 0)
+//            ->whereNotNull('customs_at')
+//            ->whereNull('deleted_at')
+//            ->get();
+//
+//        $tracks = Track::whereIn('status', [18, 45])
+//            ->where('paid_debt', 0)
+//            ->where('partner_id', '!=', 3)
+//            ->whereNotNull('customs_at')
+//            ->whereNull('deleted_at')
+//            ->get();
+//
+//        $now = Carbon::now();
+//
+//        $collection = collect();
+//        $collection2 = collect();
+//
+//        foreach ($packages as $package) {
+//            $customsTime = Carbon::parse($package->customs_at);
+//            $lastDebtLog = DebtLog::where('custom_id', $package->tracking_code)->latest()->first();
+//            $dueTime = $lastDebtLog ? Carbon::parse($lastDebtLog->created_at)->addHours(24) : $customsTime->addHours(24);
+//
+//
+//            if ($dueTime <= $now) {
+//                $collection->push($package);
+//                $priceToAdd = $lastDebtLog ? Setting::find(1)->debt_price_day : Setting::find(1)->debt_price_first_day;
+////
+////                $debtLog = new DebtLog();
+////                $debtLog->custom_id = $package->tracking_code;
+////                $debtLog->price = $package->debt_price;
+////                $debtLog->after_price = $package->debt_price + $priceToAdd;
+////                $debtLog->save();
+////
+//                $package->debt_price += $priceToAdd;
+//                $collection2->push($package->debt_price);
+//
+////                $package->save();
+//            }
+//        }
+//
+//        dd($collection->count(), $collection2);
+//
+//        foreach ($tracks as $track) {
+//
+//
+//            $customsTime = Carbon::parse($track->customs_at);
+//            $lastDebtLog = DebtLog::where('custom_id', $track->custom_id)->latest()->first();
+//            $initialDueTime = ($track->partner_id == 3) ? $customsTime->addHours(72) : $customsTime->addHours(24);
+//            $dueTime = $lastDebtLog ? Carbon::parse($lastDebtLog->created_at)->addHours(24) : $initialDueTime;
+//
+//            if ($dueTime <= $now) {
+//                $priceToAdd = $lastDebtLog ? Setting::find(1)->debt_price_day : Setting::find(1)->debt_price_first_day;
+//
+//                $debtLog = new DebtLog();
+//                $debtLog->custom_id = $track->custom_id;
+//                $debtLog->price = $track->debt_price;
+//                $debtLog->after_price = $track->debt_price + $priceToAdd;
+//                $debtLog->save();
+//
+//                $track->debt_price += $priceToAdd;
+//                $track->save();
+//
+//                if (in_array($track->partner_id, [1, 9]) && $track->courier_delivery) {
+//                    CD::removeTrack($track->courier_delivery, $track);
+//                }
+//
+//            }
+//        }
+//
+//        $this->info('Success');
+//
+//
+////        $packages = Package::where('custom_id','ASE3908019478272')->where('status',4)->where('paid_debt',0)->where('customs_at','!=',null)->where('deleted_at',null)->get();
+////        $tracks = Track::where('status',18)->where('paid_debt',0)->where('customs_at')->where('deleted_at',null)->get();
+////
+////        $yesterday = Carbon::yesterday()->toDateString();
+////
+////        foreach ($packages as $package){
+////
+////            if(Carbon::parse($package->customs_at)->format('Y-m-d') == $yesterday){
+////
+////                $firstDayPrice = Setting::find(1)->debt_price_first_day;
+////
+////                $debtLog = new DebtLog();
+////                $debtLog->custom_id = $package->tracking_code;
+////                $debtLog->price = $package->debt_price;
+////                $debtLog->after_price = $package->debt_price + $firstDayPrice;
+////                $debtLog->save();
+////
+////                $package->debt_price += $firstDayPrice;
+////                $package->save();
+////            }elseif (Carbon::parse($package->customs_at)->format('Y-m-d') < $yesterday){
+////
+////                $dayPrice = Setting::find(1)->debt_price_day;
+////
+////                $debtLog = new DebtLog();
+////                $debtLog->custom_id = $package->tracking_code;
+////                $debtLog->price = $package->debt_price;
+////                $debtLog->after_price = $package->debt_price + $dayPrice;
+////                $debtLog->save();
+////
+////                $package->debt_price += $dayPrice;
+////                $package->save();
+////
+////            }
+////
+////        }
+////
+////        foreach ($tracks as $track){
+////
+////            if(Carbon::parse($track->customs_at)->format('Y-m-d') == $yesterday){
+////
+////                $firstDayPrice = Setting::find(1)->debt_price_first_day;
+////
+////                $debtLog = new DebtLog();
+////                $debtLog->custom_id = $track->custom_id;
+////                $debtLog->price = $track->debt_price;
+////                $debtLog->after_price = $track->debt_price + $firstDayPrice;
+////                $debtLog->save();
+////
+////                $track->debt_price += $firstDayPrice;
+////                $track->save();
+////            }elseif (Carbon::parse($track->customs_at)->format('Y-m-d') < $yesterday){
+////
+////                $dayPrice = Setting::find(1)->debt_price_day;
+////
+////                $debtLog = new DebtLog();
+////                $debtLog->custom_id = $track->custom_id;
+////                $debtLog->price = $track->debt_price;
+////                $debtLog->after_price = $track->debt_price + $dayPrice;
+////                $debtLog->save();
+////
+////                $track->debt_price += $dayPrice;
+////                $track->save();
+////
+////            }
+////
+////        }
+////
+////        echo 'Success';
+//
+//    }
 //    public function handle()
 //    {
 //        $packages = Package::where('status', 3)

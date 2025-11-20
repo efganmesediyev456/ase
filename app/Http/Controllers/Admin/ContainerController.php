@@ -541,6 +541,15 @@ class ContainerController extends Controller
 
     public function indexObject()
     {
+
+        $container = Container::find(1759);
+
+        $new = $container->replicate();
+        $new->name = 'manifest2';
+        $new->save();
+
+        dd($new);
+
         $items = Container::whereHas('tracks')->with(['tracks' => function ($query) {
             $query->with('carrier')->get()->each->append('declared_weight_goods');
         }, 'partner', 'airboxes'])->withCount(['airboxes', 'tracks', 'trackcarriers', 'trackcarriersreg', 'trackcarriersdepesh', 'track_not_completed'])->orderBy('id', 'desc')->latest();

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Front\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\AzeriExpress\AzeriExpressOffice;
+use App\Models\Extra\SMS;
 use App\Models\Kargomat\KargomatOffice;
 use App\Models\Surat\SuratOffice;
 use App\Models\City;
@@ -21,6 +22,8 @@ use Lunaweb\EmailVerification\EmailVerification;
 use Lunaweb\EmailVerification\Traits\VerifiesEmail;
 use Session;
 use Validator;
+use Illuminate\Auth\Events\Registered;
+
 
 //use Illuminate\Support\Facades\Request;
 
@@ -44,7 +47,7 @@ class RegisterController extends Controller
      *
      * @var string
      */
-    protected $redirectTo = '/register/verify/resend';
+//    protected $redirectTo = '/register/verify/resend';
 
     /**
      * Create a new controller instance.
@@ -125,7 +128,7 @@ class RegisterController extends Controller
         $validator = Validator::make($data, [
             'name' => 'required|string|max:30|regex:/(^([a-zA-Z]+)?$)/u',
             'surname' => 'required|string|max:30|regex:/(^([a-zA-Z]+)?$)/u',
-            'phone' => 'nullable|string|unique:users',
+            'phone' => 'required|string|unique:users',
             'passport_prefix' => 'required|in:AZE,AA',
             'passport_number' => 'required|' . $digits,
             'passport' => 'required|string|unique:users',
@@ -154,6 +157,49 @@ class RegisterController extends Controller
         //}
         return $validator;
     }
+
+
+    public function send()
+    {
+
+        $user = Auth::user();
+
+        if ($user->sms_verification_status) {
+            return redirect('/');
+        }
+
+        $data = [
+            'code' => $user->sms_verification_code,
+            'user' => $user->name
+        ];
+        if (SMS::verifyNumber($user->phone, $data)) {
+            return Session::flash('success', 'alindi');
+        } else {
+            return Session::flash('error', 'olmadi');
+        }
+    }
+
+    public function register(Request $request)
+    {
+        $this->validator($request->all())->validate();
+
+        event(new Registered($user = $this->create($request->all())));
+
+        $this->guard()->login($user);
+
+        $user = Auth::user();
+
+        $num = $user->phone;
+
+        $user->phone = $num;
+        $user->sms_verification_code = rand(1000, 9999);
+        $user->save();
+
+        $this->send();
+
+        return redirect('/number/verify/code');
+    }
+
 
     /**
      * Create a new user instance after a valid registration.

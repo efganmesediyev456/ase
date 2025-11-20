@@ -23,8 +23,17 @@ use Validator;
 class KapitalPaymentNewContoller extends MainController
 {
 
+
+    function log($message)
+    {
+        file_put_contents("/var/log/test_kapital_order_create.log",$message."\n",FILE_APPEND);
+    }
     public function postKapitalNewPay(Request $request, $type)
     {
+
+        $requestAll = json_encode($request->all());
+        $this->log(now()->format('Y-m-d H:i:s') . " requestAll - {$requestAll} type - $type");
+
 
         if ($type == 'courier') {
             $courierDelivery = CD::where('id', $request->item_id)->withTrashed()->first();
@@ -48,7 +57,10 @@ class KapitalPaymentNewContoller extends MainController
             $password = $kapitalResponse['password'];
             $redirectUrl = $kapitalResponse['redirectUrl'];
 
-            Transaction::create([
+            $this->log(now()->format('Y-m-d H:i:s') . " response from kapital - ".json_encode($kapitalResponse));
+
+
+            $tran = Transaction::create([
                 'user_id' => $courierDelivery->user_id,
                 'custom_id' => $courierDelivery->id,
                 'paid_by' => 'KAPITAL',
@@ -57,6 +69,9 @@ class KapitalPaymentNewContoller extends MainController
                 'type' => 'PENDING',
                 'paid_for' => 'COURIER_DELIVERY',
             ]);
+
+            $this->log(now()->format('Y-m-d H:i:s') . " created transactions - ".json_encode($tran));
+
 
             return redirect($redirectUrl);
 
@@ -83,11 +98,14 @@ class KapitalPaymentNewContoller extends MainController
             $OrderID = $kapitalResponse['order_id'];
             $redirectUrl = $kapitalResponse['redirectUrl'];
 
+            $this->log(now()->format('Y-m-d H:i:s') . " response from kapital - ".json_encode($kapitalResponse));
+
+
             $pay_phone->order_id = $kapitalResponse['order_id'];
 
             $pay_phone->save();
 
-            Transaction::create([
+            $tran = Transaction::create([
 //                'user_id' => $courierDelivery->user_id,
                 'custom_id' => $pay_phone->id,
                 'phone' => $pay_phone->phone,
@@ -97,6 +115,9 @@ class KapitalPaymentNewContoller extends MainController
                 'type' => 'PENDING',
                 'paid_for' => 'MARKET',
             ]);
+
+            $this->log(now()->format('Y-m-d H:i:s') . " created transactions - ".json_encode($tran));
+
 
             return redirect($redirectUrl);
         } elseif ($type == 'track_broker') {
@@ -122,7 +143,10 @@ class KapitalPaymentNewContoller extends MainController
             $password = $kapitalResponse['password'];
             $redirectUrl = $kapitalResponse['redirectUrl'];
 
-            Transaction::create([
+            $this->log(now()->format('Y-m-d H:i:s') . " response from kapital - ".json_encode($kapitalResponse));
+
+
+            $tran = Transaction::create([
                 'user_id' => null,
                 'custom_id' => $track->id,
                 'paid_by' => 'KAPITAL',
@@ -131,6 +155,9 @@ class KapitalPaymentNewContoller extends MainController
                 'type' => 'PENDING',
                 'paid_for' => 'TRACK_BROKER',
             ]);
+
+            $this->log(now()->format('Y-m-d H:i:s') . " created transactions - ".json_encode($tran));
+
 
             return redirect($redirectUrl);
         } elseif ($type == 'package_broker') {
@@ -157,7 +184,9 @@ class KapitalPaymentNewContoller extends MainController
             $password = $kapitalResponse['password'];
             $redirectUrl = $kapitalResponse['redirectUrl'];
 
-            Transaction::create([
+            $this->log(now()->format('Y-m-d H:i:s') . " response from kapital - ".json_encode($kapitalResponse));
+
+            $tran = Transaction::create([
                 'user_id' => null,
                 'custom_id' => $package->id,
                 'paid_by' => 'KAPITAL',
@@ -166,11 +195,13 @@ class KapitalPaymentNewContoller extends MainController
                 'type' => 'PENDING',
                 'paid_for' => 'PACKAGE_BROKER',
             ]);
+            $this->log(now()->format('Y-m-d H:i:s') . " created transactions - ".json_encode($tran));
+
 
             return redirect($redirectUrl);
         }
         elseif ($type == 'package') {
-            $totalPrice = $request->get('amount');
+//            $totalPrice = $request->get('amount');
             $packageId = request()->get('client_rrn');
             $id = '';
             $ulduzumId = '';
@@ -184,6 +215,8 @@ class KapitalPaymentNewContoller extends MainController
 
             $arr = explode('-', $id);
             $packages = Package::whereIn('id', $arr)->where('paid', 0)->get();
+
+            $totalPrice = Package::whereIn('id', $arr)->where('paid', 0)->sum('delivery_price_azn');
 
             $body = [
                 'order' => [
@@ -200,13 +233,19 @@ class KapitalPaymentNewContoller extends MainController
 
             $kapitalResponse = $kapitalBankTxpgService->createOrder($body);
 
-            if ($kapitalResponse) {
+
+
+            $this->log(now()->format('Y-m-d H:i:s') . " response from kapital - ".json_encode($kapitalResponse));
+
+
+            $transactions = [];
+//            if ($kapitalResponse) {
                 $OrderID = $kapitalResponse['order_id'];
                 $password = $kapitalResponse['password'];
                 $redirectUrl = $kapitalResponse['redirectUrl'];
                 foreach ($packages as $package) {
                     $price = $package->delivery_price_azn;
-                    Transaction::create([
+                    $tran = Transaction::create([
                         'user_id' => $package->user_id,
                         'custom_id' => $package->id,
                         'paid_by' => 'KAPITAL',
@@ -216,15 +255,23 @@ class KapitalPaymentNewContoller extends MainController
                         'paid_for' => 'PACKAGE',
                     ]);
 
+                    $transactions[] = $tran;
                     $package->transaction_id = $OrderID;
                     $package->save();
 
                 }
-            }
+//            }
+
+            $this->log(now()->format('Y-m-d H:i:s') . " created transactions - ".json_encode($transactions));
+
 
             return redirect($redirectUrl);
 
         }elseif($type == 'track'){
+
+
+
+
             $track = Track::find($request->item_id);
 
             $price = $request->amount;
@@ -246,7 +293,10 @@ class KapitalPaymentNewContoller extends MainController
             $password = $kapitalResponse['password'];
             $redirectUrl = $kapitalResponse['redirectUrl'];
 
-            Transaction::create([
+            $this->log(now()->format('Y-m-d H:i:s') . " response from kapital - ".json_encode($kapitalResponse));
+
+
+            $tran = Transaction::create([
                 'user_id' => null,
                 'custom_id' => $track->id,
                 'paid_by' => 'KAPITAL',
@@ -255,6 +305,9 @@ class KapitalPaymentNewContoller extends MainController
                 'type' => 'PENDING',
                 'paid_for' => 'TRACK_DELIVERY',
             ]);
+
+            $this->log(now()->format('Y-m-d H:i:s') . " created transactions - ".json_encode($tran));
+
 
             return redirect($redirectUrl);
         }elseif($type == 'package_debt'){
@@ -284,7 +337,9 @@ class KapitalPaymentNewContoller extends MainController
             $password = $kapitalResponse['password'];
             $redirectUrl = $kapitalResponse['redirectUrl'];
 
-            Transaction::create([
+            $this->log(now()->format('Y-m-d H:i:s') . " response from kapital - ".json_encode($kapitalResponse));
+
+            $tran = Transaction::create([
                 'user_id' => $package->user_id,
                 'custom_id' => $package->id,
                 'paid_by' => 'KAPITAL',
@@ -294,6 +349,9 @@ class KapitalPaymentNewContoller extends MainController
                 'paid_for' => 'PACKAGE_DEBT',
                 'debt' => 1,
             ]);
+
+            $this->log(now()->format('Y-m-d H:i:s') . " created transactions - ".json_encode($tran));
+
 
             return redirect($redirectUrl);
 
@@ -319,7 +377,9 @@ class KapitalPaymentNewContoller extends MainController
             $password = $kapitalResponse['password'];
             $redirectUrl = $kapitalResponse['redirectUrl'];
 
-            Transaction::create([
+            $this->log(now()->format('Y-m-d H:i:s') . " response from kapital - ".json_encode($kapitalResponse));
+
+            $tran = Transaction::create([
                 'user_id' => null,
                 'custom_id' => $track->id,
                 'paid_by' => 'KAPITAL',
@@ -329,6 +389,8 @@ class KapitalPaymentNewContoller extends MainController
                 'paid_for' => 'TRACK_DEBT',
                 'debt' => 1,
             ]);
+
+            $this->log(now()->format('Y-m-d H:i:s') . " created transactions - ".json_encode($tran));
 
             return redirect($redirectUrl);
 

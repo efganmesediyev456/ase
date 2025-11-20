@@ -3,6 +3,40 @@
 @section('title', 'Bulk Resend Status Requests')
 
 @section('content')
+
+    <style>
+        .badge {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .badge-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .badge-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .badge-warning {
+            background-color: #ffc107;
+            color: black;
+        }
+        .badge-info {
+            background-color: #17a2b8;
+            color: white;
+        }
+        .badge-default {
+            background-color: #6c757d;
+            color: white;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
     @if(session('success'))
         <div class="alert alert-success" role="alert">
             {{ session('success') }}
@@ -43,6 +77,18 @@
                         <div class="col-md-2">
                             <button type="submit" class="btn btn-primary" style="margin-top: 28px;">Submit</button>
                         </div>
+
+
+                        <div class="col-md-6 mt-4" style="margin-top:40px">
+                            <label><b>Status</b></label>
+                            <div class="input-group">
+                                <select name="status" id="" class="form-control">
+                                    @foreach($statuses as $key=>$status)
+                                        <option value="{{ $key }}">{{ $status }}</option>
+                                        @endforeach
+                                </select>
+                            </div>
+                        </div>
                     </form>
 
                 </div>
@@ -57,4 +103,182 @@
             });
         }
     </script>
+
+
+
+    <!-- LOGLAR TABLOSU -->
+    <div class="row" style="margin-top: 40px;">
+        <div class="col-lg-12 col-md-12 col-xs-12">
+            <div class="panel panel-flat">
+                <div class="panel-heading">
+                    <h6 class="panel-title">
+                        Track Status Logs
+                        <span class="badge badge-info" style="float: right;">{{ $logs->count() }} Records</span>
+                    </h6>
+                </div>
+
+                <div class="panel-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="logsTable">
+                            <thead>
+                            <tr>
+                                <th style="width: 5%;">ID</th>
+                                <th style="width: 10%;">Tracking Code</th>
+                                <th style="width: 8%;">Status</th>
+                                <th style="width: 10%;">Place</th>
+                                <th style="width: 10%;">Event Code</th>
+                                <th style="width: 8%;">HTTP Code</th>
+                                <th style="width: 10%;">Type</th>
+                                <th style="width: 12%;">User</th>
+                                <th style="width: 12%;">Executed At</th>
+                                <th style="width: 15%;">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @forelse($logs as $log)
+                                <tr class="log-row" data-log-type="{{ $log->log_type }}" data-tracking-code="{{ $log->tracking_code }}">
+                                    <td>{{ $log->id }}</td>
+                                    <td>
+                                        <strong>{{ $log->tracking_code }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-default">{{ $log->status ?? '-' }}</span>
+                                    </td>
+                                    <td>{{ $log->place ?? '-' }}</td>
+                                    <td>{{ $log->event_code ?? '-' }}</td>
+                                    <td>
+                                        @if($log->http_code)
+                                            @if($log->http_code >= 200 && $log->http_code < 300)
+                                                <span class="badge badge-success">{{ $log->http_code }}</span>
+                                            @elseif($log->http_code >= 400)
+                                                <span class="badge badge-danger">{{ $log->http_code }}</span>
+                                            @else
+                                                <span class="badge badge-warning">{{ $log->http_code }}</span>
+                                            @endif
+                                        @else
+                                            <span class="badge badge-default">-</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($log->log_type === 'success')
+                                            <span class="badge badge-success">{{ ucfirst($log->log_type) }}</span>
+                                        @elseif($log->log_type === 'error')
+                                            <span class="badge badge-danger">{{ ucfirst($log->log_type) }}</span>
+                                        @elseif($log->log_type === 'warning')
+                                            <span class="badge badge-warning">{{ ucfirst($log->log_type) }}</span>
+                                        @else
+                                            <span class="badge badge-info">{{ ucfirst($log->log_type) }}</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ $log->user_id ?? '-' }}</td>
+                                    <td>
+                                        <small>{{ $log->executed_at ? $log->executed_at->format('Y-m-d H:i:s') : '-' }}</small>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-xs btn-info" data-toggle="modal" data-target="#detailsModal{{ $log->id }}" title="View Details">
+                                            <i class="icon-eye"></i> Details
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Details Modal -->
+                                <div class="modal fade" id="detailsModal{{ $log->id }}" tabindex="-1" role="dialog">
+                                    <div class="modal-dialog modal-lg" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                                <h5 class="modal-title">Log Details - {{ $log->tracking_code }}</h5>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <p><strong>Track ID:</strong> {{ $log->track_id }}</p>
+                                                        <p><strong>Tracking Code:</strong> {{ $log->tracking_code }}</p>
+                                                        <p><strong>Status:</strong> {{ $log->status ?? '-' }}</p>
+                                                        <p><strong>Status String:</strong> {{ $log->status_string ?? '-' }}</p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <p><strong>Place:</strong> {{ $log->place ?? '-' }}</p>
+                                                        <p><strong>Event Code:</strong> {{ $log->event_code ?? '-' }}</p>
+                                                        <p><strong>HTTP Code:</strong> {{ $log->http_code ?? '-' }}</p>
+                                                        <p><strong>Log Type:</strong> <span class="badge badge-{{ $log->log_type === 'success' ? 'success' : ($log->log_type === 'error' ? 'danger' : 'info') }}">{{ ucfirst($log->log_type) }}</span></p>
+                                                    </div>
+                                                </div>
+
+                                                <hr>
+
+                                                @if($log->error_message)
+                                                    <div class="alert alert-danger">
+                                                        <strong>Error Message:</strong>
+                                                        <p>{{ $log->error_message }}</p>
+                                                    </div>
+                                                @endif
+
+                                                @if($log->request_body)
+                                                    <div class="form-group">
+                                                        <label><strong>Request Body:</strong></label>
+                                                        <pre class="bg-light p-3" style="max-height: 300px; overflow-y: auto;">{{ json_encode(json_decode($log->request_body), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+                                                    </div>
+                                                @endif
+
+                                                @if($log->response_body)
+                                                    <div class="form-group">
+                                                        <label><strong>Response Body:</strong></label>
+                                                        <pre class="bg-light p-3" style="max-height: 300px; overflow-y: auto;">{{ json_encode(json_decode($log->response_body), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+                                                    </div>
+                                                @endif
+
+                                                <hr>
+
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <p><strong>Admin ID:</strong> {{ $log->user_id ?? '-' }}</p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <p><strong>Executed At:</strong> {{ $log->executed_at ? $log->executed_at->format('Y-m-d H:i:s') : '-' }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @empty
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted">
+                                        <em>No logs found yet</em>
+                                    </td>
+                                </tr>
+                            @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    @if($logs->hasPages())
+                        <div class="row">
+                            <div class="col-md-12">
+                                {{ $logs->links() }}
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function onlyOne(selected) {
+            document.querySelectorAll('input[name="action_type"]').forEach(function (checkbox) {
+                if (checkbox !== selected) checkbox.checked = false;
+            });
+        }
+    </script>
+
+
+
 @endsection

@@ -297,6 +297,8 @@ class UeCheckupController extends Controller
                 return redirect()->back()->withInput($request->all());
             }
         }
+
+
         $checkup = new UECheckup();
         $ue = new UkrExpressModel();
 
@@ -306,11 +308,15 @@ class UeCheckupController extends Controller
         if ($package) {
             $checkup->package_id = $package->id;
         }
+
+
+
         if (!$ue->checkup_add($checkup)) {
             $message = "Error while adding checkup to UE: " . $ue->message;
             Session::flash('error', $message);
             return redirect()->back()->withInput($request->all());
         }
+
         $checkup->save();
         Alert::success(trans('saysay::crud.action_alert', [
             'name' => 'Checkups',

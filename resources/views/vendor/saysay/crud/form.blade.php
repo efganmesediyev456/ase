@@ -81,7 +81,6 @@ var w_id=0;
 </script>
                          <div class="row">
                              <div class="col-lg-12">
-
                                  @if(isset($includes))
                                      @foreach($includes as $include)
                                          @include($include['view'], $include['data'])

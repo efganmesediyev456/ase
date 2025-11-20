@@ -17,6 +17,7 @@ use App\Models\DeliveryPoint;
 use App\Models\Extra\Notification;
 use App\Models\Filial;
 use App\Models\Kargomat\KargomatOffice;
+use App\Models\Package;
 use App\Models\Surat\SuratOffice;
 use App\Models\Track;
 use App\Models\Transaction;
@@ -714,6 +715,17 @@ class TrackController extends Controller
             ],
             'validation' => 'nullable|numeric',
         ],
+
+        [
+            'name' => 'debt_price',
+            'label' => 'Debt price',
+            'type' => 'text',
+            'prefix' => '<i class="icon-coin-dollar"></i>',
+            'wrapperAttributes' => [
+                'class' => 'col-md-2',
+            ],
+            'validation' => 'nullable|numeric',
+        ],
         [
             'type' => 'html',
             'html' => '<div class="form-group col-lg-12 mt-10 clearfix"></div>',
@@ -821,6 +833,16 @@ class TrackController extends Controller
                 'text' => $filial->type_id_name . ' (' . $filial->address . ')',
             ];
         }
+
+        $this->middleware(function ($request, $next) {
+            if (optional(auth()->user()->role)->id == 10 or optional(auth()->user()->role)->id == 26 ) {
+                $this->fields = array_filter($this->fields, function ($field) {
+                    return !isset($field['name']) || $field['name'] !== 'debt_price';
+                });
+            }
+            parent::__construct();
+            return $next($request);
+        });
 
         $this->list['courier_delivery.courier_id']['editable']['source'] = \GuzzleHttp\json_encode($allCouriers, true);
         $this->list['filial_hd_name']['editable']['source'] = \GuzzleHttp\json_encode($allFilials, true);
@@ -1185,10 +1207,17 @@ class TrackController extends Controller
         }
     }
 
+    function log($message)
+    {
+        file_put_contents("/var/log/track_status_change.log",$message."\n",FILE_APPEND);
+    }
     public function ajax(Request $request, $id)
     {
         $track = Track::find($id);
         if ($request->get('name') == 'status') {
+
+            $requestAll = json_encode($request->all());
+            $this->log(now()->format('Y-m-d H:i:s'). " before id-{$track->id} status-{$track->status}  paid-{$track->paid} paid_debt-{$track->paid_debt} debt_price-{$track->debt_price} partner_id-{$track->partner_id} request-{$requestAll} ");;
 
             $data = [];
             $status = trim($request->get('value'));
@@ -1285,6 +1314,11 @@ class TrackController extends Controller
             }
 
             (new PackageService())->updateStatus($track, $status);
+
+            $nowTrack = Track::find($id);
+
+            $this->log(now()->format('Y-m-d H:i:s') . " after id-{$nowTrack->id} status-{$nowTrack->status}  paid-{$nowTrack->paid} paid_debt-{$nowTrack->paid_debt} partner_id-{$track->partner_id} debt_price-{$nowTrack->debt_price}  ");;
+
         }
 
 

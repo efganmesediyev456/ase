@@ -45,7 +45,7 @@
                                         @endif
                                         <b>Date</b> : {{ $log->created_at }}
                                     </td>
-                                    <td>{!! $log->data !!}</td>
+                                    <td>{!! $log->data !!} </td>
                                 </tr>
                             @endforeach
 
@@ -79,7 +79,7 @@
                                 <tr>
                                     <td>
                                         @if($log->admin)
-                                            <b>Admin</b> : {{ $log->admin->name }} <br/>
+                                            <b>Admin</b> : {{ $log->admin->name }}  <br/>
                                         @endif
                                         <b>Date</b> : {{ $log->created_at }}
                                     </td>

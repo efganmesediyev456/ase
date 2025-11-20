@@ -283,6 +283,8 @@ class PackageController extends Controller
                 ],
                 'allowNull' => 'Paid Broker',
             ],
+
+
             /*[
                 'name'              => 'ukr_express_status',
                 'type'              => 'select_from_array',
@@ -369,7 +371,11 @@ class PackageController extends Controller
     ];
 
     protected $list = [
-
+        'created_at' => [
+            'label' => 'created_at',
+            'type' => 'date',
+            'order' => 'created_at',
+        ],
         'scanned_at' => [
             'label' => 'DeliveredAt',
             'type' => 'date',
@@ -735,6 +741,17 @@ class PackageController extends Controller
             ],
             'validation' => 'nullable|integer',
         ],
+
+        [
+            'name' => 'debt_price',
+            'label' => 'Debt price',
+            'type' => 'text',
+            'prefix' => '<i class="icon-coin-dollar"></i>',
+            'wrapperAttributes' => [
+                'class' => 'col-md-2',
+            ],
+            'validation' => 'nullable|numeric',
+        ],
         /*[
             'name'              => 'paid',
             'label'             => 'Paid',
@@ -1065,8 +1082,15 @@ class PackageController extends Controller
         $this->fields[8]['default'] = Package::generateCustomId();
         if (\Request::has('action') && \Request::get('action') == 'return_form')
             $this->fields = $this->return_fields;
-
-        parent::__construct();
+        $this->middleware(function ($request, $next) {
+            if (auth()->check() && auth()->user()->role && auth()->user()->role->id == 10) {
+                $this->fields = array_filter($this->fields, function ($field) {
+                    return !isset($field['name']) || $field['name'] !== 'debt_price';
+                });
+            }
+            parent::__construct();
+            return $next($request);
+        });
     }
     public function ue_photos($id)
     {
@@ -1559,16 +1583,16 @@ class PackageController extends Controller
             $items->where('warehouse_id', \Request::get('warehouse_id'));
         }
 
-//        if (\Request::get('start_date') != null) {
-//            $dateField = \Request::get('date_by', 'created_at');
-//            $dateField = 'packages.' . $dateField;
-//            $items->where($dateField, '>=', \Request::get('start_date') . " 00:00:00");
-//        }
-//        if (\Request::get('end_date') != null) {
-//            $dateField = \Request::get('date_by', 'created_at');
-//            $dateField = 'packages.' . $dateField;
-//            $items->where($dateField, '<=', \Request::get('end_date') . " 23:59:59");
-//        }
+        if (\Request::get('start_date') != null) {
+            $dateField = \Request::get('date_by', 'created_at');
+            $dateField = 'packages.' . $dateField;
+            $items->where($dateField, '>=', \Request::get('start_date') . " 00:00:00");
+        }
+        if (\Request::get('end_date') != null) {
+            $dateField = \Request::get('date_by', 'created_at');
+            $dateField = 'packages.' . $dateField;
+            $items->where($dateField, '<=', \Request::get('end_date') . " 23:59:59");
+        }
         $dateField = \Request::get('date_by', 'created_at');
 
         if (auth('admin')->user()->id == 101) {
@@ -1577,13 +1601,13 @@ class PackageController extends Controller
 
         $dateField = 'packages.' . $dateField;
 
-        if (\Request::get('start_date') != null) {
-            $items->where($dateField, '>=', \Request::get('start_date') . " 00:00:00");
-        }
-
-        if (\Request::get('end_date') != null) {
-            $items->where($dateField, '<=', \Request::get('end_date') . " 23:59:59");
-        }
+//        if (\Request::get('start_date') != null) {
+//            $items->where($dateField, '>=', \Request::get('start_date') . " 00:00:00");
+//        }
+//
+//        if (\Request::get('end_date') != null) {
+//            $items->where($dateField, '<=', \Request::get('end_date') . " 23:59:59");
+//        }
 
         $items_all = null;
 
@@ -1867,6 +1891,10 @@ class PackageController extends Controller
     }
 
 
+    function log($message)
+    {
+        file_put_contents("/var/log/package_status_change.log",$message."\n",FILE_APPEND);
+    }
     public function ajax(Request $request, $id)
     {
 
@@ -1992,6 +2020,9 @@ class PackageController extends Controller
 
             $data = [];
 
+            $requestAll = json_encode($request->all());
+            $this->log(now()->format('Y-m-d H:i:s'). " before id-{$used->id} status-{$used->status}  paid-{$used->paid} paid_debt-{$used->paid_debt} debt_price-{$used->debt_price} request-{$requestAll} ");;
+
             if (trim($used->status) != trim($request->get('value'))) {
                 $data['status'] = [
                     'before' => trim($used->status),
@@ -2005,7 +2036,7 @@ class PackageController extends Controller
             if (trim($request->get('value')) == 3) {
 
                 if( ($used->debt_price > 0 && $used->paid_debt == 0) || $used->paid == 0 ){
-                    return \Response::json(['message' => ' Items have debt price!'],400);
+                    return \Response::json('Items have debt price!',400);
                 }
 
                 event(new PackageCell('done', $used->id));
@@ -2017,6 +2048,11 @@ class PackageController extends Controller
                 $log->package_id = $id;
                 $log->save();
             }
+
+            $nowPackage = Package::find($id);
+
+            $this->log(now()->format('Y-m-d H:i:s') . " after id-{$nowPackage->id} status-{$nowPackage->status}  paid-{$nowPackage->paid} paid_debt-{$nowPackage->paid_debt} debt_price-{$nowPackage->debt_price}  ");;
+
         }
 
         if($request->get('name') == 'filial_name'){
@@ -2792,6 +2828,22 @@ class PackageController extends Controller
 
 
 
+    public function sendTrackNotification($track, $status){
+        if($track->store_status==2 and $track->status==20){
+            Notification::sendTrack($track->id, $status, now()->addHours(3));
+        }else{
+            Notification::sendTrack($track->id, $status);
+        }
+    }
+    public function sendPackageNotification($package, $status){
+        if($package->store_status==2 and $package->status==8){
+            Notification::sendPackage($package->id, 2, now()->addHours(3));
+        }else{
+            Notification::sendPackage($package->id, 2);
+        }
+    }
+
+
 
 
     public function barcodeScan($code = null)
@@ -2854,17 +2906,19 @@ class PackageController extends Controller
                 $package->save();
                 if(!$package->is_in_customs){
                     return response()->json([
-                        'error' => 'NO DECLARATION IN CUSTOMS '. $package->custom_id,
+                        'error' => 'NO DECLARATION IN CUSTOMS '. $package->custom_id.' MAWB '.$package->parcel_name,
                     ]);
 
                 }else{
 
                     return response()->json([
-                        'success' => 'DECLARED IN CUSTOMS '. $package->custom_id,
+                        'success' => 'DECLARED IN CUSTOMS '. $package->custom_id.' MAWB '.$package->parcel_name,
                     ]);
                 }
 
             }
+
+
 
             $user = $package->user;
             if (!app('laratrust')->can('update-cells') && app('laratrust')->can('update-paids')) {
@@ -2901,7 +2955,9 @@ class PackageController extends Controller
                     $notification = true;
                     //Send notification only if user selected kobia filial
                     if ($user && !$user->real_azeri_express_use && !$user->real_azerpoct_send && !$user->real_yenipoct_use && !$user->real_kargomat_use && ($user->real_store_status == $admin->store_status) && $user->delivery_point) {
-                        Notification::sendPackage($package->id, 8);
+//                        Notification::sendPackage($package->id, 8);
+                        $this->sendPackageNotification($package, 8);
+
                     }
                 }
             } else { // In Baku
@@ -2989,7 +3045,9 @@ class PackageController extends Controller
                     $package->status = 2;
                     $package->save();
                     $notification = true;
-                    Notification::sendPackage($package->id, 2);
+
+                    $this->sendPackageNotification($package, 2);
+//                    Notification::sendPackage($package->id, 2);
                 }
             }
             if (!$package->scanned_at) {
@@ -3065,17 +3123,23 @@ class PackageController extends Controller
                 $track->save();
                 if($track->carrier && !$track->carrier->status && !$track->carrier->depesH_NUMBER){
                     return response()->json([
-                        'error' => 'NO DECLARATION IN CUSTOMS.. '. $track->tracking_code,
+                        'error' => 'NO DECLARATION IN CUSTOMS '. $track->tracking_code.' MAWB : '.$track->container_name,
                     ]);
-
                 }else{
-
                     return response()->json([
                         'success' => 'DECLARED IN CUSTOMS '. $track->tracking_code.' MAWB : '.$track->container_name,
                     ]);
                 }
-
             }
+
+            //warehouse hesabindadirsa ve track check customsda check edilibse
+            if ((optional($admin->role)->id == 10 && $track->in_customs_status == 1) or (optional($admin->role)->id == 26 && $track->in_customs_status == 1)) {
+                return response()->json([
+                    'error' => "Bu bağlama SAXLANC hesabındadır. "."Səbəb - ".$track->worker_comments
+                ]);
+            }
+
+
 
 //            if($track->tracking_code = 'TEST1232142'){
 //                $track->status = 20;
@@ -3123,7 +3187,7 @@ class PackageController extends Controller
                         $track->bot_comment = "Scanned but Different price";
                         $track->save();
                         (new PackageService())->updateStatus($track, 18);
-                        Notification::sendTrack($track->id, 'track_scan_diff_price');
+                        $this->sendTrackNotification($track, 'track_scan_diff_price');
                     }
                     if (!$admin->scan_no_alerts) {
                         $message = "DIFFERENT PRICE" . $add_message;
@@ -3138,7 +3202,8 @@ class PackageController extends Controller
                         $track->bot_comment = "Scanned but not IN  Customs";
                         $track->save();
                         (new PackageService())->updateStatus($track, 18);
-                        Notification::sendTrack($track->id, $track->status);
+//                        Notification::sendTrack($track->id, $track->status);
+                        $this->sendTrackNotification($track, $track->status);
                     }
 
                     if (!$admin->scan_no_alerts) {
@@ -3154,7 +3219,8 @@ class PackageController extends Controller
                         $track->bot_comment = "Scanned but no declaration in Customs";
                         $track->save();
                         (new PackageService())->updateStatus($track, 18);
-                        Notification::sendTrack($track->id, 'track_scan_no_dec');
+//                        Notification::sendTrack($track->id, 'track_scan_no_dec');
+                        $this->sendTrackNotification($track, 'track_scan_no_dec');
                     }
 
                     if (!$admin->scan_no_alerts) {
@@ -3170,7 +3236,7 @@ class PackageController extends Controller
                         $track->bot_comment = "Scanned but no Depesh in Customs";
                         $track->save();
                         (new PackageService())->updateStatus($track, 18);
-                        //Notification::sendTrack($track->id, $track->status);
+//                        Notification::sendTrack($track->id, $track->status);
                     }
 
                     if (!$admin->scan_no_alerts) {
@@ -3262,7 +3328,9 @@ class PackageController extends Controller
                 (new PackageService())->updateStatus($track, $track->status);
             }
             if ($admin->store_status == 2 && $track->status == 20 && in_array($track->partner_id, [9]) && !$track->paid) { //If IN Kobia and TAOBAO and not PAID
-                Notification::sendTrack($track->id, $track->status);
+//                Notification::sendTrack($track->id, $track->status);
+                $this->sendTrackNotification($track, $track->status);
+
                 $message = " TAOBAO NOT PAID." . $add_message;
                 $track->bot_comment = "Scanned In Kobia but TAOBAO Not Paid " . now();
                 $track->save();
@@ -3305,11 +3373,14 @@ class PackageController extends Controller
                                     if ($track->store_status || $track->azeriexpress_office_id || $track->azerpost_office_id || $track->surat_office_id)
                                         $isPudo = true;
                                     if (!in_array($track->partner_id, [8]) || $isPudo) { //If GFS then must be PUDO
-                                        Notification::sendTrack($track->id, $track->status);
+                                        $this->sendTrackNotification($track, $track->status);
+//                                        Notification::sendTrack($track->id, $track->status);
                                     }
                                 } else { //In Kobia
                                     if (!in_array($track->partner_id, [9]) || !$track->paid) { //If TAOBAO then must not be PAID
-                                        Notification::sendTrack($track->id, $track->status);
+//                                        Notification::sendTrack($track->id, $track->status);
+                                        $this->sendTrackNotification($track, $track->status);
+
                                     }
                                 }
                             }

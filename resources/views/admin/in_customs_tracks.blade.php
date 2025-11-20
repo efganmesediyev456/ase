@@ -12,7 +12,7 @@
 
                 <div class="panel-heading">
                     <h6>
-			{{ isset($_view['name']) ? str_plural($_view['name']) : null }} 
+			{{ isset($_view['name']) ? str_plural($_view['name']) : null }}
 			<small class="display-block"> Showing {{ $tracks->firstItem() }} to {{ $tracks->lastItem() }}
                             of {{ number_format($tracks->total()) }} {{ $_view['sub_title'] or lcfirst(str_plural($_view['name'])) }}</small>
 			@if($set_count) <br><b>{{$set_count}} Tracks are set </b>@endif
@@ -22,28 +22,67 @@
 
                 <div class="panel-body">
                     @include('crud::inc.filter-stack')
-                        @permission('update-tracks')
-                        {!! Form::open(['id' => 'in_customs_tracks_form', 'method' => 'post', 'route' => $_view['mod_name']."s.set" ]) !!}
-                        <div class="col-md-4" >
-                            <label><b style='color:red'>SET</b> Check Customs Track List:</label>
-                            <div class="input-group">
-                                <textarea id="set_tracks" rows=10 name="set_tracks" style='width: 300px;'
-                                       class="form-control">{{$set_count?'':$set_tracks}}</textarea>
+
+
+                    @permission('update-tracks')
+                    {!! Form::open(['id' => 'in_customs_tracks_form', 'method' => 'post', 'route' => $_view['mod_name']."s.set" ]) !!}
+
+                    <div class="col-md-4">
+                        <label><b style='color:red'>SET</b> Check Customs Track List:</label>
+                        <div class="input-group">
+        <textarea id="set_tracks" rows=10 name="set_tracks" style='width: 300px;'
+                  class="form-control">{{$set_count?'':$set_tracks}}</textarea>
+                        </div>
+
+                        <!-- Yeni: Tick Box'lar -->
+                        <div style="margin-top: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                            <label><b>Select Type:</b></label>
+                            <div style="margin-top: 10px;">
+                                <div class="checkbox">
+                                    <label>
+                                        <input type="radio" name="note_type" value="smart" class="note-type-radio">
+                                        <span style="color: #0066cc;"><b>Smart</b></span>
+                                    </label>
+                                </div>
+                                <div class="checkbox">
+                                    <label>
+                                        <input type="radio" name="note_type" value="say" class="note-type-radio">
+                                        <span style="color: #0066cc;"><b>Say</b></span>
+                                    </label>
+                                </div>
+                                <div class="checkbox">
+                                    <label>
+                                        <input type="radio" name="note_type" value="mutemadi" class="note-type-radio">
+                                        <span style="color: #0066cc;"><b>Mutemadi</b></span>
+                                    </label>
+                                </div>
+                                <div class="checkbox">
+                                    <label>
+                                        <input type="radio" name="note_type" value="price" class="note-type-radio">
+                                        <span style="color: #0066cc;"><b>Price</b></span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-4" >
-                            <label><b style='color:green'>UNSET</b> Check Customs Track List:</label>
-                            <div class="input-group">
-                                <textarea id="unset_tracks" rows=10 name="unset_tracks"  style='width: 300px;'
-                                       class="form-control">{{$unset_count?'':$unset_tracks}} </textarea>
-                            </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label><b style='color:green'>UNSET</b> Check Customs Track List:</label>
+                        <div class="input-group">
+        <textarea id="unset_tracks" rows=10 name="unset_tracks"  style='width: 300px;'
+                  class="form-control">{{$unset_count?'':$unset_tracks}} </textarea>
                         </div>
-                        <div class="col-md-2">
-                            <button type="submit" title="Update" id="in_customs_tracks_form_button" class="btn btn-primary btn-icon" style="margin-top: 28px;"><i
-                                        class="icon-loop"></i></button>
-                        </div>
-                        {!! Form::close() !!}
-                        @endpermission
+                    </div>
+
+                    <div class="col-md-2">
+                        <button type="submit" title="Update" id="in_customs_tracks_form_button" class="btn btn-primary btn-icon" style="margin-top: 28px;">
+                            <i class="icon-loop"></i>
+                        </button>
+                    </div>
+
+                    {!! Form::close() !!}
+                    @endpermission
+
 
                     <div class="table-responsive overflow-visible" style="padding-top: 70px;">
                         <table class="table table-hover responsive table-striped">
@@ -91,9 +130,29 @@
     </div>
 @endsection
 
+
+
+
+
+
 @push('js')
     <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-form-validator/2.3.26/jquery.form-validator.min.js"></script>
     <script>
         $.validate();
+
+        $('#in_customs_tracks_form').on('submit', function(e) {
+            var setTracks = $('#set_tracks').val().trim();
+            var noteType = $('input[name="note_type"]:checked').val();
+
+            if (setTracks && !noteType) {
+                e.preventDefault();
+                alert('Please select a type (Smart, Say, Mutemadi, or Price)');
+                return false;
+            }
+        });
+
+        $('.note-type-radio').on('change', function() {
+        });
     </script>
 @endpush
+

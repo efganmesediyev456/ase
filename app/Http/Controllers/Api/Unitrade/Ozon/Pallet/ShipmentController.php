@@ -67,17 +67,31 @@ class ShipmentController
             ], 400);
         }
 
-        Airbox::query()
-            ->whereIn('id', $airboxIds)
-            ->update([
-                'container_id' => $container->id
-            ]);
+//        Airbox::query()
+//            ->whereIn('id', $airboxIds)
+//            ->update([
+//                'container_id' => $container->id
+//            ]);
 
-        Track::query()
+        foreach ($airboxes as $airbox) {
+            $airbox->container_id = $container->id;
+            $airbox->save();
+        }
+
+        $tracks = Track::query()
             ->whereIn('airbox_id', $airboxIds)
-            ->update([
-                'container_id' => $container->id
-            ]);
+            ->get();
+
+        foreach ($tracks as $track) {
+            $track->container_id = $container->id;
+            $track->save();
+        }
+
+
+        DB::table('pallet_shipment_logs')->insert([
+            'action' => 'finish response',
+            'request_data' => json_encode($container).' -- '.json_encode($airboxes).' -- '.json_encode($tracks),
+        ]);
 
         return response()->json(['success' => true], 200);
     }

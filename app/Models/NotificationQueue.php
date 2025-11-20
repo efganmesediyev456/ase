@@ -41,7 +41,7 @@ use Illuminate\Support\Carbon;
  */
 class NotificationQueue extends Model
 {
-    protected $fillable = ['user_id','type', 'to', 'from', 'extra_to', 'subject', 'content', 'sent', 'error_message', 'send_for', 'send_for_id'];
+    protected $fillable = ['user_id','type', 'to', 'from', 'extra_to', 'subject', 'content', 'sent', 'error_message', 'send_for', 'send_for_id','scheduled_at'];
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo

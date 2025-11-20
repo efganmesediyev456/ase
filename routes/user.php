@@ -1,6 +1,6 @@
 <?php
-//Route::group(['middleware' => ['auth', 'email_verified'], 'prefix' => 'user'], function () {
-Route::group(['middleware' => ['auth'], 'prefix' => 'user'], function () {
+Route::group(['middleware' => ['auth', 'email_verified'], 'prefix' => 'user'], function () {
+//Route::group(['middleware' => ['auth'], 'prefix' => 'user'], function () {
 
     Route::get('/', [
         'as' => 'addresses',

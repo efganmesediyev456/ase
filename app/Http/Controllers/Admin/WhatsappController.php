@@ -20,6 +20,7 @@ class WhatsappController extends Controller
         'key',
         'name',
         'content',
+        'content_sms',
         'active'
     ];
 

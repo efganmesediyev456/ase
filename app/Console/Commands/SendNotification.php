@@ -48,7 +48,18 @@ class SendNotification extends Command
         if (9 <= $hour && $hour <= 21) { // && ($type == 'SMS' || $type == "WHATSAPP")) || $type == 'EMAIL' || $type == 'MOBILE') {
             $count = 100;//$type == 'SMS' ? 40 : 24;
             //$queues = NotificationQueue::where('sent', 0)->where('type', $type)->orderBy('id', 'asc')->take($count)->get();
-            $queues = NotificationQueue::where('sent', 0)->where('type', $type)->orderBy('id', 'asc')->get();
+//            $queues = NotificationQueue::where('sent', 0)->where('type', $type)->orderBy('id', 'asc')->get(); evvelki
+
+            $queues = NotificationQueue::where('sent', 0)
+                ->where('type', $type)
+                ->where(function($query) {
+                    $query->whereNull('scheduled_at')
+                        ->orWhere('scheduled_at', '<=', Carbon::now());
+                })
+                ->orderBy('id', 'asc')
+                ->get();
+
+
 //            $queues = NotificationQueue::where('id', 706715)->where('type', $type)->orderBy('id', 'asc')->get();
             $num = 0;
             foreach ($queues as $queue) {

@@ -49,8 +49,22 @@ class PalletController
                 $notExistsTracks[] = $trackingCode;
             }
         }
-        Track::query()->whereIn('id', $exists)->update([
-            'airbox_id' => $box->id
+
+        $tracks = Track::whereIn('id', $exists)->get();
+        if($tracks and count($tracks) > 0){
+            foreach ($tracks as $track) {
+                $track->airbox_id = $box->id;
+                $track->save();
+            }
+        }
+//        Track::query()->whereIn('id', $exists)->update([
+//            'airbox_id' => $box->id
+//        ]);
+
+
+        DB::table('pallet_shipment_logs')->insert([
+            'action' => 'create response',
+            'request_data' => json_encode($tracks).' -- '.json_encode($box),
         ]);
 
         return response()->json([
@@ -97,10 +111,22 @@ class PalletController
             "from_country" => $from_country
         ]);
 
-        Track::query()->whereIn('tracking_code', $request->parcel_ids)->update([
-            'airbox_id' => $box->id
-        ]);
+//        Track::query()->whereIn('tracking_code', $request->parcel_ids)->update([
+//            'airbox_id' => $box->id
+//        ]);
 
+        $tracks = Track::query()->whereIn('tracking_code', $request->parcel_ids)->get();
+        if($tracks and count($tracks) > 0) {
+            foreach ($tracks as $track) {
+                $track->update(['airbox_id' => $box->id]);
+            }
+        }
+
+
+        DB::table('pallet_shipment_logs')->insert([
+            'action' => 'update response',
+            'request_data' => json_encode($tracks).' -- '.json_encode($box),
+        ]);
 
         return response()->json([
             "status" => true,

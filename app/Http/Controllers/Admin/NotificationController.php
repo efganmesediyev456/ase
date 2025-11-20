@@ -101,6 +101,7 @@ class NotificationController extends Controller
             'type' => 'custom.full_text',
         ],
         'error_message',
+        'scheduled_at',
     ];
 
     public function indexObject()

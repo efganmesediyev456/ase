@@ -172,7 +172,7 @@
                                     name="passport_prefix"
                                     id="passport_prefix"
                                     class="form-control">
-                                <option value="" disabled selected hidden>Seriya nömrəsi</option>
+{{--                                <option value="" disabled selected hidden>Seriya nömrəsi</option>--}}
                                 <option @if (old('passport_prefix') == 'AZE') selected @endif value="AZE">AZE</option>
                                 <option @if (old('passport_prefix') == 'AA') selected @endif value="AA">AA</option>
                                 <option @if (old('passport_prefix') == 'AB') selected @endif value="AB">AB</option>

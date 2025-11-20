@@ -75,7 +75,7 @@ class Debt extends Command
             $dueTime = $lastDebtLog ? Carbon::parse($lastDebtLog->created_at)->addHours(24) : $customsTime->addHours(24);
 
             if ($dueTime <= $now) {
-                $priceToAdd = $lastDebtLog ? Setting::find(1)->debt_price_day : Setting::find(1)->debt_price_first_day;
+                $priceToAdd = ($lastDebtLog and $package->debt_price>0) ? Setting::find(1)->debt_price_day : Setting::find(1)->debt_price_first_day;
 
                 $debtLog = new DebtLog();
                 $debtLog->custom_id = $package->tracking_code;
@@ -106,7 +106,7 @@ class Debt extends Command
             $dueTime = $lastDebtLog ? Carbon::parse($lastDebtLog->created_at)->addHours(24) : $initialDueTime;
 
             if ($dueTime <= $now) {
-                $priceToAdd = $lastDebtLog ? Setting::find(1)->debt_price_day : Setting::find(1)->debt_price_first_day;
+                $priceToAdd = ($lastDebtLog and $track->debt_price>0) ? Setting::find(1)->debt_price_day : Setting::find(1)->debt_price_first_day;
 
                 $debtLog = new DebtLog();
                 $debtLog->custom_id = $track->custom_id;

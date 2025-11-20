@@ -74,6 +74,10 @@ class HandleSuratStatusUpdateJob implements ShouldQueue
             $this->updateDeliveredStatus($entity, $order);
         }
 
+        if ($status == 9) {
+            $this->updateRejectedStatus($entity);
+        }
+
         $suratPackage->update(
             array_merge([
                 'status' => SuratPackage::STATUSES[SuratService::STATUS_MAP[$status]],
@@ -89,6 +93,17 @@ class HandleSuratStatusUpdateJob implements ShouldQueue
         return $type === 'package' ? Package::find($packageId) : Track::find($packageId);
     }
 
+
+    public function updateRejectedStatus($entity){
+        $comment = "Bağlama(Surat) kargo tərəfindən geri qaytarıldı.";
+        $entity->bot_comment = $comment;
+        if ($entity instanceof Package) {
+            $entity->status = Package::STATES['Rejected'];
+        }elseif ($entity instanceof Track) {
+            $entity->status = Track::STATES['Rejected'];
+        }
+        $entity->save();
+    }
     private function updateAcceptedStatus($entity)
     {
         (new PackageService())->updateStatus($entity, 20);

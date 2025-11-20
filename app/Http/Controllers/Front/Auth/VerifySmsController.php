@@ -101,7 +101,7 @@ class VerifySmsController extends Controller
             Session::flash('error', trans('smsverification.error'));
         }
 
-        return redirect()->back();
+        return redirect()->to('/register/verify/resend');
     }
 
     public function verifyAfterEmail($number = false)

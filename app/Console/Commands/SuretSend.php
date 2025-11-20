@@ -234,7 +234,7 @@ class SuretSend extends Command
                 ),
                 "mobile" => $mobile,
                 "address" => $customer->address,
-                "office_id" => $isCourier ? 1 : $package->container->suratOffice->foreign_id,
+                "office_id" => $package->container->suratOffice->foreign_id,
                 "weight" => $_package->weight && $_package->weight != 0 ? $_package->weight : floatval(rand(100, 300) / 1000),
                 "tracking_code" => $package->barcode,
                 "iscourier" => $isCourier,

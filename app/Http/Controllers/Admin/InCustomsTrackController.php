@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Services\Package\PackageService;
 use DB;
 use Illuminate\Http\Request;
 use App\Http\Requests;
@@ -123,7 +124,7 @@ class InCustomsTrackController extends Controller
          \View::share('_list', $this->list);
     }
 
-    public function index()
+    public function indexold()
     {
 	$alertText='';
 	$alertType='danger';//success/warning,danger
@@ -145,8 +146,10 @@ class InCustomsTrackController extends Controller
 		$track->in_customs_status=1;
 		$track->in_customs_status_at=$ldate;
 		$track->bot_comment='Set in customs status';
-		$track->worker_comments='yanlish deyer';
+		$track->worker_comments='SAXLANC';
+        $track->status = 18;
 		$track->save();
+        (new PackageService())->updateStatus($track, 18);
 		$set_count++;
 	    }
 	  }
@@ -176,6 +179,82 @@ class InCustomsTrackController extends Controller
         }
 	$tracks = $tracks->paginate($this->limit);
         return view('admin.in_customs_tracks', compact('tracks','set_tracks','unset_tracks','set_count','unset_count','alertText','alertType'));
+    }
+
+    public function index()
+    {
+        $alertText = '';
+        $alertType = 'danger';
+        $parcel_name = \request()->get('parcel');
+        $this->parcel_name = $parcel_name;
+        $ldate = date('Y-m-d H:i:s');
+        $set_count = 0;
+        $unset_count = 0;
+
+        if (!Auth::user()->can('update-tracks')) {
+            $alertText = 'No permissions to Update tracks';
+            $alertType = 'danger';
+        } else {
+            $set_tracks = \request()->get('set_tracks');
+            $note_type = \request()->get('note_type');
+
+            if ($set_tracks) {
+                if (!$note_type) {
+                    $alertText = 'Please select a note type (Smart, Say, Mutemadi, or Price)';
+                    $alertType = 'danger';
+                } else {
+                    $tracking_codes = preg_split("/[;:,\s]+/", trim($set_tracks));
+                    $tracks = Track::whereIn('tracking_code', $tracking_codes)->get();
+
+                    foreach ($tracks as $track) {
+                        $track->in_customs_status = 1;
+                        $track->in_customs_status_at = $ldate;
+                        $track->bot_comment = 'Set in customs status';
+                        $track->worker_comments = strtoupper($note_type);
+                        if($note_type!='mutemadi'){
+                            $track->status = 18;
+                        }
+                        $track->save();
+                        if($note_type!='mutemadi'){
+                            (new PackageService())->updateStatus($track, 18);
+                        }
+                        $set_count++;
+                    }
+                    $alertText = $set_count . ' tracks set with note: ' . strtoupper($note_type);
+                    $alertType = 'success';
+                }
+            }
+
+            $unset_tracks = \request()->get('unset_tracks');
+            if ($unset_tracks) {
+                $tracking_codes = preg_split("/[;:,\s]+/", trim($unset_tracks));
+                $tracks = Track::whereIn('tracking_code', $tracking_codes)->get();
+                foreach ($tracks as $track) {
+                    $track->in_customs_status = 0;
+                    $track->in_customs_status_at = $ldate;
+                    $track->bot_comment = 'Unset in customs status';
+                    $track->worker_comments = NULL;
+                    $track->save();
+                    $unset_count++;
+                }
+            }
+        }
+
+        $tracks = Track::with(['container'])->where('in_customs_status', '>=', 1)->orderBy('in_customs_status_at', 'desc');
+        $tracks = $tracks->leftJoin('containers', 'tracks.container_id', 'containers.id');
+        $tracks = $tracks->select('tracks.*');
+
+        if (\Request::get('q') != null) {
+            $q = str_replace('"', '', \Request::get('q'));
+            $tracks = $tracks->WhereRaw("(tracks.tracking_code LIKE '%" . $q . "%' or tracks.fin LIKE '%" . $q . "%' or tracks.fullname LIKE '%" . $q . "%' or tracks.address LIKE '%" . $q . "%' or tracks.phone LIKE '%" . $q . "%' or tracks.email LIKE '%" . $q . "%' or tracks.detailed_type LIKE '%" . $q . "%')");
+        }
+
+        if (\Request::get('parcel') != null) {
+            $tracks = $tracks->where('containers.name', \Request::get('parcel'));
+        }
+
+        $tracks = $tracks->paginate($this->limit);
+        return view('admin.in_customs_tracks', compact('tracks', 'set_tracks', 'unset_tracks', 'set_count', 'unset_count', 'alertText', 'alertType'));
     }
 
 }

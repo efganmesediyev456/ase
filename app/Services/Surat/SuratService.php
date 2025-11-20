@@ -25,6 +25,7 @@ class SuratService implements PackageServiceInterface
         "NOT_DELIVERED" => 6,
         "" => 7,
         "COURIER_ASSIGNED" => 8,
+        "REJECTED" => 9,
     ];
     const STATUS_MAP = [
         2 => "WAREHOUSE",
@@ -32,6 +33,7 @@ class SuratService implements PackageServiceInterface
         4 => "ARRIVEDTOPOINT",
         5 => "DELIVERED",
         6 => "NOT_DELIVERED",
+        9 => "REJECTED",
     ];
 
     const REASONS = [

@@ -326,7 +326,7 @@ class Notification extends Model
         return env('MOBILE_NOTIFICATION') ? Mobile::sendByUser($userID, $data, $template, $template1) : false;
     }
 
-    public static function sendTrack($trackId, $status)
+    public static function sendTrack($trackId, $status, $scheduled_at = null)
     {
         $track = Track::find($trackId);
 
@@ -473,7 +473,9 @@ class Notification extends Model
 //            return env('SMS_NOTIFICATION') ? SMS::sendByTrack($track, $data, $template,$template1) : false;
 //        }
 
-        return env('SAAS_ACTIVE') ? Whatsapp::sendByTrack($track, $data, $template, $template1) : false;
+
+
+        return env('SAAS_ACTIVE') ? Whatsapp::sendByTrack($track, $data, $template, $template1, $scheduled_at) : false;
 //        return env('SAAS_ACTIVE') ? Email::sendByCustomer($track->customer_id, $data, $template, $template1) : false;
 
     }

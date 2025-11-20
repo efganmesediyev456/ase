@@ -239,7 +239,7 @@ class Whatsapp extends Model
         return true;
     }
 
-    public static function sendByTrack($track, $data, $templateKey, $templateKey1 = null)
+    public static function sendByTrack($track, $data, $templateKey, $templateKey1 = null, $scheduled_at = null)
     {
         if (!$track) {
             return false;
@@ -269,6 +269,7 @@ class Whatsapp extends Model
             'type' => 'WHATSAPP',
             'send_for' => 'TRACK',
             'send_for_id' => $track->id,
+            'scheduled_at' => $scheduled_at
         ]);
 
         return true;

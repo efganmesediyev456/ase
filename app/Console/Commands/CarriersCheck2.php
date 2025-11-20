@@ -206,27 +206,35 @@ class CarriersCheck2 extends Command
 	    $carrier=PackageCarrier::where('trackingNumber', $post->trackinG_NO)->whereRaw("((status=1) or (ecoM_REGNUMBER is not null))")->first();
 	    if($carrier) {
 	        $num_cleaned++;
-		echo "   ".$num_cleaned." ".$post->trackinG_NO."  ".$carrier->id." ".$carrier->ecoM_REGNUMBER." ".$carrier->insert_date_dec."\n";
-		/*$carrier->ecoM_REGNUMBER=null;
-		$carrier->status=0;
-		$carrier->cost=0;
-		$carrier->cost_usd=0;
-		$carrier->currency=0;
-		$carrier->insert_date_dec=NULL;
-		$carrier->save();
-		 */
-		$str = "update package_carriers set ecoM_REGNUMBER=null,cost=0,status=0,cost_usd=0,currency=0,insert_date_dec=NULL where id=?";
-                DB::update($str, [$carrier->id]);
-		if($carrier->track_id) {
-		    $track = Track::find($carrier->track_id);
-		    if($track) {
-	    		$track->status=5;
-	    		$track->save();
-	    		(new PackageService())->updateStatus($track, 5);
-		        echo "       track status changed\n";
-		    }
-		}
+            echo "   ".$num_cleaned." ".$post->trackinG_NO."  ".$carrier->id." ".$carrier->ecoM_REGNUMBER." ".$carrier->insert_date_dec."\n";
+            /*$carrier->ecoM_REGNUMBER=null;
+            $carrier->status=0;
+            $carrier->cost=0;
+            $carrier->cost_usd=0;
+            $carrier->currency=0;
+            $carrier->insert_date_dec=NULL;
+            $carrier->save();
+             */
+            if($carrier->package_id){
+                $package = Package::find($carrier->package_id);
+                if($package && $package->status == 4) {
+                    $str = "update package_carriers set ecoM_REGNUMBER=null,cost=0,status=0,cost_usd=0,currency=0,insert_date_dec=NULL where id=?";
+                    DB::update($str, [$carrier->id]);
+                    echo "    package status changed\n";
+                }
+            }
 
+            if($carrier->track_id) {
+                $track = Track::find($carrier->track_id);
+                if($track and $track->status == 5) {
+                        $str = "update package_carriers set ecoM_REGNUMBER=null,cost=0,status=0,cost_usd=0,currency=0,insert_date_dec=NULL where id=?";
+                        DB::update($str, [$carrier->id]);
+                        $track->status=5;
+                        $track->save();
+                        (new PackageService())->updateStatus($track, 5);
+                        echo "       track status changed\n";
+                }
+            }
 	    }
 	    continue;
         }

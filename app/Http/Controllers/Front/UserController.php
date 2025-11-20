@@ -217,6 +217,8 @@ class UserController extends MainController
         }
         $packages = $packages->latest()->paginate(8);
 
+//        dd($packages->get());
+
         $counts = (DB::table('packages')->select('status', DB::raw('count(*) as total'))->whereNull('deleted_at')->whereIn("user_id",$user->getIds())->groupBy('status')->pluck('total', 'status'))->all();
         if (array_key_exists(4, $counts)) {
             if (array_key_exists(2, $counts))
@@ -623,7 +625,7 @@ class UserController extends MainController
         $user->name = $request->get('name');
         $user->surname = $request->get('surname');
         //$user->email = $request->get('email');
-        $user->phone = $request->get('phone');
+//        $user->phone = $request->get('phone');
         $user->passport = $request->get('passport');
         $user->fin = $request->get('fin');
         $user->company = $request->has('company') ? $request->get('company') : null;

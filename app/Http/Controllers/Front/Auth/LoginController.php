@@ -83,6 +83,12 @@ class LoginController extends Controller
             }
         }
 
+//        if (!$user->verified) {
+//            return back()->withErrors([
+//                'login' => 'Hesabınız hələ təsdiqlənməyib. Zəhmət olmasa e-poçtunuzu yoxlayın.'
+//            ]);
+//        }
+
         if ($this->attemptLogin($request)) {
             return $this->sendLoginResponse($request);
         }

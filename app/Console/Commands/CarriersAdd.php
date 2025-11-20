@@ -120,7 +120,7 @@ class CarriersAdd extends Command
         //return;
         $pn = 0;
         $packages = DB::select($query);
-        //dd($packages);
+//        dd($packages);
         foreach ($packages as $package) {
             //print_r($package);
             //continue;
@@ -335,7 +335,7 @@ class CarriersAdd extends Command
             if ($testMode) {
                 $this->info($cm->get_carriersposts_url());
                 $this->info($cm->get_carriers_json_str());
-                continue;
+//                continue;
             }
 
             $pc_id = $package->pc_id;

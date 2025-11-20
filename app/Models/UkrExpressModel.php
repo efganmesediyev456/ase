@@ -1195,6 +1195,7 @@ class UkrExpressModel extends Model
 
     function change_customer($package, $old_customer_id = NULL)
     {
+
         $this->code = '';
         if (!$package) {
             $this->message = 'no package';
@@ -1720,8 +1721,6 @@ class UkrExpressModel extends Model
         }
         $this->log($str);
         $this->log($output);
-
-
         $this->err("Error adding user " . $output);
         return false;
     }

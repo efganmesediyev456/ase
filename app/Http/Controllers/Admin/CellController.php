@@ -277,15 +277,15 @@ class CellController extends Controller
                     if ($nearByCount) {
                         $nearBy = $nearBy->cell;
                     }
-
                 }
-
+                //eger warehouse hesabindadirsa dealeri gormesin
+                $dealerShow = (optional(auth()->user()->role)->id == 10 or optional(auth()->user()->role)->id == 26) ? false : true;
                 $includes[] = [
                     'view' => 'admin.widgets.alerting',
                     'data' => [
                         'nearBy' => $nearBy,
                         'nearByCount' => $nearByCount,
-                        'dealer' => $dealer,
+                        'dealer' => $dealerShow ? $dealer : null,
                         'user' => $user,
                         'package' => $package,
                         'track' => $track,
@@ -555,16 +555,20 @@ class CellController extends Controller
                 }
                 if ($admin->store_status == 2) { //In Store
                     if ($track->status != 20) {
-                        $track->status = 20;
-                        if ($track->partner_id != 5 && $track->partner_id != 6) {
-                            Notification::sendTrack($track->id, 20);
+                        if ($track->status !== 19 && $track->status !== 27) {
+                            $track->status = 20;
+                            if ($track->partner_id != 5 && $track->partner_id != 6) {
+                                Notification::sendTrack($track->id, 20);
+                            }
                         }
                     }
                 } else { // In Baku
                     if ($track->status != 16) {
-                        $track->status = 16;
-                        if ($track->partner_id != 5 && $track->partner_id != 6 && $track->city_id != 3 && $track->city_id != 6) {
-                            Notification::sendTrack($track->id, 16);
+                        if ($track->status !== 19 && $track->status !== 27){
+                            $track->status = 16;
+                            if ($track->partner_id != 5 && $track->partner_id != 6 && $track->city_id != 3 && $track->city_id != 6) {
+                                Notification::sendTrack($track->id, 16);
+                            }
                         }
                     }
                 }
@@ -610,6 +614,6 @@ class CellController extends Controller
         }
 
         parent::update($request, $id);
-        return redirect()->route("cells.index");
+        return redirect()->back();
     }
 }

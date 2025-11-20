@@ -556,8 +556,21 @@ class UserController extends Controller
     public function __construct()
     {
         $this->fields[21]['default'] = User::generateCode();
-        parent::__construct();
+        $this->middleware(function ($request, $next) {
+            if (optional(auth()->user()->role)->id == 10 or optional(auth()->user()->role)->id == 26) {
+                unset($this->list['dealer']);
+                foreach ($this->view['search'] as $key => $item) {
+                    if (isset($item['name']) && $item['name'] === 'dealer') {
+                        unset($this->view['search'][$key]);
+                    }
+                }
+            }
+            parent::__construct();
+            return $next($request);
+        });
     }
+
+
 
     public function generateValidation($action, $id = false)
     {

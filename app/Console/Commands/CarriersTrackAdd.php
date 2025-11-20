@@ -262,7 +262,7 @@ class CarriersTrackAdd extends Command
             if ($track->partner_id == 3) {
                 $cm->get_goods_noid_ozon($track);
             }elseif ($track->partner_id == 9){
-                $cm->get_goods_noid_taobao($track->goods);
+                $cm->get_goods_noid_taobao($track);
             } else {
                 $cm->get_goods_noid($track->goods);
             }
@@ -455,4 +455,5 @@ class CarriersTrackAdd extends Command
         }
         //
     }
+
 }

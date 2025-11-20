@@ -134,6 +134,7 @@ return array(
     'surat_warehouse_package_status_6' => 'Çeşidləmə mərkəzidədir',
     'surat_warehouse_package_status_8' => 'Məntəqəyə çatıb',
     'surat_warehouse_package_status_10' => 'Təhvil verildi',
+    'surat_warehouse_package_status_9' => 'Geri qaytarıldı',
 
     //Yenipoct
 

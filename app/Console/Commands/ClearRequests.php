@@ -39,8 +39,8 @@ class ClearRequests extends Command
      */
     public function handle()
     {
-	DB::delete("delete from requests where TIMESTAMPDIFF(DAY,created_at,current_timestamp)>24");
-	DB::delete("delete from logs where TIMESTAMPDIFF(DAY,created_at,current_timestamp)>60");
+	DB::delete("delete from requests where TIMESTAMPDIFF(DAY,created_at,current_timestamp)>80");
+	DB::delete("delete from logs where TIMESTAMPDIFF(DAY,created_at,current_timestamp)>120");
 	DB::delete("delete from notification_queues where TIMESTAMPDIFF(DAY,created_at,current_timestamp)>120");
     }
 
