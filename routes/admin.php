@@ -728,6 +728,11 @@ Route::group([
             'uses' => 'PackageController@barcodeScan',
         ]);
 
+        Route::get('barcode/test/{code?}', [
+            'as' => 'admin.barcode.scanTest',
+            'uses' => 'PackageController@barcodeScanTest',
+        ]);
+
         Route::get('courier_tracks/barcode/{code?}', [
             'as' => 'courier_tracks.scan',
             'uses' => 'CourierTrackController@barcodeScan',

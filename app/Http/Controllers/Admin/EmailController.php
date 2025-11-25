@@ -39,7 +39,8 @@ class EmailController extends Controller
         [
             'name' => 'content',
             'label' => 'Content',
-            'type' => 'summernote',
+//            'type' => 'summernote',
+            'type' => 'textarea',
             'validation' => 'required|string|min:2',
             'wrapperAttributes' => [
                 'class' => ' col-md-9 campaign_content',

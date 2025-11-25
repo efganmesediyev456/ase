@@ -16,12 +16,12 @@
     <!-- Page content -->
     <div class="page-content">
 
-    @if(! isset($hideSideBar))
-        <!-- Main sidebar -->
-        @include('vendor.saysay.base.sections.sidebar')
-    @endif
+        @if(! isset($hideSideBar))
+            <!-- Main sidebar -->
+            @include('vendor.saysay.base.sections.sidebar')
+        @endif
 
-    <!-- Main content -->
+        <!-- Main content -->
         <div class="content-wrapper">
 
             <!-- Content area -->
@@ -111,14 +111,14 @@
                 if (Array.isArray(cities) && cities.length && $.inArray(data.city_id, cities) === -1) {
                     show = false;
                 }
-		//admin in baku but package/track in kobia
-		/*if(store_status!=2 && ((data.track==0 && data.status==8) || (data.track==1 && data.status==20)))
-		    show=false;
-		//admin in kobia but package/track in baku
-		if(store_status==2 && ((data.track==0 && data.status==2) || (data.track==1 && data.status==16)))
-			show=false;*/
-		if(store_status != data.status)
-			show=false;
+                //admin in baku but package/track in kobia
+                /*if(store_status!=2 && ((data.track==0 && data.status==8) || (data.track==1 && data.status==20)))
+                    show=false;
+                //admin in kobia but package/track in baku
+                if(store_status==2 && ((data.track==0 && data.status==2) || (data.track==1 && data.status==16)))
+                    show=false;*/
+                if (store_status != data.status)
+                    show = false;
 
                 if (show) {
                     if (data.success) {
@@ -129,19 +129,19 @@
                             "showConfirmButton": false,
                             "type": "success"
                         });
-			const url = new URL( window.location.href );
-			if(url.pathname != '/courier_deliveries') {
-                          location.reload();
-			}
+                        const url = new URL(window.location.href);
+                        if (url.pathname != '/courier_deliveries') {
+                            // location.reload(); davamli refresh diyesen burada gedirdi
+                        }
                     } else if (data.package) {
                         ion.sound.play("find_it");
-			const url = new URL( window.location.href );
-			if(url.pathname != '/courier_deliveries') {
-                          setTimeout(
-                            function () {
-                                window.location = data.package;
-                            }, 3000);
-			}
+                        const url = new URL(window.location.href);
+                        if (url.pathname != '/courier_deliveries') {
+                            setTimeout(
+                                function () {
+                                    window.location = data.package;
+                                }, 3000);
+                        }
                     }
                 }
 
@@ -151,7 +151,7 @@
 
     <script src="{{ asset('admin/js/jquery.pos.js') }}"></script>
     @if(!Request::is('container/check/*'))
-    <script src="{{ asset('admin/js/scanner.js') }}?v=1.2.1.79"></script>
+        <script src="{{ asset('admin/js/scanner.js') }}?v=1.2.1.79"></script>
     @endif
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script src="{{ asset('admin/js/types.js') }}?v=1.0.1.4"></script>

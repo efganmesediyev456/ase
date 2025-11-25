@@ -746,7 +746,7 @@ class PackageController extends Controller
             'name' => 'debt_price',
             'label' => 'Debt price',
             'type' => 'text',
-            'prefix' => '<i class="icon-coin-dollar"></i>',
+            'prefix' => 'AZN',
             'wrapperAttributes' => [
                 'class' => 'col-md-2',
             ],
@@ -2955,8 +2955,8 @@ class PackageController extends Controller
                     $notification = true;
                     //Send notification only if user selected kobia filial
                     if ($user && !$user->real_azeri_express_use && !$user->real_azerpoct_send && !$user->real_yenipoct_use && !$user->real_kargomat_use && ($user->real_store_status == $admin->store_status) && $user->delivery_point) {
-//                        Notification::sendPackage($package->id, 8);
-                        $this->sendPackageNotification($package, 8);
+                        Notification::sendPackage($package->id, 8);
+//                        $this->sendPackageNotification($package, 8);
 
                     }
                 }
@@ -3046,8 +3046,8 @@ class PackageController extends Controller
                     $package->save();
                     $notification = true;
 
-                    $this->sendPackageNotification($package, 2);
-//                    Notification::sendPackage($package->id, 2);
+//                    $this->sendPackageNotification($package, 2);
+                    Notification::sendPackage($package->id, 2);
                 }
             }
             if (!$package->scanned_at) {
@@ -3187,7 +3187,8 @@ class PackageController extends Controller
                         $track->bot_comment = "Scanned but Different price";
                         $track->save();
                         (new PackageService())->updateStatus($track, 18);
-                        $this->sendTrackNotification($track, 'track_scan_diff_price');
+//                        $this->sendTrackNotification($track, 'track_scan_diff_price');
+                        Notification::sendTrack($track->id, 'track_scan_diff_price');
                     }
                     if (!$admin->scan_no_alerts) {
                         $message = "DIFFERENT PRICE" . $add_message;
@@ -3202,8 +3203,8 @@ class PackageController extends Controller
                         $track->bot_comment = "Scanned but not IN  Customs";
                         $track->save();
                         (new PackageService())->updateStatus($track, 18);
-//                        Notification::sendTrack($track->id, $track->status);
-                        $this->sendTrackNotification($track, $track->status);
+                        Notification::sendTrack($track->id, $track->status);
+//                        $this->sendTrackNotification($track, $track->status);
                     }
 
                     if (!$admin->scan_no_alerts) {
@@ -3219,8 +3220,8 @@ class PackageController extends Controller
                         $track->bot_comment = "Scanned but no declaration in Customs";
                         $track->save();
                         (new PackageService())->updateStatus($track, 18);
-//                        Notification::sendTrack($track->id, 'track_scan_no_dec');
-                        $this->sendTrackNotification($track, 'track_scan_no_dec');
+                        Notification::sendTrack($track->id, 'track_scan_no_dec');
+//                        $this->sendTrackNotification($track, 'track_scan_no_dec');
                     }
 
                     if (!$admin->scan_no_alerts) {
@@ -3328,8 +3329,8 @@ class PackageController extends Controller
                 (new PackageService())->updateStatus($track, $track->status);
             }
             if ($admin->store_status == 2 && $track->status == 20 && in_array($track->partner_id, [9]) && !$track->paid) { //If IN Kobia and TAOBAO and not PAID
-//                Notification::sendTrack($track->id, $track->status);
-                $this->sendTrackNotification($track, $track->status);
+                Notification::sendTrack($track->id, $track->status);
+//                $this->sendTrackNotification($track, $track->status);
 
                 $message = " TAOBAO NOT PAID." . $add_message;
                 $track->bot_comment = "Scanned In Kobia but TAOBAO Not Paid " . now();
@@ -3373,13 +3374,13 @@ class PackageController extends Controller
                                     if ($track->store_status || $track->azeriexpress_office_id || $track->azerpost_office_id || $track->surat_office_id)
                                         $isPudo = true;
                                     if (!in_array($track->partner_id, [8]) || $isPudo) { //If GFS then must be PUDO
-                                        $this->sendTrackNotification($track, $track->status);
-//                                        Notification::sendTrack($track->id, $track->status);
+//                                        $this->sendTrackNotification($track, $track->status);
+                                        Notification::sendTrack($track->id, $track->status);
                                     }
                                 } else { //In Kobia
                                     if (!in_array($track->partner_id, [9]) || !$track->paid) { //If TAOBAO then must not be PAID
-//                                        Notification::sendTrack($track->id, $track->status);
-                                        $this->sendTrackNotification($track, $track->status);
+                                        Notification::sendTrack($track->id, $track->status);
+//                                        $this->sendTrackNotification($track, $track->status);
 
                                     }
                                 }
@@ -3433,6 +3434,7 @@ class PackageController extends Controller
             'error' => 'Package does not exist!',
         ]);
     }
+
 
     public function multiUpdate(Request $request)
     {

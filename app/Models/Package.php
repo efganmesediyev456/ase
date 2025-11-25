@@ -821,6 +821,39 @@ class Package extends Model
         $this->delivery_price_usd = $deliveryPriceUSD;
     }
 
+
+    function updateDeliveryPricesTest()
+    {
+        $deliveryPriceUSD = $this->delivery_price_usd;
+        $deliveryPriceAZN = $this->delivery_price_azn;
+//        if (!empty($deliveryPriceUSD) && !empty($deliveryPriceAZN))
+//            return;
+//        if (!$this->warehouse || !$this->delivery_price) {
+//            return;
+//        }
+
+        $usdCur = 0;
+        $warCur = $this->warehouse->currency;
+        if ($usdCur == $warCur)
+            $deliveryPriceUSD = $this->delivery_price;
+        else {
+            $mult = (getCurrencyRate($usdCur) / getCurrencyRate($warCur));
+            $deliveryPriceUSD = round($this->delivery_price * $mult, 2);
+        }
+
+        $mult = (getCurrencyRate(1) / getCurrencyRate($this->warehouse->currency));
+        $deliveryPriceAZN = round($this->delivery_price * $mult, 2);
+
+        $ldate = date('Y-m-d H:i:s');
+
+        dd([$deliveryPriceAZN, $deliveryPriceUSD, $this->id, $mult, $this->delivery_price]);
+
+//        $str = "update packages set delivery_price_azn=?,delivery_price_azn_at=?,delivery_price_usd=?,delivery_price_usd_at=? where id=?";
+//        DB::update($str, [$deliveryPriceAZN, $ldate, $deliveryPriceUSD, $ldate, $this->id]);
+        $this->delivery_price_azn = $deliveryPriceAZN;
+        $this->delivery_price_usd = $deliveryPriceUSD;
+    }
+
     public function getShippingPriceRuAttribute()
     {
         $country = $this->defaultCountry();

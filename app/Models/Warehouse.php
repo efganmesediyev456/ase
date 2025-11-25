@@ -356,8 +356,6 @@ class Warehouse extends Authenticatable
         return $result ? (round($result, 2) . ($showCurrency ? " " . $this->currency_with_label : null)) : False;
     }
 
-
-
     public function calculateDeliveryPrice2(
         $weight, //0.2
         $weightUnit = 0, //0
@@ -372,13 +370,10 @@ class Warehouse extends Authenticatable
         $additional_delivery_price = 0
     )
     {
-
-
         $result = 0;
+
         if (!$this->country)
             return $result;
-
-
 
         $weight = ((float)str_replace(",", ".", $weight)) * config('ase.attributes.weightConvert')[$weightUnit]; //0.2kg
 
@@ -402,17 +397,14 @@ class Warehouse extends Authenticatable
             $weightPrice = null;
 
             $tariffs = $this->active_tariffs;
-
-
-
             if ($tariffs && count($tariffs) > 0) {
                 foreach ($tariffs as $tariff) {
                     if (!$tariff->tariff_weights || count($tariff->tariff_weights) <= 0)
                         continue;
 
-//                    dd($tariff->tariff_weights->toArray());
-                    foreach ($tariff->tariff_weights as $tariffWeight) {
 
+
+                    foreach ($tariff->tariff_weights as $tariffWeight) {
                         $tariffPrices = null;
 //                        if ($azerpoct)
 //                            $tariffPrices = $tariffWeight->azerpoct_tariff_prices;
@@ -420,7 +412,6 @@ class Warehouse extends Authenticatable
 //                            $tariffPrices = $tariffWeight->non_azerpoct_tariff_prices;
 
                         $tariffPrices = $tariffWeight->withoutAzerpoctTariffPrices;
-
 
                         if (!$tariffPrices || count($tariffPrices) <= 0)
                             continue;
@@ -431,8 +422,6 @@ class Warehouse extends Authenticatable
                             ($tariffWeight->to_weight > $kq || !$tariffWeight->to_weight || $tariffWeight->to_weight <= 0)
                         ) {
                             //echo "  twid=".$tariffWeight->id." pw=".$tariffWeight->per_weight." cid=".$city_id;
-
-//                            dd($tariffPrices);
                             foreach ($tariffPrices as $tariffPrice) {
                                 if ($tariffPrice->city_id && $tariffPrice->city_id == $city_id) {
                                     //echo "tpid=".$tariffPrice->id."  twid=".$tariffWeight->id." pw=".$tariffWeight->per_weight." tp=".$tariffPrice->price." tp=".$tariff_price." cid=".$city_id."  tcid=".$tariffPrice->city_id;
@@ -443,7 +432,6 @@ class Warehouse extends Authenticatable
                                     break;
                                 }
                             }
-
                             if (!$tariff_price)
                                 foreach ($tariffPrices as $tariffPrice) {
                                     //echo "tpid=".$tariffPrice->id."  twid=".$tariffWeight->id." pw=".$tariffWeight->per_weight." tp=".$tariffPrice->price." tp=".$tariff_price." cid=".$city_id."  tcid=".$tariffPrice->city_id;
@@ -464,18 +452,10 @@ class Warehouse extends Authenticatable
                 }
             }
 
-//            dd($city_id);
-
-
-
-
             //$weightPrice=WeightPrice::where('warehouse_id',$this->id)->where("is_active",1)
             //	->where(function ($q) use($kq) {$q->where('weight_from','<=',$kq)->orWhereNull('weight_from')->orWhere('weight_from','=',0);})
             //	->where(function ($q) use($kq) {$q->where('weight_to','>',$kq)->orWhereNull('weight_to')->orWhere('weight_to','=',0);})
             //	->orderBy('updated_at', 'desc')->first();
-
-
-
 
             if ($tariff_price) {
                 $result = $tariff_price;
@@ -489,10 +469,6 @@ class Warehouse extends Authenticatable
                         $result = $this->half_kg + ($this->per_g * ($kq - 0.5) * 1000);
                     }
                 } else {
-//                    dd($this->id);
-//                    dd($this->per_kg,$this->half_kg, $this->from_200g_to_500g, $this->from_100g_to_200g, $this->to_100g, $this->up_10_kg);
-
-
                     $result = $this->per_kg * $kq;
                     if ($kq < 1)
                         $result = $this->per_kg;
@@ -510,15 +486,9 @@ class Warehouse extends Authenticatable
                         $result = $this->to_100g;
                     if ($kq >= 10 && $this->up_10_kg)
                         $result = $this->up_10_kg * $kq;
-
-
                 }
             }
         }
-
-
-
-
         //echo "d=".$discountPercent." ";
         if ($result && $additional_delivery_price && $additional_delivery_price > 0)
             $result = $result + $additional_delivery_price;
@@ -527,7 +497,6 @@ class Warehouse extends Authenticatable
         else if ($discountPercent >= 100) $result = 0;
         return $result ? (round($result, 2) . ($showCurrency ? " " . $this->currency_with_label : null)) : False;
     }
-
 
     public function calculateDeliveryPriceWithManat(
         $weight,

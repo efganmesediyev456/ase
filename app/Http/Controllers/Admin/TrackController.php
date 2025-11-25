@@ -720,7 +720,7 @@ class TrackController extends Controller
             'name' => 'debt_price',
             'label' => 'Debt price',
             'type' => 'text',
-            'prefix' => '<i class="icon-coin-dollar"></i>',
+            'prefix' => 'AZN',
             'wrapperAttributes' => [
                 'class' => 'col-md-2',
             ],

@@ -20,6 +20,8 @@
         <th><b>Delivery Price [USD] With Discount</b></th>
         <th><b>Value</b></th>
         <th><b>Paid By</b></th>
+        <th><b>Debt Price</b></th>
+        <th><b>Paid Debt</b></th>
     </tr>
     </thead>
     <tbody>
@@ -56,6 +58,8 @@
             <td>{{ $package->delivery_usd_price_discount }}</td>
             <td>{{ $package->total_price_with_label }}</td>
             <td>{{ $package->transaction ? $package->transaction->paid_by : '-' }}</td>
+            <td>{{ $package->debt_price }}</td>
+            <td>{{ $package->paid_debt_att_with_label }}</td>
         </tr>
     @endforeach
     <?php  } ?>

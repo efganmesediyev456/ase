@@ -52,10 +52,12 @@
                                         $_package = $package->type == 'package' ? $package->package : $package->track;
                                     @endphp
                                     <tr>
-                                        <td><input type="checkbox"
+                                        <td>
+                                            <input type="checkbox"
                                                    name="{{ $package->type == 'package' ? '_packages' : '_tracks' }}"
                                                    value="{{ $package->type . '-' . $package->package_id }}">
-                                            &nbsp {{  $package->package_id }}</td>
+                                            &nbsp {{  $package->package_id }}
+                                        </td>
                                         <td>
                                             @if($package->type == 'package')
                                                 <a href="{{route('packages.index', ['q' => $_package->custom_id ?? ''])}}"

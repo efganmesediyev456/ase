@@ -213,6 +213,7 @@ class InCustomsTrackController extends Controller
                         $track->worker_comments = strtoupper($note_type);
                         if($note_type!='mutemadi'){
                             $track->status = 18;
+                            Notification::sendTrack($track->id, 18);
                         }
                         $track->save();
                         if($note_type!='mutemadi'){
