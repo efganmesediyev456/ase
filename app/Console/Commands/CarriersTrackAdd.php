@@ -75,7 +75,7 @@ class CarriersTrackAdd extends Command
         $query .= ' left outer join package_carriers pc on pc.track_id=t.id';
         $query .= ' WHERE (t.deleted_at is null)';
         if (empty($pCustomId)) {
-            $query .= " and (t.status in (1,2,6)) and (t.partner_id in (3,8,9))";
+            $query .= " and (t.status in (1,2,5,6)) and (t.partner_id in (3,8,9))";
             $query .= " and ((pc.id is null) or ((pc.status is null or pc.status=0) and (pc.code<>200) and (TIME_TO_SEC(TIMEDIFF('" . $ldate . "',pc.created_at))>3600)))";
         } else
             $query .= " and t.tracking_code in ('$pCustomId')";
@@ -87,6 +87,7 @@ class CarriersTrackAdd extends Command
         $query .= ' limit 100';
         $pn = 0;
         $items = DB::select($query);
+
         foreach ($items as $item) {
 
             $track = Track::find($item->id);
@@ -221,6 +222,8 @@ class CarriersTrackAdd extends Command
                     }
                 }
                 $track->status = 6;
+                $track->bot_comment .= "Error:CarriersTrackAdd " . $validationError . "\n";
+
                 $track->save();
                 (new PackageService())->updateStatus($track, 6);
                 continue;
@@ -455,5 +458,4 @@ class CarriersTrackAdd extends Command
         }
         //
     }
-
 }

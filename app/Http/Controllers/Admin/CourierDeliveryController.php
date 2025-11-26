@@ -186,6 +186,11 @@ class CourierDeliveryController extends Controller
     ];
 
     protected $list = [
+        'payment_link' => [
+            'label' => 'Payment Link',
+            //'type' => 'select-editable',
+            'type' => 'custom.curier_payment_link',
+        ],
         'first_track.partner.name' => [
             'label' => 'Partner',
         ],
@@ -320,6 +325,7 @@ class CourierDeliveryController extends Controller
             'label' => 'DeliveredAt',
             'order' => 'delivered_at',
         ],
+
         'created_at' => [
             'label' => 'CreatedAt',
         ],
@@ -918,6 +924,19 @@ class CourierDeliveryController extends Controller
         foreach ($courierDeliveries as $courierDelivery) {
             SendCourierDeliveriesToAzeriexpressJob::dispatch($courierDelivery);
         }
+    }
+
+
+    public function payGetDebt($code)
+    {
+
+        $item = Track::where('custom_id', $code)->first();
+        if (!$item) {
+            abort(404, 'Track not found');
+        }
+
+        return view('front.track.pay-debt', compact('item'));
+
     }
 
 }

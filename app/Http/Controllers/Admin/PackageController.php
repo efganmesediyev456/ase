@@ -3118,10 +3118,10 @@ class PackageController extends Controller
         }
 
         if ($track) {
-            if($admin->check_declaration){
+            if($admin->check_declaration ){
                 $track->bot_comment = "Saxlanc hesabı tərəfindən scan edildi.";
                 $track->save();
-                if($track->carrier && !$track->carrier->status && !$track->carrier->depesH_NUMBER){
+                if($track->carrier && !$track->carrier->status && !$track->carrier->depesH_NUMBER ){
                     return response()->json([
                         'error' => 'NO DECLARATION IN CUSTOMS '. $track->tracking_code.' MAWB : '.$track->container_name,
                     ]);
@@ -3182,7 +3182,7 @@ class PackageController extends Controller
 
             if ($admin->store_status == 2 && in_array($track->partner_id, [3, 8, 9]) && !$track->scan_no_check) { //InKOBIA admin GFS & Ozon check
                 if ($track->in_customs_status) {
-                    if ($track->status != 18 && (!$admin->scan_check_only || !$admin->scan_no_alerts)) {
+                    if ($track->status != 18 && (!$admin->scan_check_only || !$admin->scan_no_alerts) && ($track->status != 19 && $track->status != 27)) {
                         $track->status = 18;
                         $track->bot_comment = "Scanned but Different price";
                         $track->save();
@@ -3198,7 +3198,7 @@ class PackageController extends Controller
                     }
                 }
                 if (!$track->carrier) {
-                    if ($track->status != 18 && (!$admin->scan_check_only || !$admin->scan_no_alerts)) {
+                    if ($track->status != 18 && (!$admin->scan_check_only || !$admin->scan_no_alerts) && ($track->status != 19 && $track->status != 27)) {
                         $track->status = 18;
                         $track->bot_comment = "Scanned but not IN  Customs";
                         $track->save();
@@ -3215,7 +3215,7 @@ class PackageController extends Controller
                     }
                 }
                 if ($track->carrier && !$track->carrier->status && !$track->carrier->depesH_NUMBER) {
-                    if ($track->status != 18 && (!$admin->scan_check_only || !$admin->scan_no_alerts)) {
+                    if ($track->status != 18 && (!$admin->scan_check_only || !$admin->scan_no_alerts) && ($track->status != 19 && $track->status != 27)) {
                         $track->status = 18;
                         $track->bot_comment = "Scanned but no declaration in Customs";
                         $track->save();
@@ -3224,7 +3224,7 @@ class PackageController extends Controller
 //                        $this->sendTrackNotification($track, 'track_scan_no_dec');
                     }
 
-                    if (!$admin->scan_no_alerts) {
+                    if (!$admin->scan_no_alerts && ($track->status != 19 && $track->status != 27)) {
                         $message = "NO DECLARATION IN CUSTOMS!" . $add_message;
                         return response()->json([
                             'error' => $message,
@@ -3232,7 +3232,7 @@ class PackageController extends Controller
                     }
                 }
                 if ($track->carrier && !$track->carrier->depesH_NUMBER) {
-                    if ($track->status != 18 && (!$admin->scan_check_only || !$admin->scan_no_alerts)) {
+                    if ($track->status != 18 && (!$admin->scan_check_only || !$admin->scan_no_alerts) && ($track->status != 19 && $track->status != 27)) {
                         $track->status = 18;
                         $track->bot_comment = "Scanned but no Depesh in Customs";
                         $track->save();
@@ -3240,7 +3240,7 @@ class PackageController extends Controller
 //                        Notification::sendTrack($track->id, $track->status);
                     }
 
-                    if (!$admin->scan_no_alerts) {
+                    if (!$admin->scan_no_alerts && ($track->status != 19 && $track->status != 27)) {
                         $message = "NO DEPESH IN CUSTOMS" . $add_message;
                         return response()->json([
                             'warning' => $message,

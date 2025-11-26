@@ -9,3 +9,5 @@ ase_uexpress2_error.log
 ase_uexpress2_packages_add.log
 ase_uexpress2_users.log
 test_kapital_order_create.log
+ase_portmanat.log
+*.log

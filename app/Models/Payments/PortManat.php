@@ -233,7 +233,7 @@ class PortManat
         return view('front.widgets.portmanat-debt', compact('action_local_adr', 'action_portmanat_adr', 'args_array', 'args','cd','track'));
     }
 
-    public function generateFormKapital($cd = NULL,$track = NULL)
+    public function generateFormKapital($cd = NULL,$track = NULL,$cdPayment = NULL)
     {
         $action_local_adr = env('APP_URL') . '/portmanat/callback';//$this->mainUrl;
         //$action_local_adr = $this->mainUrl;// TEST
@@ -255,7 +255,10 @@ class PortManat
         } else if($cd) {
             $this->client_rrn = 'cd_'.$cd->id.'_'.uniqid();
             $this->amount = $cd->delivery_price;
-        } else {
+        } else if($cdPayment) {
+            $this->client_rrn = 'cd_payment_'.$cdPayment->id.'_'.uniqid();
+            $this->amount = 3;
+        }else {
             $this->client_rrn = uniqid();
             $this->amount = 0;
         }
@@ -280,7 +283,7 @@ class PortManat
             $args_array[] = '<input type="hidden" id="' . trim($key) . '" name="' . trim($key) . '" value="' . trim($value) . '" />';
         }
 
-        return view('front.widgets.kapital', compact('action_local_adr', 'action_portmanat_adr', 'args_array', 'args','cd','track'));
+        return view('front.widgets.kapital', compact('action_local_adr', 'action_portmanat_adr', 'args_array', 'args','cd','track','cdPayment'));
     }
 
     public function generateFormNew($cd = NULL,$track = NULL)

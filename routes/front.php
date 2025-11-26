@@ -203,6 +203,12 @@ Route::group([
         'uses' => 'PortmanatController@callback'
     ]);
 
+
+    Route::get('/courier_deliveries/payment/{code}', [
+        'as' => 'courier_deliveries.payment',
+        'uses' => 'CourierDeliveryController@getPay',
+    ]);
+
     Route::match(['get', 'post'], 'kapital-bank/callback', [
         'as' => 'kapital.callback',
         'uses' => 'KapitalPaymentNewContoller@callback'
