@@ -420,6 +420,7 @@ class CD extends Model
         $cd->address = $track->address;
         $cd->name = $track->fullname;
         $cd->phone = $track->phone;
+        $cd->customer_id = $track->customer_id;
         $cd->container_id = $track->container_id;
         $cd->packages_txt = $track->tracking_code;
         $cd->delivery_price = $track->courier_delivery_price;
@@ -692,6 +693,10 @@ class CD extends Model
         return $this->courier->name;
     }
 
+    public function customer(){
+        return $this->belongsTo('App\Models\Customer');
+    }
+
     public function getStatusWithLabelAttribute()
     {
         $status = $this->attributes['status'];
@@ -886,6 +891,11 @@ class CD extends Model
     public function transaction()
     {
         return $this->hasOne(Transaction::class, 'custom_id')->where('type', 'OUT')->where('paid_for', 'COURIER_DELIVERY')->latest();
+    }
+
+    public function courierTrackOzonDeliveryTransactions()
+    {
+        return $this->hasMany(Transaction::class, 'custom_id')->where('type', 'OUT')->where('paid_for', 'COURIER_TRACK_OZON_DELIVERY')->latest();
     }
 
     public function getPaidByAttribute()

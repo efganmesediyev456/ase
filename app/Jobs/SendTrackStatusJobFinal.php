@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\Track;
 use App\Models\TrackStatus;
 use App\Services\Integration\UnitradeService;
 use Exception;
@@ -12,8 +13,9 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\DB;
+use Log;
 
-class SendTrackStatusJobLast implements ShouldQueue
+class SendTrackStatusJobFinal implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -23,7 +25,10 @@ class SendTrackStatusJobLast implements ShouldQueue
     protected $eventCode;
     protected $token;
 
+
     public $tries = 5;
+
+    public $track;
 
     public function __construct($trackStatus, $trackCode, $place, $eventCode)
     {
@@ -33,6 +38,10 @@ class SendTrackStatusJobLast implements ShouldQueue
         $this->eventCode = $eventCode;
         $this->token = $this->getAccessToken();
         $this->client = curl_init();
+
+        $this->track = Track::where('tracking_code', $this->trackCode)->first();
+
+        $this->queue = 'unitrade_status_queue';
     }
 
 
@@ -108,22 +117,21 @@ class SendTrackStatusJobLast implements ShouldQueue
 
             curl_close($curl);
 
-            // if ($error || $responseCode !== 200) {
-            //     throw new Exception("CURL error: {$error}, HTTP code: {$responseCode}");
-            // }
+            if ($responseCode >= 200 && $responseCode < 300) {
 
-            $decoded = json_decode($response, true) ?? [];
+                Log::channel('unitrade_status')->debug($this->track->tracking_code . ' final response', [
+                    'response' => $response,
+                    'responseCode' => $responseCode
+                ]);
 
-            if (array_key_exists('errors', $decoded)
-                and array_key_exists(0, $decoded['errors'])
-                and $decoded['errors'][0]['code'] != 'unknown'
-            ) {
-                
-            }else{
+            } else {
+                Log::channel('unitrade_status')->error($this->track->tracking_code . " failed attempt", [
+                    'code' => $responseCode,
+                    'response' => $response
+                ]);
                 throw new Exception("CURL error: {$error}, HTTP code: {$responseCode}");
             }
 
-            
             $this->trackStatus->update([
                 'note' => $response,
             ]);

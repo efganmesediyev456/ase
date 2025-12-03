@@ -102,6 +102,9 @@ class CheckKapitalTransaction extends Command
                             case 'TRACK_DEBT':
                                 $this->processTrackDebt($transaction, $status, $orderStatus);
                                 break;
+                            case 'COURIER_TRACK_OZON_DELIVERY':
+                                $this->processCourierTrackOzonDeliveryPayment($transaction, $status, $orderStatus);
+                                break;
                             default:
                                 $transaction->type = $status;
                                 $transaction->save();
@@ -283,6 +286,31 @@ class CheckKapitalTransaction extends Command
         $transaction->save();
         sendTGMessage($message);
         $this->logPaymentResult($track->id, $logType, $status);
+    }
+
+
+    public function processCourierTrackOzonDeliveryPayment($transaction, $status, $orderStatus){
+        $cd = CD::find($transaction->custom_id);
+        if (!$cd) return;
+
+        $logType = 'courier_track_ozon_delivery';
+
+        if ($status === 'FullyPaid') {
+            $transaction->type = 'OUT';
+            $cd->paid = 1;
+            $cd->save();
+
+            $message = "💳 <b>{$cd->id} id nomreli courier delivery </b> "
+                . "Kapital ile  "
+                . " <b> {$transaction->amount} AZN</b> çatdırılma xidməti etdi.";
+        } else {
+            $transaction->type = $status;
+            $message = "🚫 {{$cd->id} id nomreli courier delivery çatdırılma xidməti ödənişində səhvik oldu. Səbəb: {$status}";
+        }
+
+        $transaction->save();
+        sendTGMessage($message);
+        $this->logPaymentResult($cd->id.' id courier delivery ', $logType, $status);
     }
 
     private function logPaymentResult($userId, $paymentType, $status)

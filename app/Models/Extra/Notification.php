@@ -629,11 +629,11 @@ class Notification extends Model
 //            return env('SMS_NOTIFICATION') ? SMS::sendByTrack($track, $data, $template,$template1) : false;
 //        }
 
-        dd($track, $data, $template, $template1,        $phone = $track->phone ?: ($track->customer && $track->customer->phone ? $track->customer->phone : null)
-    ,$track->partner_id,$track->customer  ? $track->customer->id : null);
+//        dd($track, $data, $template, $template1,        $phone = $track->phone ?: ($track->customer && $track->customer->phone ? $track->customer->phone : null)
+//    ,$track->partner_id,$track->customer  ? $track->customer->id : null);
 
 
-        return env('SAAS_ACTIVE') ? Whatsapp::sendByTrack($track, $data, $template, $template1) : false;
+        return env('SAAS_ACTIVE') ? Whatsapp::sendByTrackEfgan($track, $data, $template, $template1) : false;
 //        return env('SAAS_ACTIVE') ? Email::sendByCustomer($track->customer_id, $data, $template, $template1) : false;
 
     }

@@ -66,4 +66,8 @@ class Customer extends Model
     {
         return $this->belongsTo('App\Models\Courier');
     }
+
+    public function ozonTracksWithPayment(){
+
+    }
 }

@@ -170,8 +170,8 @@ class TrackController extends MainController
             return back()->withErrors($validator)->withInput();
         }
         $fin = \Request::get('fin');
-        if (!$fin || strlen($fin) < 5 || strlen($fin) > 7) {
-            $validator->getMessageBag()->add('fin', 'Fin kodunun uzunluğu 5 ilə 7 simvol arasında olmalıdır.');
+        if (!$fin || strlen($fin) < 5 || strlen($fin) > 9) {
+            $validator->getMessageBag()->add('fin', 'Fin kodunun uzunluğu 5 ilə 9 simvol arasında olmalıdır.');
             return back()->withErrors($validator)->withInput();
         }
         if (preg_match('/[^abcdefghijklmnpqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ0-9]/', $fin) > 0) {

@@ -35,7 +35,7 @@ class MeestService extends BaseService
     ];
 
     const CLIENT_AUTH_URL = 'https://oauth.unitrade.space';
-    const CLIENT_URL = 'https://api.unitrade.space';
+    const CLIENT_URL = 'https://mwl-stage.meest.com';
     const CLIENT_ID = 'ase_az';
     const CLIENT_SECRET = 'kqqCGmGMNyPWNPSdSyDmrkHnpCJonFFP';
 
@@ -116,6 +116,7 @@ class MeestService extends BaseService
             "azeriexpress_office_id" => $warehousePrefix === "EX" && !$params->is_door ? $warehouseId : null,
             "azerpost_office_id" => $warehousePrefix === "AZ" && !$params->is_door ? $warehouseId : null,
             "surat_office_id" => $warehousePrefix === "SR" && !$params->is_door ? $warehouseId : null,
+            "kargomat_office_id" => $warehousePrefix === "KR" && !$params->is_door ? $warehouseId : null,
             'paid' => true,
         ]);
         $unitradePackage = UnitradePackage::create([
@@ -346,17 +347,17 @@ class MeestService extends BaseService
                 'status' => $status ?: $track->status,
                 'note' => null,
             ]);
-            $uri = self::CLIENT_URL . "/v2/tracking/status";
+            $uri = self::CLIENT_URL . "/tracking/ase/tracking";
             $headers = [
                 'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer ' . $this->token
+                'Authorization' => 'd45ea191ae724c38a6dfa8b28be8bc95'
             ];
-            $body = [[
+            $body = [
                 "trackNumber" => $track->tracking_code,
                 "place" => self::PLACE[$statusString],
                 "eventCode" => self::STATE_MAP[$statusString],
                 "moment" => now('UTC')->format('Y-m-d\TH:i:s.v\Z')
-            ]];
+            ];
             $requestLog = Request::create([
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -380,7 +381,7 @@ class MeestService extends BaseService
                 CURLOPT_HTTPHEADER => array(
                     'Accept: application/json',
                     'Content-Type: application/json',
-                    'Authorization: Bearer ' . $this->token
+                    'Authorization: d45ea191ae724c38a6dfa8b28be8bc95 '
                 ),
             ));
 

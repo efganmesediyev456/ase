@@ -86,11 +86,14 @@ class PrecinctService implements PackageServiceInterface
     {
 
         $office = DeliveryPoint::query()->where('id', $officeId)->first();
-        $container = PrecinctOrder::query()
-            ->where('precinct_office_id', $office->id)
-            ->where('status', PrecinctOrder::STATUSES['WAITING'])
-            ->latest()
-            ->first();
+        if($office){
+            $container = PrecinctOrder::query()
+                ->where('precinct_office_id', $office->id)
+                ->where('status', PrecinctOrder::STATUSES['WAITING'])
+                ->latest()
+                ->first();
+        }
+
         if (!$container) {
             $authId = Auth::user()->id;
             $container = PrecinctOrder::query()->create([

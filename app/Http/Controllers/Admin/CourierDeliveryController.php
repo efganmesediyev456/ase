@@ -843,6 +843,7 @@ class CourierDeliveryController extends Controller
     {
 
         $formats = ['Xlsx' => 'Xlsx', 'Mpdf' => 'pdf'];
+//        $formats = ['Xlsx' => 'Xlsx', 'pdf' => 'pdf'];
         $type = isset($formats[\request()->get('format')]) ? \request()->get('format') : 'Xlsx';
         $ext = $formats[$type];
 

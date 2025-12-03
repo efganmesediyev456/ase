@@ -151,15 +151,18 @@ class TrackController extends Controller
                 ],
             ],
             [
-                'type' => 'select2',
+                'type' => 'select2_with_groups',
                 'name' => 'filial_id',
-                'attribute' => 'type_id_name',
+                'attribute' => 'name',
                 'model' => 'App\Models\Filial',
                 'wrapperAttributes' => [
-                    'class' => 'col-lg-3',
+                    'class' => 'col-lg-4',
                 ],
                 'allowNull' => 'All Filials',
+                'group_by' => 'type',
             ],
+
+
             [
                 'name' => 'noc',
                 'label' => 'No Courier',
@@ -586,6 +589,7 @@ class TrackController extends Controller
             ],
             'validation' => 'nullable|string',
         ],
+
         [
             'type' => 'html',
             'html' => '<div class="form-group col-lg-12 mt-10 clearfix"></div>',
@@ -739,6 +743,8 @@ class TrackController extends Controller
             ],
             'validation' => 'nullable|integer',
         ],
+
+
         [
             'name' => 'detailed_type',
             'label' => 'Detailed Type',
@@ -747,6 +753,16 @@ class TrackController extends Controller
                 'class' => 'form-group col-md-6',
             ],
             'validation' => 'nullable|string',
+        ],
+
+        [
+            'name' => 'ignore_done',
+            'label' => "Ignore done",
+            'type' => 'checkbox',
+            'wrapperAttributes' => [
+                'class' => 'col-md-12 mt-15',
+            ],
+            'validation' => 'nullable|integer',
         ],
     ];
 
@@ -1070,30 +1086,69 @@ class TrackController extends Controller
                 $items->whereRaw($qStr);
             }
         } else if (\Request::get('filial_id') != null) {
-            list($f_type, $f_id) = explode('-', \Request::get('filial_id'));
-            switch ($f_type) {
-                case 'ASE':
-                    $items->where('tracks.store_status', $f_id);
-                    break;
-                case 'AZEXP':
-                    $items->where('tracks.azeriexpress_office_id', $f_id);
-                    break;
-                case 'AZPOST':
-                    $items->where('tracks.azerpost_office_id', $f_id);
-                    break;
-                case 'SURAT':
-                    $items->where('tracks.surat_office_id', $f_id);
-                    break;
-                case 'YP':
-                    $items->where('tracks.yenipoct_office_id', $f_id);
-                    break;
-                case 'KARGOMAT':
-                    $items->where('tracks.kargomat_office_id', $f_id);
-                    break;
-                case 'UNKNOWN':
-                    $items->where('tracks.unknown_office_id', $f_id);
-                    break;
+            $f_group = explode('group_', \Request::get('filial_id'));
+
+            if(count($f_group) == 2){
+                $f_type = $f_group[1];
+
+                $filials = DB::table('filials_v')
+                    ->where('type', $f_type)
+                    ->pluck('id')
+                    ->toArray();
+
+                switch ($f_type) {
+                    case 'ASE':
+                        $items->whereIn('tracks.store_status', $filials);
+                        break;
+                    case 'AZEXP':
+
+                        $items->where('tracks.azeriexpress_office_id', $filials);
+                        break;
+                    case 'AZPOST':
+                        $items->whereIn('tracks.azerpost_office_id', $filials);
+                        break;
+                    case 'SURAT':
+                        $items->whereIn('tracks.surat_office_id', $filials);
+                        break;
+                    case 'YP':
+                        $items->whereIn('tracks.yenipoct_office_id', $filials);
+                        break;
+                    case 'KARGOMAT':
+                        $items->whereIn('tracks.kargomat_office_id', $filials);
+                        break;
+                    case 'UNKNOWN':
+                        $items->whereIn('tracks.unknown_office_id', $filials);
+                        break;
+                }
+            }else{
+                list($f_type, $f_id) = explode('-', \Request::get('filial_id'));
+                switch ($f_type) {
+                    case 'ASE':
+                        $items->where('tracks.store_status', $f_id);
+                        break;
+                    case 'AZEXP':
+                        $items->where('tracks.azeriexpress_office_id', $f_id);
+                        break;
+                    case 'AZPOST':
+                        $items->where('tracks.azerpost_office_id', $f_id);
+                        break;
+                    case 'SURAT':
+                        $items->where('tracks.surat_office_id', $f_id);
+                        break;
+                    case 'YP':
+                        $items->where('tracks.yenipoct_office_id', $f_id);
+                        break;
+                    case 'KARGOMAT':
+                        $items->where('tracks.kargomat_office_id', $f_id);
+                        break;
+                    case 'UNKNOWN':
+                        $items->where('tracks.unknown_office_id', $f_id);
+                        break;
+                }
             }
+
+
+
         }
 
         if (\Request::get('incustoms') != null) {
@@ -1313,7 +1368,17 @@ class TrackController extends Controller
                 Notification::sendTrack($id, $status);
             }
 
-            (new PackageService())->updateStatus($track, $status);
+            if($status==28){
+                $response = (new PackageService())->returnDelivery($track, $status);
+                if($response['success']==false){
+                    return response()->json([
+                        'message' => $response['message']
+                    ], 400);
+                }
+            }else{
+                (new PackageService())->updateStatus($track, $status);
+            }
+
 
             $nowTrack = Track::find($id);
 

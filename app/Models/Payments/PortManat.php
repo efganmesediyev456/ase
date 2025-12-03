@@ -233,7 +233,7 @@ class PortManat
         return view('front.widgets.portmanat-debt', compact('action_local_adr', 'action_portmanat_adr', 'args_array', 'args','cd','track'));
     }
 
-    public function generateFormKapital($cd = NULL,$track = NULL,$cdPayment = NULL)
+    public function generateFormKapital($cd = NULL,$track = NULL)
     {
         $action_local_adr = env('APP_URL') . '/portmanat/callback';//$this->mainUrl;
         //$action_local_adr = $this->mainUrl;// TEST
@@ -255,9 +255,6 @@ class PortManat
         } else if($cd) {
             $this->client_rrn = 'cd_'.$cd->id.'_'.uniqid();
             $this->amount = $cd->delivery_price;
-        } else if($cdPayment) {
-            $this->client_rrn = 'cd_payment_'.$cdPayment->id.'_'.uniqid();
-            $this->amount = 3;
         }else {
             $this->client_rrn = uniqid();
             $this->amount = 0;
@@ -283,7 +280,50 @@ class PortManat
             $args_array[] = '<input type="hidden" id="' . trim($key) . '" name="' . trim($key) . '" value="' . trim($value) . '" />';
         }
 
-        return view('front.widgets.kapital', compact('action_local_adr', 'action_portmanat_adr', 'args_array', 'args','cd','track','cdPayment'));
+        return view('front.widgets.kapital', compact('action_local_adr', 'action_portmanat_adr', 'args_array', 'args','cd','track'));
+    }
+
+    public function generateFormCurierDeliveryKapital($cd = NULL)
+    {
+        $action_local_adr = env('APP_URL') . '/portmanat/callback';//$this->mainUrl;
+        //$action_local_adr = $this->mainUrl;// TEST
+        $action_portmanat_adr = $this->mainUrl;
+
+        if ($cd) {
+            $action_local_adr = env('APP_URL') . '/portmanat/cd_callback';//$this->mainUrl;
+            //$action_portmanat_adr = env('APP_URL').'/portmanat/cd_callback';//$this->mainUrl;
+        }
+
+
+        if($cd) {
+            $this->client_rrn = 'cd_'.$cd->id.'_'.uniqid();
+            $this->amount = 3;
+        } else {
+            $this->client_rrn = uniqid();
+            $this->amount = 0;
+        }
+
+        $this->hash = hash_hmac('sha256', $this->service_id . $this->client_rrn . $this->amount, $this->secret_key);
+
+        $args = [
+            'service_id' => $this->service_id,
+            'uid' => $this->client_rrn,
+            'client_rrn' => $this->client_rrn,
+            'amount' => $this->amount,
+            'client_ip' => $this->client_ip,
+            'hash' => $this->hash,
+        ];
+
+
+
+        //$args['psp_rrn']='pass398wpd31'; // TEST
+
+        $args_array = [];
+        foreach ($args as $key => $value) {
+            $args_array[] = '<input type="hidden" id="' . trim($key) . '" name="' . trim($key) . '" value="' . trim($value) . '" />';
+        }
+
+        return view('front.widgets.courier_deliveries_kapital', compact('action_local_adr', 'action_portmanat_adr', 'args_array', 'args','cd'));
     }
 
     public function generateFormNew($cd = NULL,$track = NULL)

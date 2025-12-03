@@ -92,7 +92,22 @@
                     <img style="width:150px " src="{{ asset('front/new/logo_login.png') }}"  alt="fly"/>
                     <h1 style="font-weight: 600; font-size: 36px;color: #15549A; margin-top: 24px">{{ __('front.create_account') }}</h1>
                 </div>
+
+                @if ($errors->any())
+                    <div class="alert alert-danger" style="list-style: none;">
+                        <ul class="mb-0">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
                 <div style="margin-top: 60px" class="register-esi">
+
+
+
+
+
                     <div>
                         <div class=" div-input-login3 rounded-esi3   has-feedback has-feedback-left {{ $errors->has('name') ? 'has-error' : '' }}">
                             <label for="name" >{{ __('front.name') }}</label>

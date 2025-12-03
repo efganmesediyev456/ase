@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\HandleAzeriexpressCourierStatusUpdateJob;
-use App\Jobs\HandleAzeriexpressPudoStatusUpdateJob;
+use App\Jobs\HandleAzeriexpressPudoStatusUpdateJob4;
+use App\Jobs\HandleAzeriexpressPudoStatusUpdateJob5;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Log;
@@ -26,7 +27,7 @@ class AzeriExpressController extends Controller
         if($ignore) {
             return response()->json(['status' => true, 'data' => []]);
         }
-        HandleAzeriexpressPudoStatusUpdateJob::dispatch($tracking, $status);
+        HandleAzeriexpressPudoStatusUpdateJob5::dispatch($tracking, $status);
 
         return response()->json(['status' => true, 'data' => []]);
     }

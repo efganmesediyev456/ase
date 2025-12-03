@@ -45,6 +45,7 @@ Route::group([
         Route::get('payment/broker', 'TrackController@payment')->name('payment.broker.pay');
 
         Route::post('user/kapital/new/payment/{type}', 'KapitalPaymentNewContoller@postKapitalNewPay')->name('kapital.new.payment');
+        Route::post('user/kapital/courier_deliveries/new/payment/{cd}', 'KapitalPaymentNewContoller@postCourierDelivery')->name('kapital.new.courier_deliveries.payment');
 
         Route::get('track/pay/debt/{code}', 'TrackController@payGetDebt')->name('track-pay-debt');
 

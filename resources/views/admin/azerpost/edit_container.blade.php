@@ -85,9 +85,9 @@
                         {{--                        >--}}
                         {{--                            Keşi sil--}}
                         {{--                        </button>--}}
-{{--                        @if($group->status === \App\Models\Azerpost\AzerpostOrder::STATUSES['WAITING'])--}}
-{{--                        --}}
-{{--                        @endif--}}
+                        {{--                        @if($group->status === \App\Models\Azerpost\AzerpostOrder::STATUSES['WAITING'])--}}
+                        {{--                        --}}
+                        {{--                        @endif--}}
                         <button class="btn btn-success"
                                 data-url="{{ route('azerpost.send-packages', $group->id) }}"
                         >
@@ -182,10 +182,10 @@
                                 <td class="text-right">
                                     <div style="display: flex">
                                         @if($row->type == 'package')
-                                        <a href="{{route($type . '.index', ['q' => $row->package->tracking ?? ''])}}"
-                                           class="" target="_blank">
-                                            {{ $row->package->tracking ?? '-Tapılmadı!' }}
-                                        </a>
+                                            <a href="{{route($type . '.index', ['q' => $row->package->tracking ?? ''])}}"
+                                               class="" target="_blank">
+                                                {{ $row->package->tracking ?? '-Tapılmadı!' }}
+                                            </a>
                                         @else
                                             <a href="{{route('tracks.index', ['q' => $row->track->tracking_code ?? ''])}}"
                                                class="" target="_blank">
@@ -212,7 +212,11 @@
                                         if($row->type == 'track'){
                                             $_type = "track";
                                         }
-                                        $_status = $row->type == 'track'?$row->track->status:$row->package->status;
+//                                        $_status = $row->type == 'track'?$row->track->status:$row->package->status;
+                                        $_status = $row->type == 'track'
+                                            ? optional($row->track)->status
+                                            : optional($row->package)->status;
+
                                     @endphp
                                     <span class="label label-primary">{{ __('admin.'.$_type.'_status_'.$_status) }}</span>
                                 </td>

@@ -7,6 +7,7 @@ use App\Http\Resources\Meest\WarehouseResource;
 use App\Models\AzeriExpress\AzeriExpressOffice;
 use App\Models\Azerpost\AzerpostOffice;
 use App\Models\DeliveryPoint;
+use App\Models\Kargomat\KargomatOffice;
 use App\Models\Surat\SuratOffice;
 use Illuminate\Http\Request;
 
@@ -86,6 +87,26 @@ class WarehouseController extends Controller
         $suratB->map(function ($warehouse) use ($warehouses) {
             $warehouses->push([
                 'uid' => "SR" . $warehouse->id,
+                'name' => $warehouse->name,
+                'name_en' => $warehouse->name_en,
+                'city' => $warehouse->city ? $warehouse->city->translate('az')->name : null,
+                'city_en' => $warehouse->city ? $warehouse->city->translate('en')->name??null : null,
+                'description' => $warehouse->description,
+                'description_en' => $warehouse->description_en,
+                'address' => $warehouse->address,
+                'address_en' => $warehouse->address_en,
+                'data' => $warehouse,
+                'zip_code' => ''
+            ]);
+        });
+
+
+        //kargomat
+        $kargoMat = KargomatOffice::with(['city'])->get();
+        $kargoMat->map(function ($warehouse) use ($warehouses) {
+            $warehouses->push([
+                'uid' => "KR" . $warehouse->id,
+                'type_id' => 'KARGOMAT-' . $warehouse->id,
                 'name' => $warehouse->name,
                 'name_en' => $warehouse->name_en,
                 'city' => $warehouse->city ? $warehouse->city->translate('az')->name : null,

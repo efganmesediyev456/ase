@@ -149,6 +149,11 @@ class Transaction extends Model
             if ($package)
                 return $package->custom_id;
         }
+        if ($this->paid_for == 'COURIER_TRACK_OZON_DELIVERY') {
+            $tracks = CD::find($this->custom_id)->tracks;
+            if ($tracks)
+                return $tracks->pluck('tracking_code')->implode(', ');
+        }
         $package = $this->package;
         if ($package)
             return $package->custom_id;

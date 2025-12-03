@@ -273,6 +273,42 @@ class Whatsapp extends Model
 
         return true;
     }
+    public static function sendByTrackEfgan($track, $data, $templateKey, $templateKey1 = null)
+    {
+        if (!$track) {
+            return false;
+        }
+
+        $template = null;
+        if ($templateKey1)
+            $template = WhatsappTemplate::where('key', $templateKey1)->where('active', 1)->first();
+        if (!$template)
+            $template = WhatsappTemplate::where('key', $templateKey)->where('active', 1)->first();
+
+        $phone = $track->phone ?: ($track->customer && $track->customer->phone ? $track->customer->phone : null);
+
+        if (!$template || !$phone) {
+            return false;
+        }
+
+        $content['partner_id'] = $track->partner_id;
+        $content['whatsapp'] = clarifyContent($template->content, $data);
+        $content['sms'] = clarifyContent($template->content_sms, $data);
+
+        dd($content);
+
+        NotificationQueue::create([
+            'to' => self::clearNumber($phone),
+            'from' => 'ASE EXPRESS',
+            'user_id' => $track->customer  ? $track->customer->id : null,
+            'content' => json_encode($content),
+            'type' => 'WHATSAPP',
+            'send_for' => 'TRACK',
+            'send_for_id' => $track->id
+        ]);
+
+        return true;
+    }
 
     public static function sendToAllUsers($data, $templateKey, $templateKey1 = null)
     {

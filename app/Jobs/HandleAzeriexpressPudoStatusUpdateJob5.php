@@ -16,7 +16,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Log;
 
-class HandleAzeriexpressPudoStatusUpdateJob implements ShouldQueue
+class HandleAzeriexpressPudoStatusUpdateJob5 implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -73,15 +73,26 @@ class HandleAzeriexpressPudoStatusUpdateJob implements ShouldQueue
             $dates['delivered_at'] = now();
             $this->updateDeliveredStatus($entity, $order);
         }
+        if($entity->ignore_done==1 and $status==5){
+            $azExPackage->update(
+                array_merge([
+                    'status' => 9,
+                    'comment' => "",
+                ],
+                    $dates
+                )
+            );
+        }else{
+            $azExPackage->update(
+                array_merge([
+                    'status' => AzeriExpressPackage::STATUSES[AzeriExpressService::STATUS_MAP[$status]],
+                    'comment' => "",
+                ],
+                    $dates
+                )
+            );
+        }
 
-        $azExPackage->update(
-            array_merge([
-                'status' => AzeriExpressPackage::STATUSES[AzeriExpressService::STATUS_MAP[$status]],
-                'comment' => "",
-            ],
-                $dates
-            )
-        );
     }
 
     private function getEntity(string $type, int $packageId)
@@ -137,10 +148,7 @@ class HandleAzeriexpressPudoStatusUpdateJob implements ShouldQueue
     private function updateDeliveredStatus($entity, $order)
     {
         $comment = "Bağlama(Azeriexpress) müştəriyə təhvil verildi.";
-        if($entity->ignore_done==1){
-            (new PackageService())->updateStatus($entity, 19);
-            $this->updateEntityStatus($entity, $comment, 'Rejected');
-        }else{
+        if($entity->ignore_done!=1){
             (new PackageService())->updateStatus($entity, 17);
             $this->updateEntityStatus($entity, $comment, 'Done');
         }

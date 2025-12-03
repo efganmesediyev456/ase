@@ -28,12 +28,12 @@
                                         @endif
                                         <div class="row" id="pay">
                                             <div class="col-sm-12 col-lg-8">
-                                                <h3>{{__('front.pay_title_debt',['track'=>$item->tracking_code])}} </h3>
+                                                <h3>{{__('front.pay_courier_deliveries_title_debt',['track'=>$item->tracking_code])}} </h3>
                                             </div>
                                         </div>
                                         <div class="row">
                                             <div class="col-md-12 col-sm-12 col-xs-12" style="width:100%">
-                                                {!! (new App\Models\Payments\PortManat())->generateFormKapital(null,null, $item) !!}
+                                                {!! (new App\Models\Payments\PortManat())->generateFormCurierDeliveryKapital( $item) !!}
                                             </div>
                                         </div>
                                     </div>

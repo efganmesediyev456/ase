@@ -70,6 +70,7 @@ return array(
     'azeriexpress_warehouse_package_status_6' => 'Çeşidləmə mərkəzidədir',
     'azeriexpress_warehouse_package_status_8' => 'Məntəqəyə çatıb',
     'azeriexpress_warehouse_package_status_10' => 'Təhvil verildi',
+    'azeriexpress_warehouse_package_status_9' => 'Geri qaytarıldı(Rejected)',
 
     'azeriexpress_courier_status_0' => 'Gözləmədə',
     'azeriexpress_courier_status_1' => 'Göndərildi',

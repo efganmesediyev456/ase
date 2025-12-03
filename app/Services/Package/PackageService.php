@@ -135,6 +135,13 @@ class PackageService
         return $track;
     }
 
+
+    public function returnDelivery($track, $status = null){
+        $service = $this->getServiceByPartnerId($track->partner_id);
+        $response = $service->updateReturnDelivery($track, $status);
+        return $response;
+    }
+
     public function updateStatus($track, $status = null)
     {
 

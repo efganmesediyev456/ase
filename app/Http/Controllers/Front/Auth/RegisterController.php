@@ -129,7 +129,7 @@ class RegisterController extends Controller
             'name' => 'required|string|max:30|regex:/(^([a-zA-Z]+)?$)/u',
             'surname' => 'required|string|max:30|regex:/(^([a-zA-Z]+)?$)/u',
             'phone' => 'required|string|unique:users',
-            'passport_prefix' => 'required|in:AZE,AA',
+            'passport_prefix' => 'required|in:AZE,AA,AB',
             'passport_number' => 'required|' . $digits,
             'passport' => 'required|string|unique:users',
             'fin' => 'required|alpha_num|unique:users',

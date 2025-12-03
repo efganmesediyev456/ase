@@ -2,6 +2,7 @@
 
 namespace App\Services\Integration;
 
+use App\Jobs\SendTrackStatusJobFinal;
 use App\Models\IntegrationStatusSend;
 use App\Models\PackageGood;
 use App\Models\Request;
@@ -112,7 +113,7 @@ class UnitradeService extends BaseService
             "weight" => null,
             "delivery_price" => $params->shipping_invoice['invoice_price'],
             "delivery_price_cur" => $params->shipping_invoice['currency'],
-            "delivery_price_status" => $params->shipping_invoice['status']??null,
+            "delivery_price_status" => $params->shipping_invoice['status'] ?? null,
             "currency" => $params->shipping_invoice['currency'],
             "fullname" => $params->buyer['first_name'] . ' ' . $params->buyer['last_name'],
             "fin" => $params->buyer['pin_code'],
@@ -180,7 +181,7 @@ class UnitradeService extends BaseService
         $detailedType = [];
 
         foreach ($params['products'] as $product) {
-            $hs_code = trim((string) $product['hs_code']);
+            $hs_code = trim((string)$product['hs_code']);
 
             $ruType = RuType::updateOrCreate(
                 ['hs_code' => $hs_code],
@@ -280,11 +281,11 @@ class UnitradeService extends BaseService
 
         $data = [];
         if ($request->weight && $request->weight != 0) {
-            if($request->weight_only){
+            if ($request->weight_only) {
                 $track->update([
                     'weight' => floatval($request->weight) / 1000
                 ]);
-            }else {
+            } else {
                 $track->update([
                     'weight' => floatval($request->weight) / 1000,
                     'delivery_price' => $request->shipping_invoice['invoice_price'],
@@ -412,17 +413,327 @@ class UnitradeService extends BaseService
     }
 
 
-
-    public function updateStatusTest(Track $track, $status = null,$date = null)
+    public function updateStatusTestOld(Track $track, $status = null, $date = null)
     {
-        Log::channel('unitrade_status')->debug($track->tracking_code.' is started', [
-            'tracking_code'        => $track->tracking_code,
-            'status'               => $status,
-            'date'                 => $date
+        Log::channel('unitrade_status')->debug($track->tracking_code . ' is started', [
+            'tracking_code' => $track->tracking_code,
+            'status' => $status,
+            'date' => $date
         ]);
 
+        if ($this->token == "") {
+            $track->error_txt = $track->error_txt . "| empty token: $this->token | ";
+            $track->save();
+        }
+
+        if ($status == 16) {
+            $this->updateStatus($track, 24, $date);
+        }
+
+        if ($status) {
+            $statusString = array_search((int)$status, self::STATES, true);
+        } else {
+            $statusString = array_search($track->status, self::STATES, true);
+        }
+
+        if ($statusString === false || ($statusString && !array_key_exists($statusString, self::STATE_MAP))) {
+            $track->error_txt = $track->error_txt . "{ status not found: $status | " . $track->status . " | $statusString }";
+            $track->save();
+            return false;
+        }
+
+        try {
+            $trackStatus = TrackStatus::query()->create([
+                'track_id' => $track->id,
+                'user_id' => auth()->id() ?? 1,
+                'status' => $status ?: $track->status,
+                'note' => null,
+            ]);
+
+            $uri = self::CLIENT_URL . "/v3/tracking/status";
+            $body = [[
+                "trackNumber" => $track->tracking_code,
+                "place" => self::PLACE[$statusString],
+                "eventCode" => self::STATE_MAP[$statusString],
+                "moment" => now('UTC')->format('Y-m-d\TH:i:s.v\Z')
+            ]];
+
+            $headers = [
+                'Accept: application/json',
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $this->token
+            ];
+
+            Log::channel('unitrade_status')->debug($track->tracking_code . ' body', [
+                'body' => $body,
+                'headers' => $headers,
+                'uri' => $uri
+            ]);
 
 
+            $maxAttempts = 5;
+            $attempt = 1;
+            $success = false;
+            $response = null;
+            $responseCode = null;
+
+            while ($attempt <= $maxAttempts && !$success) {
+
+                echo $track->tracking_code . " attempt $attempt";
+
+                $curl = curl_init();
+                curl_setopt_array($curl, [
+                    CURLOPT_URL => $uri,
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_CUSTOMREQUEST => 'POST',
+                    CURLOPT_POSTFIELDS => json_encode($body),
+                    CURLOPT_HTTPHEADER => $headers,
+                    CURLOPT_TIMEOUT => 20,
+                ]);
+
+                $response = curl_exec($curl);
+                $responseCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+                curl_close($curl);
+
+                if ($responseCode >= 200 && $responseCode < 300) {
+                    $success = true;
+                } else {
+                    Log::channel('unitrade_status')->error($track->tracking_code . " failed attempt $attempt", [
+                        'code' => $responseCode,
+                        'response' => $response
+                    ]);
+                    echo $track->tracking_code . " failed attempt $attempt";
+                    sleep(10);
+                }
+
+                $attempt++;
+            }
+
+            $track->tracking_code . ' final response';
+            print_r($response);
+            print_r($responseCode);
+            Log::channel('unitrade_status')->debug($track->tracking_code . ' final response', [
+                'response' => $response,
+                'responseCode' => $responseCode
+            ]);
+
+            $trackStatus->update([
+                'note' => $response
+            ]);
+
+            return $success;
+
+        } catch (Exception $e) {
+
+            $track->error_txt = $track->error_txt . "| " . $e->getMessage() . " ";
+            $track->save();
+
+            echo $track->tracking_code . ' error';
+            Log::channel('unitrade_status')->debug($track->tracking_code . ' error', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    public function updateStatus(Track $track, $status = null, $date = null)
+    {
+        Log::channel('unitrade_status')->debug($track->tracking_code . ' is started', [
+            'tracking_code' => $track->tracking_code,
+            'status' => $status,
+            'date' => $date
+        ]);
+
+        if ($this->token == "") {
+            $track->error_txt = $track->error_txt . "| empty token: $this->token | ";
+            $track->save();
+        }
+
+        if ($status == 16) {
+            $this->updateStatus($track, 24, $date);
+        }
+
+        if ($status) {
+            $statusString = array_search((int)$status, self::STATES, true);
+        } else {
+            $statusString = array_search($track->status, self::STATES, true);
+        }
+
+        if ($statusString === false || ($statusString && !array_key_exists($statusString, self::STATE_MAP))) {
+            $track->error_txt = $track->error_txt . "{ status not found: $status | " . $track->status . " | $statusString }";
+            $track->save();
+            return false;
+        }
+
+        try {
+            $trackStatus = TrackStatus::query()->create([
+                'track_id' => $track->id,
+                'user_id' => auth()->id() ?? 1,
+                'status' => $status ?: $track->status,
+                'note' => null,
+            ]);
+
+            $uri = self::CLIENT_URL . "/v3/tracking/status";
+            $body = [[
+                "trackNumber" => $track->tracking_code,
+                "place" => self::PLACE[$statusString],
+                "eventCode" => self::STATE_MAP[$statusString],
+                "moment" => now('UTC')->format('Y-m-d\TH:i:s.v\Z')
+            ]];
+
+
+
+
+            $headers = [
+                'Accept: application/json',
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $this->token
+            ];
+
+            Log::channel('unitrade_status')->debug($track->tracking_code . ' body', [
+                'body' => $body,
+                'headers' => $headers,
+                'uri' => $uri
+            ]);
+
+
+            $success = false;
+
+
+            $curl = curl_init();
+            curl_setopt_array($curl, [
+                CURLOPT_URL => $uri,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CUSTOMREQUEST => 'POST',
+                CURLOPT_POSTFIELDS => json_encode($body),
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_TIMEOUT => 20,
+            ]);
+
+            $response = curl_exec($curl);
+            $responseCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            curl_close($curl);
+
+            if ($responseCode >= 200 && $responseCode < 300) {
+
+                $track->tracking_code . ' final response';
+
+                Log::channel('unitrade_status')->debug($track->tracking_code . ' final response', [
+                    'response' => $response,
+                    'responseCode' => $responseCode
+                ]);
+
+                $trackStatus->update([
+                    'note' => $response
+                ]);
+
+                return true;
+
+
+            } else {
+                Log::channel('unitrade_status')->error($track->tracking_code . " failed attempt", [
+                    'code' => $responseCode,
+                    'response' => $response
+                ]);
+                $trackCode = $track->tracking_code;
+                $place = self::PLACE[$statusString];
+                $eventCode = self::STATE_MAP[$statusString];
+                SendTrackStatusJobFinal::dispatch($trackStatus, $trackCode, $place, $eventCode);
+            }
+
+
+
+
+        } catch (Exception $e) {
+
+            $track->error_txt = $track->error_txt . "| " . $e->getMessage() . " ";
+            $track->save();
+
+            echo $track->tracking_code . ' error';
+            Log::channel('unitrade_status')->debug($track->tracking_code . ' error', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+
+    public function updateReturnDelivery(Track $track, $status = null)
+    {
+        $trackStatus = TrackStatus::query()->create([
+            'track_id' => $track->id,
+            'user_id' => auth()->id() ?? 1,
+            'status' => $status ?: $track->status,
+            'note' => null,
+        ]);
+
+        $uri = self::CLIENT_URL . "/v3/parcels/cancel";
+
+        $body = [
+            "cancels" => [
+                [
+                    "trackNumber" => $track->tracking_code,
+                    "cancellationReasonType" => 2
+                ]
+            ]
+        ];
+
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+            CURLOPT_URL => $uri,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => json_encode($body),
+            CURLOPT_HTTPHEADER => [
+                'Accept: application/json',
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $this->token
+            ],
+        ]);
+
+        $response = curl_exec($curl);
+        $responseCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+        curl_close($curl);
+
+        $data = json_decode($response, true);
+
+
+        if ($responseCode >= 400) {
+            return [
+                "success" => false,
+                "message" => $data['message'] ?? 'API error'
+            ];
+        }
+
+        if (!empty($data['unsuccessfulCancels'])) {
+            $error = $data['unsuccessfulCancels'][0];
+
+            return [
+                "success" => false,
+                "message" => $error['errorMessage'] ?? 'Cancellation failed',
+                "track" => $error['trackNumber'],
+                "reason" => $error['cancellationReasonType']
+            ];
+        }
+
+        return [
+            "success" => true,
+            "message" => "Uğurlu proses",
+            "data" => $data['successfulCancels'][0] ?? null
+        ];
+    }
+
+
+    public function updateStatusTest(Track $track, $status = null, $date = null)
+    {
+        Log::channel('unitrade_status')->debug($track->tracking_code . ' is started', [
+            'tracking_code' => $track->tracking_code,
+            'status' => $status,
+            'date' => $date
+        ]);
 
         if ($this->token == "") {
             $track->error_txt = $track->error_txt . "| empty token: $this->token | ";
@@ -461,10 +772,11 @@ class UnitradeService extends BaseService
                 "moment" => now('UTC')->format('Y-m-d\TH:i:s.v\Z')
             ]];
 
-            Log::channel('unitrade_status')->debug($track->tracking_code.' body', [
-                'body'                 => $body,
-                'headers'              => $headers,
-                'uri'                  => $uri
+
+            Log::channel('unitrade_status')->debug($track->tracking_code . ' body', [
+                'body' => $body,
+                'headers' => $headers,
+                'uri' => $uri
             ]);
 
 
@@ -496,9 +808,9 @@ class UnitradeService extends BaseService
             $responseCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
 
-            Log::channel('unitrade_status')->debug($track->tracking_code.' response', [
-                'response'             => $response,
-                'responseCode'         => $responseCode,
+            Log::channel('unitrade_status')->debug($track->tracking_code . ' response', [
+                'response' => $response,
+                'responseCode' => $responseCode,
             ]);
             $trackStatus->update([
                 'note' => $response
@@ -508,113 +820,13 @@ class UnitradeService extends BaseService
         } catch (Exception $e) {
             $track->error_txt = $track->error_txt . "| " . $e->getMessage() . " ";
             $track->save();
-            Log::channel('unitrade_status')->error($track->tracking_code.' response', [
-                'message'              => $e->getMessage(),
+            Log::channel('unitrade_status')->error($track->tracking_code . ' response', [
+                'message' => $e->getMessage(),
             ]);
             return false;
         }
     }
 
-
-    public function updateStatus(Track $track, $status = null,$date = null)
-    {
-        Log::channel('unitrade_status')->debug($track->tracking_code.' is started', [
-            'tracking_code'        => $track->tracking_code,
-            'status'               => $status,
-            'date'                 => $date
-        ]);
-
-        if ($this->token == "") {
-            $track->error_txt = $track->error_txt . "| empty token: $this->token | ";
-            $track->save();
-        }
-        if ($status == 16) {
-            $this->updateStatus($track, 24, $date);
-        }
-        $client = new Client();
-        if ($status) {
-            $statusString = array_search((int)$status, self::STATES, true);
-        } else {
-            $statusString = array_search($track->status, self::STATES, true);
-        }
-        if ($statusString === false || ($statusString && !array_key_exists($statusString, self::STATE_MAP))) {
-            $track->error_txt = $track->error_txt . "{ status not found: $status | " . $track->status . " | $statusString }";
-            $track->save();
-            return false;
-        }
-        try {
-            $trackStatus = TrackStatus::query()->create([
-                'track_id' => $track->id,
-                'user_id' => auth()->id() ?? 1,
-                'status' => $status ?: $track->status,
-                'note' => null,
-            ]);
-            $uri = self::CLIENT_URL . "/v3/tracking/status";
-            $headers = [
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer ' . $this->token
-            ];
-            $body = [[
-                "trackNumber" => $track->tracking_code,
-                "place" => self::PLACE[$statusString],
-                "eventCode" => self::STATE_MAP[$statusString],
-                "moment" => now('UTC')->format('Y-m-d\TH:i:s.v\Z')
-            ]];
-
-
-            Log::channel('unitrade_status')->debug($track->tracking_code.' body', [
-                'body'                 => $body,
-                'headers'              => $headers,
-                'uri'                  => $uri
-            ]);
-
-
-            $curl = curl_init();
-            curl_setopt_array($curl, array(
-                CURLOPT_URL => $uri,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => '',
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 0,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_POSTFIELDS => json_encode($body),
-                CURLOPT_HTTPHEADER => array(
-                    'Accept: application/json',
-                    'Content-Type: application/json',
-                    'Authorization: Bearer ' . $this->token
-                ),
-            ));
-
-            $response = curl_exec($curl);
-
-//            $responseCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-//            dd([
-//                'code' => $responseCode,
-//                'response' => $response
-//            ]);
-            $responseCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-
-
-            Log::channel('unitrade_status')->debug($track->tracking_code.' response', [
-                'response'             => $response,
-                'responseCode'         => $responseCode,
-            ]);
-            $trackStatus->update([
-                'note' => $response
-            ]);
-            curl_close($curl);
-            return true;
-        } catch (Exception $e) {
-            $track->error_txt = $track->error_txt . "| " . $e->getMessage() . " ";
-            $track->save();
-            Log::channel('unitrade_status')->error($track->tracking_code.' response', [
-                'message'              => $e->getMessage(),
-            ]);
-            return false;
-        }
-    }
     public function updateStatusNew(Track $track, $status = null)
     {
         if ($status == 16) {
@@ -632,6 +844,7 @@ class UnitradeService extends BaseService
 
         return true;
     }
+
     public function updateStatusV3(Track $track, $status = null)
     {
         if ($this->token == "") {

@@ -145,6 +145,9 @@ class TransactionController extends Controller
     ];
 
     protected $list = [
+        'id'=>[
+            'label' => 'id',
+        ],
         'admin.name' => [
             'label' => 'Admin',
         ],

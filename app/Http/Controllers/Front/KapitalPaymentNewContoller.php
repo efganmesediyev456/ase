@@ -29,6 +29,52 @@ class KapitalPaymentNewContoller extends MainController
         file_put_contents("/var/log/test_kapital_order_create.log", $message . "\n", FILE_APPEND);
     }
 
+
+    public function postCourierDelivery(Request $request, $cd){
+        $requestAll = json_encode($request->all());
+        $this->log(now()->format('Y-m-d H:i:s') . " requestAll - {$requestAll} type - courier deliveries");
+        $courierDelivery = CD::where('id', $cd)->withTrashed()->first();
+
+        $price = 3;
+        $body = [
+            'order' => [
+                'typeRid' => 'Order_SMS',
+                'amount' => 3,
+                'currency' => 'AZN',
+                'language' => 'en',
+                'description' => 'AseShop',
+                'hppRedirectUrl' => 'https://aseshop.az/kapital-bank/callback',
+                'hppCofCapturePurposes' => ['Cit']
+            ]
+        ];
+
+
+        $kapitalBankTxpgService = new KapitalBankTxpgService();
+
+        $kapitalResponse = $kapitalBankTxpgService->createOrder($body);
+        $OrderID = $kapitalResponse['order_id'];
+        $password = $kapitalResponse['password'];
+        $redirectUrl = $kapitalResponse['redirectUrl'];
+
+        $this->log(now()->format('Y-m-d H:i:s') . " response from kapital - " . json_encode($kapitalResponse));
+
+
+        $tran = Transaction::create([
+            'user_id' => $courierDelivery->user_id,
+            'custom_id' => $courierDelivery->id,
+            'paid_by' => 'KAPITAL',
+            'amount' => $price,
+            'source_id' => $OrderID,
+            'type' => 'PENDING',
+            'paid_for' => 'COURIER_TRACK_OZON_DELIVERY',
+        ]);
+
+        $this->log(now()->format('Y-m-d H:i:s') . " created transactions - " . json_encode($tran));
+
+
+        return redirect($redirectUrl);
+
+    }
     public function postKapitalNewPay(Request $request, $type)
     {
 
@@ -870,6 +916,24 @@ class KapitalPaymentNewContoller extends MainController
                     file_put_contents('/var/log/ase_portmanat.log', Carbon::now() . " " . $track->fullname . " tr_callback error " . $error . " \n", FILE_APPEND);
 
                     return redirect()->to(route('track-pay-debt', ['code' => $track->custom_id]) . '?error=' . $error);
+                }
+            }elseif ($findTransaction && $findTransaction->paid_for == 'COURIER_TRACK_OZON_DELIVERY') {
+                $cd = CD::find($findTransaction->custom_id);
+                $kapitalBankTxpgService = new KapitalBankTxpgService();
+                $orderStatus = $kapitalBankTxpgService->getOrderStatus($orderId);
+                $findTransaction->type = 'OUT';
+                $findTransaction->extra_data = json_encode($orderStatus);
+                $findTransaction->request_all = json_encode($request->all());
+
+
+                $findTransaction->save();
+
+
+
+                if (isset($orderStatus['order']['status']) and $orderStatus['order']['status'] == 'FullyPaid') {
+                    $cd->paid = true;
+                    $cd->save();
+                    file_put_contents('/var/log/ase_portmanat.log', Carbon::now() . " " . $cd->id . " cd ozon delivery callback success \n", FILE_APPEND);
                 }
             }
 

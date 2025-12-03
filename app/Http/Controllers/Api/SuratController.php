@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\HandleAzeriexpressCourierStatusUpdateJob;
-use App\Jobs\HandleAzeriexpressPudoStatusUpdateJob;
 use App\Jobs\HandleSuratStatusUpdateJob;
 use App\Jobs\HandleSuratStatusUpdateJob2;
 use App\Jobs\HandleSuratStatusUpdateJob3;

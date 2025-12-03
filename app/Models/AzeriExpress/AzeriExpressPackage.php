@@ -46,6 +46,7 @@ class AzeriExpressPackage extends Model
         "WAREHOUSE" => 6,
         "ARRIVEDTOPOINT" => 8,
         "DELIVERED" => 10,
+        "REJECTED" => 9,
     ];
 
     public function scopePayed()
