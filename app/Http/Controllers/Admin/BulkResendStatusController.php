@@ -18,13 +18,45 @@ class BulkResendStatusController extends \App\Http\Controllers\Controller
 
     private $token;
 
+    private $logTypes = [
+        "success",
+        "error"
+    ];
+
     public function index()
     {
         $statuses = config('ase.attributes.track.statusShort');
-        $logs = BulkResendStatusLog::orderBy('executed_at', 'desc')->paginate(20);
+        $logTypes = $this->logTypes;
 
-        return view('admin.bulk_resend.index', compact('statuses','logs'));
+        $query = BulkResendStatusLog::query();
+
+        if (request('log_type')) {
+            $query->where('log_type', request('log_type'));
+        }
+
+        if (request('executed_at_from')) {
+            $query->where('executed_at', '>=', request('executed_at_from'));
+        }
+
+        if (request('executed_at_to')) {
+            $query->where('executed_at', '<=', request('executed_at_to'));
+        }
+
+        if (request('tracking_code')) {
+            $query->where('tracking_code', 'like', '%' . request('tracking_code') . '%');
+        }
+
+
+        if (request('status')) {
+            $query->where('status', request('status'));
+        }
+
+        $logs = $query->orderBy('executed_at', 'desc')->paginate(20);
+
+
+        return view('admin.bulk_resend.index', compact('statuses', 'logs', 'logTypes'));
     }
+
 
 
     private function getAccessToken()

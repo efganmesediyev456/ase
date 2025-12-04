@@ -49,6 +49,13 @@ return [
         ],
     ],
     'attributes' => [
+        'activities' => [
+            'events'=>[
+                0 => 'qəbul edildi',
+                1 => 'əlavə olundu',
+                2 => 'göndərildi',
+            ]
+        ],
         'yes_no' => [
             0 => 'No',
             1 => 'Yes',

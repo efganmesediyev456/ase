@@ -25,4 +25,8 @@ class BulkResendStatusLog extends Model
     {
         return $this->belongsTo(TrackStatus::class);
     }
+
+    public function user(){
+        return $this->belongsTo(Admin::class,'user_id','id');
+    }
 }

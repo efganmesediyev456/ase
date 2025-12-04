@@ -848,6 +848,7 @@ class UkrExpressModel extends Model
         //echo $output."\n";
         curl_close($ch);
 	$output=$this->parse_output($output);
+
         $res = json_decode($output);
 
        //print_r($res);

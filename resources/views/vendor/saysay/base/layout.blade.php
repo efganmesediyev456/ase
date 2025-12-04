@@ -76,7 +76,7 @@
         <script src="{{ asset('admin/js/printer/custom.js') }}?v=1.0.1.8"></script>
     @endif
 
-    @if($_cellUpdate)
+    @if($_cellUpdate && auth('admin')->check() && auth('admin')->user()->role_id==10 && auth('admin')->user()->store_status == 1)
         <script src="https://js.pusher.com/6.0/pusher.min.js"></script>
         <script src="{{ asset('admin/js/ion.sound.min.js') }}"></script>
         <div id="cities" data-value="[{{ implode(",", $_cities) }}]"></div>

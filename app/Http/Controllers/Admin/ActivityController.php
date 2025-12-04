@@ -93,6 +93,17 @@ class ActivityController extends Controller
                 ],
                 'allowNull' => 'All Partners',
             ],
+
+            [
+                'name' => 'event',
+                'type' => 'select_from_array',
+                'optionsFromConfig' => 'ase.attributes.activities.events',
+                'wrapperAttributes' => [
+                    'class' => 'col-lg-2',
+                ],
+                'allowNull' => 'Events',
+            ],
+
             [
                 'name' => 'event_date_range',
                 'start_name' => 'start_date',
@@ -204,6 +215,16 @@ class ActivityController extends Controller
             }
         }
 
+        if (Request::filled('event')) {
+
+            $event = Request::get('event');
+            $config = config('ase.attributes.activities.events');
+            $event = $config[$event];
+            $items->where('description','Updated a Track')->whereRaw("JSON_VALID(details)")
+                ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(details, '$.comment_txt')) LIKE ?", ['%'.$event.'%']);
+        }
+
+
         if ($trackStatus = Request::get('track_status')) {
             $items->where('content_type', 'App\Models\Track')
                 ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(details, '$.status')) = ?", [$trackStatus]);
@@ -217,6 +238,7 @@ class ActivityController extends Controller
         if (Request::get('search_type') === 'export' || Request::has('export')) {
             return $items->get();
         }
+
 
         return $items->paginate($this->limit);
     }

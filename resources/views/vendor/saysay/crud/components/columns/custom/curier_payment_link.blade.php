@@ -7,9 +7,10 @@
     else
         $count = 0;
 @endphp
-
 @if($item->first_track && $item->first_track->partner &&  $item->first_track->partner->id==3 and $count>2)
-    <div style="display: flex"> {{$count}}
+    {{$item->id}}
+
+    <div style="display: flex">
         <button class="btn btn-secondary btn-xs" onclick="copyToClipboard(this)"
                 data-href="https://aseshop.az/courier_deliveries/payment/{{ $item->id }}">
             Copy
