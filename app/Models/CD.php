@@ -895,7 +895,7 @@ class CD extends Model
 
     public function courierTrackOzonDeliveryTransactions()
     {
-        return $this->hasMany(Transaction::class, 'custom_id')->where('type', 'OUT')->where('paid_for', 'COURIER_TRACK_OZON_DELIVERY')->latest();
+        return $this->hasMany(Transaction::class, 'custom_id','id')->where('type', 'OUT')->where('paid_for', 'COURIER_TRACK_OZON_DELIVERY');
     }
 
     public function getPaidByAttribute()

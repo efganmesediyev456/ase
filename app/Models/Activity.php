@@ -106,6 +106,7 @@ class Activity extends Model
     {
         $arr = json_decode($this->attributes['details'], true);
         $data = "<ul>";
+        if($arr)
         foreach ($arr as $key => $value) {
 
             if ($key == 'parent_id' and(optional(auth()->user()->role)->id==10 or optional(auth()->user()->role)->id==26 )) continue;
@@ -224,6 +225,8 @@ class Activity extends Model
                 $data .= "<li><b>" . $key . "</b> : <i>" . $value . $str . "</i></li>";
             }
         }
+        else
+        $data .= $this->attributes['details'];
         $data .= "</ul>";
 
         return $data;
