@@ -231,6 +231,20 @@ class User extends Authenticatable implements CanVerifyEmailContract
             $query->where('user_id', $user_id)->orWhereIn('user_id', $users);
         })->whereIn('status', [2,8])->where('paid', '>=', 1)->get();
         $out = [];
+
+//        dd($packages->map(function ($item) use ($out) {
+//            return [
+//                "azeri_express_office_id"=>$item->azeri_express_office_id,
+//                "azeri_express_office_id"=>$item->azeri_express_office_id,
+//                "azerpost_office_id"=>$item->azerpost_office_id,
+//                "surat_office_id"=>$item->surat_office_id,
+//
+//                "yenipoct_office_id"=>$item->yenipoct_office_id,
+//                "kargomat_office_id"=>$item->kargomat_office_id,
+//                "store_status"=>$item->store_status,
+//                'courier_delivery'=>$item->courier_delivery,
+//            ];
+//        }));
         foreach ($packages as $package) {
            if($package->azeri_express_office_id)
 	                continue;

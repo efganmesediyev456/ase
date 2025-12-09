@@ -184,13 +184,13 @@
                                         <!-- Satır 2 -->
                                         <div class="col-md-4 col-sm-6 col-xs-12 mb-3">
                                             <label class="mr-2"><b>Executed At (From):</b></label>
-                                            <input type="datetime-local" name="executed_at_from" class="form-control"
+                                            <input type="date" name="executed_at_from" class="form-control"
                                                    value="{{ request('executed_at_from') }}">
                                         </div>
 
                                         <div class="col-md-4 col-sm-6 col-xs-12 mb-3">
                                             <label class="mr-2"><b>Executed At (To):</b></label>
-                                            <input type="datetime-local" name="executed_at_to" class="form-control"
+                                            <input type="date" name="executed_at_to" class="form-control"
                                                    value="{{ request('executed_at_to') }}">
                                         </div>
 

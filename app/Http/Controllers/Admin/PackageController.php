@@ -2912,6 +2912,12 @@ class PackageController extends Controller
 
             if($admin->check_declaration){
 
+                if (isset($package) && in_array($package->status, [5])) {
+                    return response()->json([
+                        'error' => 'Rejected statusunda olan bağlama '.$package->custom_id,
+                    ]);
+                }
+
                 $package->bot_comment = "Saxlanc hesabı tərəfindən scan edildi.";
                 $package->save();
                 if(!$package->is_in_customs){
@@ -3129,6 +3135,11 @@ class PackageController extends Controller
 
         if ($track) {
             if($admin->check_declaration ){
+                if (isset($track) && in_array($track->status, [19, 27])) {
+                    return response()->json([
+                        'error' => 'Rejected statusunda olan bağlama '.$track->tracking_code,
+                    ]);
+                }
                 $track->bot_comment = "Saxlanc hesabı tərəfindən scan edildi.";
                 $track->save();
                 if($track->carrier && !$track->carrier->status && !$track->carrier->depesH_NUMBER ){
@@ -3137,7 +3148,7 @@ class PackageController extends Controller
                     ]);
                 }else{
                     return response()->json([
-                        'success' => 'DECLARED IN CUSTOMS '. $track->tracking_code.' MAWB : '.$track->container_name,
+                        'success' => 'DECLARED IN CUSTOMS'. $track->tracking_code.' MAWB : '.$track->container_name,
                     ]);
                 }
             }

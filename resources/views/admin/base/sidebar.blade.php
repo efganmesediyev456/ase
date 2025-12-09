@@ -662,7 +662,7 @@
     @permission('read-notifications')
     <li {!! classActiveRoute('notifications.index') !!}>
         <a href="{{ route('notifications.index') }}">
-            <i class="icon-mail-read"></i> Notifications
+            <i class="icon-mail-read"></i> <span>Notifications</span>
         </a>
     </li>
     @endpermission

@@ -731,7 +731,7 @@ class CustomsModel extends Model
             //echo $this->get_carriersposts2_json_str() . "\n";
             $output = curl_exec($ch);
             //echo $output."\n";
-            if (empty($output)) {›
+            if (empty($output)) {
                 $retryCount++;
                 if ($retryCount > $this->retryCount) {
                     break;

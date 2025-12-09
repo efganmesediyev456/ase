@@ -1368,6 +1368,34 @@ class TrackController extends Controller
                 Notification::sendTrack($id, $status);
             }
 
+            if($status == 16){ //In Baku statusuna keciren zaman pudo statusunu da menteqeye catib et
+                if($track->azeriexpresspackage()->exists()){
+                    $track->azeriexpresspackage()->update([
+                        "status" => 8
+                    ]);
+                }elseif($track->precinctpackage()->exists()){
+                    $track->precinctpackage()->update([
+                        "status" => 8
+                    ]);
+                }elseif($track->azerpostpackage()->exists()){
+                    $track->azerpostpackage()->update([
+                        "status" => 8
+                    ]);
+                }elseif($track->suratpackage()->exists()){
+                    $track->suratpackage()->update([
+                        "status" => 8
+                    ]);
+                }elseif($track->yenipoctpackage()->exists()){
+                    $track->yenipoctpackage()->update([
+                        "status" => 8
+                    ]);
+                }elseif($track->kargomatpackage()->exists()){
+                    $track->kargomatpackage()->update([
+                        "status" => 8
+                    ]);
+                }
+            }
+
             if($status==28){
                 $response = (new PackageService())->returnDelivery($track, $status);
                 if($response['success']==false){
