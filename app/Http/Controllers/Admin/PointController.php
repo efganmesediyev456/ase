@@ -96,16 +96,22 @@ class PointController extends Controller
         $regions = [];
         foreach ($xml->xpath('//kml:Placemark') as $placemark) {
             $raw = (string) $placemark->name;
-            $parts = explode('-', $raw);
+
+            $parts = preg_split('/\s*[-–—]\s*/u', $raw);
 
             $name = trim($parts[0]);
+
             $id = isset($parts[1]) ? (int) trim($parts[1]) : null;
+//            if($name == 'Şəfa Müalicəvi Diaqnostika Mərkəzi I Шафа Лечебно'){
+//                dd($id);
+//            }
             $points = [];
 
             if (isset($placemark->Polygon)) {
                 $coordinates = (string) $placemark->Polygon->outerBoundaryIs->LinearRing->coordinates;
                 $points = $this->parseCoordinates($coordinates);
             }
+
             elseif (isset($placemark->MultiGeometry)) {
                 if (isset($placemark->MultiGeometry->Polygon)) {
                     foreach ($placemark->MultiGeometry->Polygon as $polygon) {
@@ -135,13 +141,10 @@ class PointController extends Controller
         if (file_exists($jsonPath)) {
             unlink($jsonPath);
         }
+//        dd($regions);
         file_put_contents($jsonPath, json_encode($regions));
 
-//        return response()->json([
-//            'status' => 'success',
-//            'message' => 'KML uploaded and converted',
-//            'regions' => $regions
-//        ]);
+
         Alert::success(trans('saysay::crud.action_alert', [
             'name' => 'Kml file import olundu',
             'key' => 'Kml',
@@ -152,6 +155,37 @@ class PointController extends Controller
         return redirect()->route($this->route . '.create', $this->routeParams);
 
     }
+
+    private function parseCoordinates($coordinates)
+    {
+        $points = [];
+        $coordinateParts = preg_split("/[\s,\n]+/", trim($coordinates));
+
+        for ($i = 0; $i < count($coordinateParts); $i += 3) {
+            if (isset($coordinateParts[$i]) && isset($coordinateParts[$i+1])) {
+                $lon = floatval($coordinateParts[$i]);
+                $lat = floatval($coordinateParts[$i+1]);
+                $points[] = [$lat, $lon];
+            }
+        }
+
+        if (empty($points)) {
+            foreach (preg_split("/[\s]+/", trim($coordinates)) as $coord) {
+                $coord = trim($coord);
+                if (empty($coord)) continue;
+
+                $parts = explode(',', $coord);
+                if (count($parts) >= 2) {
+                    $lon = floatval($parts[0]);
+                    $lat = floatval($parts[1]);
+                    $points[] = [$lat, $lon];
+                }
+            }
+        }
+
+        return $points;
+    }
+
 
     public function findCourier(Request $request)
     {
@@ -171,38 +205,7 @@ class PointController extends Controller
         return response()->json(['courier' => null, 'message' => 'No region found'], 404);
     }
 
-    private function parseCoordinates($coordinates)
-    {
-        $points = [];
-        $coordinateParts = preg_split("/[\s,\n]+/", trim($coordinates));
 
-        // KML koordinat formatı adətən "longitude,latitude,altitude" şəklindədir
-        // və ya hər koordinat cütü boşluqla ayrılır
-        for ($i = 0; $i < count($coordinateParts); $i += 3) {
-            if (isset($coordinateParts[$i]) && isset($coordinateParts[$i+1])) {
-                $lon = floatval($coordinateParts[$i]);
-                $lat = floatval($coordinateParts[$i+1]);
-                $points[] = [$lat, $lon];
-            }
-        }
-
-        // Əgər yuxarıdakı metod işləməsə, alternativ parse
-        if (empty($points)) {
-            foreach (preg_split("/[\s]+/", trim($coordinates)) as $coord) {
-                $coord = trim($coord);
-                if (empty($coord)) continue;
-
-                $parts = explode(',', $coord);
-                if (count($parts) >= 2) {
-                    $lon = floatval($parts[0]);
-                    $lat = floatval($parts[1]);
-                    $points[] = [$lat, $lon];
-                }
-            }
-        }
-
-        return $points;
-    }
 
     private function pointInPolygon($point, $polygon)
     {

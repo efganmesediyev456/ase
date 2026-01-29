@@ -22,7 +22,8 @@ class DebtNotification extends Command
         $packages = Package::where('status','!=',4)->where('paid_debt',0)->where('debt_price','>',0)->whereNotNull('customs_at')->where('deleted_at',null)->get();
 
         foreach ($tracks as $track){
-            if($track->debt_sms_count != 3 && $track->debt_sms_count < 3){
+            //evvel 3 idi
+            if($track->debt_sms_count != 1 && $track->debt_sms_count < 1){
 
                 //Notification send
                 Notification::sendTrack($track->id, 'customs_storage_fee');
@@ -35,7 +36,7 @@ class DebtNotification extends Command
         //$this->info('success');
 
         foreach ($packages as $package){
-            if($package->debt_sms_count != 3 && $package->debt_sms_count < 3){
+            if($package->debt_sms_count != 1 && $package->debt_sms_count < 1){
 
                 //Notification send
                 Notification::sendPackage($package->id, 'customs_storage_fee');

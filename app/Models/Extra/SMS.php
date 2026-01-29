@@ -58,8 +58,8 @@ class SMS extends Model
 
             $request = @$client->get('http://api.msm.az/sendsms?user=' . env('SMS_USER') . '&password=' . env('SMS_PASSWORD') . '&gsm=' . $number . '&from=' . $from_str . '&text=' . $text);
             //dump('http://api.msm.az/sendsms?user=' . env('SMS_USER') . '&password=' . env('SMS_PASSWORD') . '&gsm=' . $number . '&from=' . env('SMS_FROM') . '&text=' . $text);
-            echo 'http://api.msm.az/sendsms?user=' . env('SMS_USER') . '&password=' . env('SMS_PASSWORD') . '&gsm=' . $number . '&from=' . env('SMS_FROM') . '&text=' . $text."\n";
-            echo $request->getBody();
+//            echo 'http://api.msm.az/sendsms?user=' . env('SMS_USER') . '&password=' . env('SMS_PASSWORD') . '&gsm=' . $number . '&from=' . env('SMS_FROM') . '&text=' . $text."\n";
+//            echo $request->getBody();
             parse_str($request->getBody(), $params);
             if (isset($params['errtext']) && $params['errtext'] !== 'OK') {
                 $_error = $params['errtext'];

@@ -1,6 +1,7 @@
 <?php
 
 use Telegram\Bot\Api;
+use GuzzleHttp\Client;
 
 if (!function_exists('findAndReplace')) {
     function findAndReplace($string, $query)
@@ -484,30 +485,80 @@ function generateCells($json = true)
 
     return $json ? '[' . implode(",", $cells) . ']' : $cells;
 }
+//
+//function findCell($barcode)
+//{
+//    if (strpos($barcode, ':') === false)
+//        return '';
+//    list($val_str, $num_str) = explode(':', $barcode);
+//    $num = (int)$num_str;
+//    $val = strtoupper($val_str);
+//    foreach (cellStructure() as $let => $value) {
+//        for ($i = 1; $i <= $value; $i++) {
+//            if ($let == $val && $num == $i) {
+//                return $let . $i;
+//            }
+//        }
+//    }
+//    return '';
+//}
+
+
 
 function findCell($barcode)
 {
-    if (strpos($barcode, ':') === false)
+    if (strpos($barcode, ':') === false) {
         return '';
-    list($val_str, $num_str) = explode(':', $barcode);
-    $num = (int)$num_str;
-    $val = strtoupper($val_str);
-    foreach (cellStructure() as $let => $value) {
-        for ($i = 1; $i <= $value; $i++) {
-            if ($let == $val && $num == $i) {
-                return $let . $i;
-            }
-        }
     }
-    return '';
+
+    [$val, $num] = explode(':', $barcode);
+    $val = strtoupper($val);
+    $num = (int) $num;
+
+    if ($num <= 0) {
+        return '';
+    }
+
+    $cells = cellStructure();
+
+    if (!isset($cells[$val])) {
+        return '';
+    }
+
+    if ($num > $cells[$val]) {
+        return '';
+    }
+
+    return $val . $num;
 }
+
+
+//function cellStructure()
+//{
+//    $cells = config('ase.warehouse.cells');
+//    if (auth()->guard('admin')->check() && auth()->guard('admin')->user()->cells) {
+//        $decoded = \GuzzleHttp\json_decode(auth()->guard('admin')->user()->cells, true);
+//        if (is_array($decoded)) {
+//            $cells = $decoded;
+//        }
+//    }
+//
+//    return $cells;
+//}
 
 
 function cellStructure()
 {
+    static $cells = null;
+
+    if ($cells !== null) {
+        return $cells;
+    }
+
     $cells = config('ase.warehouse.cells');
+
     if (auth()->guard('admin')->check() && auth()->guard('admin')->user()->cells) {
-        $decoded = \GuzzleHttp\json_decode(auth()->guard('admin')->user()->cells, true);
+        $decoded = json_decode(auth()->guard('admin')->user()->cells, true);
         if (is_array($decoded)) {
             $cells = $decoded;
         }
@@ -515,6 +566,7 @@ function cellStructure()
 
     return $cells;
 }
+
 
 function luminance($steps)
 {
@@ -597,3 +649,25 @@ if (!function_exists('clearNumber')) {
     }
 }
 
+
+
+
+if (!function_exists('sendTelegramMessage')) {
+
+    function sendTelegramMessage($message)
+    {
+        $config = config('initest');
+
+        try {
+            $client = new Client();
+            $client->post("https://api.telegram.org/bot" . $config['bot_id'] . "/sendMessage", [
+                'form_params' => [
+                    'chat_id' => $config['chat_id'],
+                    'text' => $message,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Telegram message failed: ' . $e->getMessage());
+        }
+    }
+}

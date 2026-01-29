@@ -397,6 +397,23 @@ class User extends Authenticatable implements CanVerifyEmailContract
 	return $this->store_status;
     }
 
+    public function getRealStoreStatus2Attribute($value)
+    {
+
+        if($this->real_azeri_express_use)
+            return 0;
+        if($this->real_yenipoct_use)
+            return 0;
+        if($this->real_kargomat_use)
+            return 0;
+        if($this->real_surat_use)
+            return 0;
+        if($this->real_azerpoct_send)
+            return 0;
+        if($this->dealer) return $this->dealer->store_status;
+        return $this->store_status;
+    }
+
     public function getRealAzerpoctSendAttribute($value)
     {
 	if($this->dealer) return $this->dealer->azerpoct_send;

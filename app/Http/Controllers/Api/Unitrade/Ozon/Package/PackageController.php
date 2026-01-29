@@ -62,64 +62,80 @@ class PackageController extends Controller
     public function store(TrackCreateRequest $request)
     {
         try {
-            $phoneNumber = preg_replace('/[^0-9]/', '', $request->buyer['phone_number']);
 
-            $pin_code = $request->buyer['pin_code'];
-            $email = $request->buyer['email_address'];
+            return DB::transaction(function () use ($request) {
 
-            $warehousePrefix = substr($request->warehouse_id, 0, 2);
-            $warehouseId = substr($request->warehouse_id, -(strlen($request->warehouse_id) - 2));
+                $phoneNumber = preg_replace('/[^0-9]/', '', $request->buyer['phone_number']);
 
-            $warehouseTable = array_search($warehousePrefix, BaseService::WAREHOUSE);
-            if ($warehouseTable === false || !DB::table($warehouseTable)->where('id', $warehouseId)->exists()) {
+                $pin_code = $request->buyer['pin_code'];
+                $email = $request->buyer['email_address'];
+
+                $warehousePrefix = substr($request->warehouse_id, 0, 2);
+                $warehouseId = substr($request->warehouse_id, -(strlen($request->warehouse_id) - 2));
+
+                $warehouseTable = array_search($warehousePrefix, BaseService::WAREHOUSE);
+                if ($warehouseTable === false || !DB::table($warehouseTable)->where('id', $warehouseId)->exists()) {
 //                return Response::json([
 //                    "code" => 404,
 //                    "message" => "Warehouse not found!",
 //                    "data" => [],
 //                ], 400);
-                $request->merge(['warehouse_id' => 'DP23']);
-            }
+                    $request->merge(['warehouse_id' => 'DP23']);
+                }
 
-            $unitradePackage = UnitradePackage::query()
-                ->with(['package', 'user'])
-                ->where('delivery_number', $request->input('delivery_number'))
-                ->first();
-
-            if ($unitradePackage) {
-                $response = [
-                    'status' => false,
-                    'message' => "Package already created!",
-                    'data' => $this->unitradeService->prepareResponse($unitradePackage)
-                ];
-                return response()->json($response, 400);
-            }
-
-            $user = null;
-
-            if($pin_code){
-                $user = Customer::query()
-                    ->where('fin', $pin_code)
-                    ->where('phone', "994$phoneNumber")
-                    ->where('partner_id', BaseService::PARTNERS_MAP['OZON'])
+                $unitradePackage = UnitradePackage::query()
+                    ->with(['package', 'user'])
+                    ->where('delivery_number', $request->input('delivery_number'))
                     ->first();
-            }
 
-            if ($user == null) {
-                $request->merge(['partner_id' => BaseService::PARTNERS_MAP['OZON']]);
-                $user = $this->unitradeService->createCustomer($request);
-            }
+                $exists = Track::where('tracking_code', $request->delivery_number)
+                    ->where('partner_id', BaseService::PARTNERS_MAP['OZON'])
+                    ->exists();
 
-            //handle package
-            $request->merge(['partner' => 'OZON']);
-            $package = $this->unitradeService->createPackage($request, $user);
-            $response = [
-                'status' => true,
-                'message' => "Package successfully created!",
-                'data' => $package
-            ];
+                if ($exists) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => "Package already created!",
+                        'data' => $unitradePackage ? $this->unitradeService->prepareResponse($unitradePackage) : null
+                    ], 409);
+                }
 
-            return response()->json($response, 201);
-        }catch (\Exception $exception) {
+                if ($unitradePackage) {
+                    $response = [
+                        'status' => false,
+                        'message' => "Package already created!",
+                        'data' => $this->unitradeService->prepareResponse($unitradePackage)
+                    ];
+                    return response()->json($response, 400);
+                }
+
+                $user = null;
+
+                if ($pin_code) {
+                    $user = Customer::query()
+                        ->where('fin', $pin_code)
+                        ->where('phone', "994$phoneNumber")
+                        ->where('partner_id', BaseService::PARTNERS_MAP['OZON'])
+                        ->first();
+                }
+
+                if ($user == null) {
+                    $request->merge(['partner_id' => BaseService::PARTNERS_MAP['OZON']]);
+                    $user = $this->unitradeService->createCustomer($request);
+                }
+
+                //handle package
+                $request->merge(['partner' => 'OZON']);
+                $package = $this->unitradeService->createPackage($request, $user);
+                $response = [
+                    'status' => true,
+                    'message' => "Package successfully created!",
+                    'data' => $package
+                ];
+
+                return response()->json($response, 201);
+            }, 3);
+        } catch (\Exception $exception) {
             $botToken = "7784139238:AAGfstOZANbUgTV3hYKV8Xua8xQ_eJs5_wU";
             $website = "https://api.telegram.org/bot" . $botToken;
             $chatId = "-1002397303546";
@@ -260,6 +276,7 @@ class PackageController extends Controller
         }
 
         $track = Track::query()->where('tracking_code', $trackingCode)->first();
+        $track->bot_comment = "Deleted by API with ".$partnerCompany." partner";
         $track->status = 19;
         $track->save();
 

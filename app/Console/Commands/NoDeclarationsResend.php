@@ -59,7 +59,7 @@ class NoDeclarationsResend extends Command
 
     public function ozon()
     {
-        $tracks = Track::where('partner_id', 3)->whereNotNull('airbox_id')->where('status',5)->where('created_at', '>=', '2024-12-01')->where('declaration_sms_count', '<', 3)->get();
+        $tracks = Track::where('partner_id', 3)->whereNotNull('airbox_id')->where('status',5)->where('created_at', '>=', '2024-12-01')->where('declaration_sms_count', '<', 1)->get();
 //        $tracks = Track::where('id', 247608)->get();
         foreach ($tracks as $track) {
             Notification::sendTrack($track->id,  5);
@@ -73,7 +73,7 @@ class NoDeclarationsResend extends Command
 
     public function iherb()
     {
-        $tracks = Track::where('partner_id', 1)->where('status',5)->where('created_at', '>=', '2025-01-01')->whereNotNull('airbox_id')->where('declaration_sms_count', '<', 3)->get();
+        $tracks = Track::where('partner_id', 1)->where('status',5)->where('created_at', '>=', '2025-01-01')->whereNotNull('airbox_id')->where('declaration_sms_count', '<', 1)->get();
 //        $tracks = Track::where('id', 247607)->get();
 
         foreach ($tracks as $track) {
@@ -90,7 +90,7 @@ class NoDeclarationsResend extends Command
 
     public function taobao()
     {
-        $tracks = Track::where('partner_id', 9)->where('status',5)->whereNotNull('airbox_id')->where('created_at', '>=', '2025-01-01')->where('declaration_sms_count', '<', 3)->get();
+        $tracks = Track::where('partner_id', 9)->where('status',5)->whereNotNull('airbox_id')->where('created_at', '>=', '2025-01-01')->where('declaration_sms_count', '<', 1)->get();
 
         foreach ($tracks as $track) {
             Notification::sendTrack($track->id, 5);

@@ -38,6 +38,7 @@ class BaseService
         'Deleted' => 4,     // The package information has been deleted from the system.
         'Rejected' => 19,     // The package information has been deleted from the system.
 	    'DeliveredByCourier' => 50, // Unitrade Delivered By Courier
+	    'InCustomsNeutral' => 46, // Unitrade Delivered By Courier
     ];
 
     const WAREHOUSE = [
@@ -50,6 +51,7 @@ class BaseService
 
     const WAREHOUSES = [
         'ozon' => 12,
+        'iherb' => 16,
         'unitrade' => 12,
         'china_meest' => 16,
         'gfs' => 17,
@@ -97,6 +99,7 @@ class BaseService
         "GFS" => 'https://temu.com',
         "OZON" => 'https://ozon.ru',
         "CHINA_MEEST" => 'https://ozon.ru',
+        "IHERB" => 'https://iherb.com',
     ];
 
     public function createCustomer($params)

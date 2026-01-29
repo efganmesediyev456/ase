@@ -41,7 +41,7 @@ class PrecinctController extends Controller
         }
 
         if (!auth()->user()->can('add-precinct_package_to_containers')) {
-            $packagesQuery = $packagesQuery->whereIn('status', [3, 4, 6, 8, 10]);
+            $packagesQuery = $packagesQuery->whereIn('status', [3, 4, 6, 8, 10,12]);
         }
 
         $packagesQuery->when($request->filled('code'), function ($query) use ($request) {
@@ -680,7 +680,55 @@ class PrecinctController extends Controller
             $container = $precinctPackage->container;
             $undeliveredPackagesCount = PrecinctPackage::query()
                 ->where('precinct_order_id', $container->id)
-                ->whereIn('status', [PrecinctPackage::STATUSES['IN_PROCESS'], PrecinctPackage::STATUSES['WAREHOUSE'], PrecinctPackage::STATUSES['ARRIVEDTOPOINT']])
+                ->whereIn('status', [PrecinctPackage::STATUSES['IN_PROCESS'], PrecinctPackage::STATUSES['WAREHOUSE'], PrecinctPackage::STATUSES['ARRIVEDTOPOINT'], PrecinctPackage::STATUSES['NOT_SENT']])
+                ->count();
+            if ($undeliveredPackagesCount == 0) {
+                PrecinctOrder::query()->where('id', $container->id)->update([
+                    'status' => PrecinctOrder::STATUSES['DELIVERED']
+                ]);
+            }
+
+            return response()->json(['status' => true, 'data' => []]);
+        }
+
+        return response()->json(['status' => false, 'data' => [], 'message' => "Bağlama anbara qəbul edilməyib və ya ödənilməyib!"]);
+    }
+
+    public function rejected($id, Request $request)
+    {
+        Log::info("StatusLog: ", [$request->all()]);
+
+        $precinctPackage = PrecinctPackage::query()->where('id', $id)->firstOrFail();
+
+        $packageQuery = Package::query()->where('id', $precinctPackage->package_id);
+        $trackQuery = Track::query()->where('id', $precinctPackage->package_id);
+
+        $status = 12;
+        if ($precinctPackage->status != $status || !$precinctPackage->package->paid) {
+            $precinctPackage->update([
+                'status' => PrecinctPackage::STATUSES['REJECTED']
+            ]);
+            $_package = $packageQuery->first();
+            $_track = $trackQuery->first();
+
+//            if ($_package && $precinctPackage->type == 'package') {
+//                $_package->bot_comment = "Bağlama Precinct(" . Auth::id() . '-' . Auth::user()->email . ") tərəfindən geri qaytarıldı.";
+//                $_package->status = Package::STATES['Rejected'];
+//                $_package->save();
+//            }
+//            if ($_track && $precinctPackage->type == 'track') {
+//                $_track->comment_txt = "Bağlama Precinct(" . Auth::id() . '-' . Auth::user()->email . ") tərəfindən geri qaytarıldı.";
+//                $_track->status = Track::STATES['Rejected'];
+//                $_track->save();
+//
+////                (new PackageService())->updateStatus($_track, 17);
+//            }
+
+            //update container's status
+            $container = $precinctPackage->container;
+            $undeliveredPackagesCount = PrecinctPackage::query()
+                ->where('precinct_order_id', $container->id)
+                ->whereIn('status', [PrecinctPackage::STATUSES['IN_PROCESS'], PrecinctPackage::STATUSES['WAREHOUSE'], PrecinctPackage::STATUSES['ARRIVEDTOPOINT'], PrecinctPackage::STATUSES['NOT_SENT']])
                 ->count();
             if ($undeliveredPackagesCount == 0) {
                 PrecinctOrder::query()->where('id', $container->id)->update([

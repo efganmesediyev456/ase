@@ -49,12 +49,29 @@ class Debt extends Command
             ->whereNull('deleted_at')
             ->get();
 
+//        $tracks = Track::whereIn('status', [18, 45])
+//            ->where('paid_debt', 0)
+//            ->where('partner_id', '!=', 3)
+//            ->whereNotNull('customs_at')
+//            ->whereNull('deleted_at')
+//            ->get();
+
+
         $tracks = Track::whereIn('status', [18, 45])
             ->where('paid_debt', 0)
-            ->where('partner_id', '!=', 3)
-            ->whereNotNull('customs_at')
             ->whereNull('deleted_at')
+            ->where(function ($q) {
+                $q->where('partner_id', '!=', 3)
+                    ->whereNotNull('customs_at');
+            })
+            ->orWhere(function ($q) {
+                $q->where('partner_id', 3)
+                    ->whereNotNull('customs_at')
+                    ->where('customs_at', '>=', Carbon::create(2026, 2, 5));
+            })
             ->get();
+
+
 
         $now = Carbon::now();
 
@@ -75,7 +92,7 @@ class Debt extends Command
             $dueTime = $lastDebtLog ? Carbon::parse($lastDebtLog->created_at)->addHours(24) : $customsTime->addHours(24);
 
             if ($dueTime <= $now) {
-                $priceToAdd = ($lastDebtLog and $package->debt_price>0) ? Setting::find(1)->debt_price_day : Setting::find(1)->debt_price_first_day;
+                $priceToAdd = ($lastDebtLog or $package->debt_price>0) ? Setting::find(1)->debt_price_day : Setting::find(1)->debt_price_first_day;
 
                 $debtLog = new DebtLog();
                 $debtLog->custom_id = $package->tracking_code;
@@ -102,11 +119,11 @@ class Debt extends Command
 
             $customsTime = Carbon::parse($track->customs_at);
             $lastDebtLog = DebtLog::where('custom_id', $track->custom_id)->latest()->first();
-            $initialDueTime = ($track->partner_id == 3) ? $customsTime->addHours(72) : $customsTime->addHours(24);
+            $initialDueTime = ($track->partner_id == 3) ? $customsTime->addHours(48) : $customsTime->addHours(24);
             $dueTime = $lastDebtLog ? Carbon::parse($lastDebtLog->created_at)->addHours(24) : $initialDueTime;
 
             if ($dueTime <= $now) {
-                $priceToAdd = ($lastDebtLog and $track->debt_price>0) ? Setting::find(1)->debt_price_day : Setting::find(1)->debt_price_first_day;
+                $priceToAdd = ($lastDebtLog or $track->debt_price>0) ? Setting::find(1)->debt_price_day : Setting::find(1)->debt_price_first_day;
 
                 $debtLog = new DebtLog();
                 $debtLog->custom_id = $track->custom_id;

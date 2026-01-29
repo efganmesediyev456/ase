@@ -211,14 +211,14 @@ class InCustomsTrackController extends Controller
                         $track->in_customs_status_at = $ldate;
                         $track->bot_comment = 'Set in customs status';
                         $track->worker_comments = strtoupper($note_type);
-                        if($note_type!='mutemadi'){
+//                        if($note_type!='mutemadi'){
                             $track->status = 18;
                             Notification::sendTrack($track->id, 18);
-                        }
+//                        }
                         $track->save();
-                        if($note_type!='mutemadi'){
+//                        if($note_type!='mutemadi'){
                             (new PackageService())->updateStatus($track, 18);
-                        }
+//                        }
                         $set_count++;
                     }
                     $alertText = $set_count . ' tracks set with note: ' . strtoupper($note_type);

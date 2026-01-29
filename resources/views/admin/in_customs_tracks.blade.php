@@ -62,6 +62,12 @@
                                         <span style="color: #0066cc;"><b>Price</b></span>
                                     </label>
                                 </div>
+                                <div class="checkbox">
+                                    <label>
+                                        <input type="radio" name="note_type" value="sehv beyan" class="note-type-radio">
+                                        <span style="color: #0066cc;"><b>Səhv Bəyan</b></span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </div>

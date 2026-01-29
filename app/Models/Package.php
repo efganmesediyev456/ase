@@ -984,6 +984,17 @@ class Package extends Model
         return config('ase.attributes.package.paid')[$this->attributes['paid']];
     }
 
+    public function getPaidAttWithLabelAttribute()
+    {
+        $list = [
+            0=>'No',
+            1=>'Yes',
+        ];
+
+        $item = $list[(int)$this->attributes['paid']];
+
+        return $item ?? '-';
+    }
     public function getPaidDebtAttWithLabelAttribute()
     {
         $json = config('ase.attributes.package.paidWithLabelDebt');

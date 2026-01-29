@@ -2,6 +2,7 @@
 
 @section('content')
     @include('front.sections.page-header')
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
 
     <script type="text/javascript">
         var cities = [];
@@ -120,6 +121,7 @@
                                 <div >
                                     <div class="mb40  section-title text-left  ">
                                         <h1 style="font-size: 32px; font-weight: 500; color: #000; letter-spacing: .14rem" id="info_section">{{ __('front.editing_member_profile') }}</h1>
+{{--                                        <div class="trendyol btn btn-success">Trendyol təsdiq</div>--}}
                                         @if (session('success'))
                                             <div class="alert alert-success"
                                                  role="alert">{{ __('front.profile_was_updated') }}</div>
@@ -400,6 +402,31 @@
         </div>
     </div>
 
+
+    <div class="modal fade" id="phoneModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nömrəni təsdiqlə</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="text" id="phone" class="form-control" placeholder="Telefon nömrəsi" value="{{ auth()->user()->phone }}">
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Ləğv et</button>
+                    <button class="btn btn-primary" id="confirmPhone">Təsdiqlə</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
 @endsection
 
 
@@ -409,10 +436,12 @@
 
     <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-form-validator/2.3.26/jquery.form-validator.min.js"
             defer></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
     <script>
         function indexChange() {
             let city_id = $('select[name="city_id"]').val();
-            console.log('indexChange');
             let html = '';
             let selectedSel = '';
             if (city_id > 0 && !(typeof cities2[city_id] === 'undefined')) {
@@ -425,7 +454,6 @@
                         selectedSel = indexes[i];
                         html = html + ' selected';
                         address_set = true;
-                        console.log(selectedSel);
                     }
                     if (firstSel == '')
                         firstSel = indexes[i];
@@ -433,7 +461,6 @@
                 }
                 if (selectedSel == '') selectedSel = firstSel;
             }
-            console.log(html);
             $('select[name="azeri_express_office_id"]').html(html);
             changeSel2(selectedSel);
         }
@@ -467,5 +494,74 @@
             $('[data-popup="popover"]').popover();
 
         });
+
+
+        //trendyol
     </script>
+
+
+    <script>
+        $(document).ready(function () {
+
+            $('.trendyol').on('click', function () {
+                $('#phoneModal').modal('show');
+            });
+
+            $('#confirmPhone').on('click', function () {
+                let phone = $('#phone').val().trim();
+
+                if (phone === '') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Xəta',
+                        text: 'Telefon nömrəsi boş ola bilməz'
+                    });
+                    return;
+                }
+
+                $.ajax({
+                    url: '{{ route('trendyol.assigned') }}',
+                    method: 'POST',
+                    data: {
+                        phone: phone,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    beforeSend: function () {
+                        $('#confirmPhone').prop('disabled', true);
+                    },
+                    success: function (res) {
+                        $('#phoneModal').modal('hide');
+                        $('#confirmPhone').prop('disabled', false);
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: res.title,
+                            text: res.text,
+                            showConfirmButton: true,
+                            timerProgressBar: false,
+                            position: 'center',
+                        });
+
+                    },
+                    error: function (xhr) {
+                        $('#confirmPhone').prop('disabled', false);
+
+                        let errMsg = 'Xəta baş verdi!';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errMsg = xhr.responseJSON.message;
+                        }
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Xəta',
+                            text: errMsg
+                        });
+                    }
+                });
+            });
+
+        });
+
+    </script>
+
 @endpush

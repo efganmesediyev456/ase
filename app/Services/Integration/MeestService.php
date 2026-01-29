@@ -91,12 +91,12 @@ class MeestService extends BaseService
         $warehousePrefix = substr($warehouse, 0, 2);
         $warehouseId = substr($warehouse, 2);
         $track = Track::create([
-            "partner_id" => self::PARTNERS_MAP[$params->partner ?: 'CHINA_MEEST'],
+            "partner_id" => self::PARTNERS_MAP[$params->partner ?: 'IHERB'],
             "customer_id" => $user->id,
-            "warehouse_id" => self::WAREHOUSES[strtolower($params->partner ?: 'CHINA_MEEST')],
+            "warehouse_id" => self::WAREHOUSES[strtolower($params->partner ?: 'IHERB')],
             "tracking_code" => $params->delivery_number,
             "status" => $statusId,
-            "website" => self::PARTNER_WEBSITES[$params->partner ?: 'CHINA_MEEST'],
+            "website" => self::PARTNER_WEBSITES[$params->partner ?: 'IHERB'],
             "number_items" => count($params['products']) ?? 1,
             "weight" => null,
             "delivery_price" => $params->shipping_invoice['invoice_price'],
@@ -118,6 +118,7 @@ class MeestService extends BaseService
             "surat_office_id" => $warehousePrefix === "SR" && !$params->is_door ? $warehouseId : null,
             "kargomat_office_id" => $warehousePrefix === "KR" && !$params->is_door ? $warehouseId : null,
             'paid' => true,
+            'is_meest'=>true
         ]);
         $unitradePackage = UnitradePackage::create([
             'package_id' => null,
@@ -356,7 +357,8 @@ class MeestService extends BaseService
                 "trackNumber" => $track->tracking_code,
                 "place" => self::PLACE[$statusString],
                 "eventCode" => self::STATE_MAP[$statusString],
-                "moment" => now('UTC')->format('Y-m-d\TH:i:s.v\Z')
+                "moment" => now('UTC')->format('Y-m-d\TH:i:s.v\Z'),
+                "pickUpPointId" => $track->filial_type_id_for_meest
             ];
             $requestLog = Request::create([
                 'created_at' => now(),
@@ -394,6 +396,7 @@ class MeestService extends BaseService
             curl_close($curl);
             return true;
         } catch (Exception $e) {
+            dd($e->getMessage());
             $track->error_txt = $track->error_txt . "| " . $e->getMessage() . " ";
             $track->save();
             return false;

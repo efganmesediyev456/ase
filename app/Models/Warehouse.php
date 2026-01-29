@@ -356,6 +356,8 @@ class Warehouse extends Authenticatable
         return $result ? (round($result, 2) . ($showCurrency ? " " . $this->currency_with_label : null)) : False;
     }
 
+
+
     public function calculateDeliveryPrice2(
         $weight, //0.2
         $weightUnit = 0, //0
@@ -367,11 +369,25 @@ class Warehouse extends Authenticatable
         $discountPercent = 0,
         $azerpoct = 0, //1
         $city_id = 0, //10
-        $additional_delivery_price = 0
+        $additional_delivery_price = 0,
+        $custom_id = null
     )
     {
-        $result = 0;
 
+
+        sendTelegramMessage(now().' '.$custom_id.' gelen datalar  - '.json_encode([ $weight,
+            $weightUnit = 0,
+            $width = null,
+            $height = null,
+            $length = null,
+            $sizeUnit = 0,
+            $showCurrency = false,
+            $discountPercent = 0,
+            $azerpoct = 0,
+            $city_id = 0,
+            $additional_delivery_price = 0]));
+
+        $result = 0;
         if (!$this->country)
             return $result;
 
@@ -392,20 +408,24 @@ class Warehouse extends Authenticatable
         $kq = $size_index > $weight ? $size_index : $weight;
 
 
+        sendTelegramMessage(now().' '.$custom_id.' size index ve kq  - '.json_encode([ $size_index, $kq]));;
+
         if ($kq) {
             $tariff_price = null;
             $weightPrice = null;
 
             $tariffs = $this->active_tariffs;
+            sendTelegramMessage(now().' '.$custom_id.' tariffler  - '.json_encode($tariffs->toArray()));;
+
             if ($tariffs && count($tariffs) > 0) {
                 foreach ($tariffs as $tariff) {
                     if (!$tariff->tariff_weights || count($tariff->tariff_weights) <= 0)
                         continue;
-
-
-
                     foreach ($tariff->tariff_weights as $tariffWeight) {
                         $tariffPrices = null;
+
+                        sendTelegramMessage(now().' '.$custom_id.' tariffWeight  - '.json_encode($tariffWeight->toArray()));;
+
 //                        if ($azerpoct)
 //                            $tariffPrices = $tariffWeight->azerpoct_tariff_prices;
 //                        else
@@ -421,26 +441,82 @@ class Warehouse extends Authenticatable
                             &&
                             ($tariffWeight->to_weight > $kq || !$tariffWeight->to_weight || $tariffWeight->to_weight <= 0)
                         ) {
+
+                            $oneKgPrice = null;
+                            foreach ($tariffs as $t) {
+                                foreach ($t->tariff_weights as $tw) {
+                                    if ($tw->is_one_kg) {
+                                        foreach ($tw->withoutAzerpoctTariffPrices as $tp) {
+                                            if (!$tp->city_id || $tp->city_id == $city_id) {
+                                                $oneKgPrice = $tp->price;
+                                                break 3;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            $tenKgPrice = null;
+                            foreach ($tariffs as $t) {
+                                foreach ($t->tariff_weights as $tw) {
+                                    if ($tw->is_ten_kg) {
+                                        foreach ($tw->withoutAzerpoctTariffPrices as $tp) {
+                                            if (!$tp->city_id || $tp->city_id == $city_id) {
+                                                $tenKgPrice = $tp->price;
+                                                break 3;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            sendTelegramMessage(now().' '.$custom_id.' oneKgPrice,tenKgPrice   - '.json_encode($oneKgPrice.','.$tenKgPrice));;
+
+
                             //echo "  twid=".$tariffWeight->id." pw=".$tariffWeight->per_weight." cid=".$city_id;
                             foreach ($tariffPrices as $tariffPrice) {
                                 if ($tariffPrice->city_id && $tariffPrice->city_id == $city_id) {
-                                    //echo "tpid=".$tariffPrice->id."  twid=".$tariffWeight->id." pw=".$tariffWeight->per_weight." tp=".$tariffPrice->price." tp=".$tariff_price." cid=".$city_id."  tcid=".$tariffPrice->city_id;
-                                    if ($tariffWeight->per_weight && $tariffWeight->per_weight > 0)
-                                        $tariff_price = ($kq / $tariffWeight->per_weight) * $tariffPrice->price;
-                                    else
-                                        $tariff_price = $tariffPrice->price;
-                                    break;
+
+                                    $tariff_price = null;
+                                    if($kq>10 and $oneKgPrice > 0 and $tenKgPrice > 0){
+
+                                        $firstTen = 10 * $oneKgPrice;
+                                        $extraKg = $kq - 10;
+                                        $extraPrice = $extraKg * $tariffPrice->price;
+
+                                        $tariff_price = $firstTen + $extraPrice;
+
+                                    }else{
+                                        //echo "tpid=".$tariffPrice->id."  twid=".$tariffWeight->id." pw=".$tariffWeight->per_weight." tp=".$tariffPrice->price." tp=".$tariff_price." cid=".$city_id."  tcid=".$tariffPrice->city_id;
+                                        if ($tariffWeight->per_weight && $tariffWeight->per_weight > 0)
+                                            $tariff_price = ($kq / $tariffWeight->per_weight) * $tariffPrice->price;
+                                        else
+                                            $tariff_price = $tariffPrice->price;
+                                        break;
+                                    }
                                 }
                             }
                             if (!$tariff_price)
                                 foreach ($tariffPrices as $tariffPrice) {
                                     //echo "tpid=".$tariffPrice->id."  twid=".$tariffWeight->id." pw=".$tariffWeight->per_weight." tp=".$tariffPrice->price." tp=".$tariff_price." cid=".$city_id."  tcid=".$tariffPrice->city_id;
                                     if (!$tariffPrice->city_id) {
-                                        if ($tariffWeight->per_weight && $tariffWeight->per_weight > 0)
-                                            $tariff_price = ($kq / $tariffWeight->per_weight) * $tariffPrice->price;
-                                        else
-                                            $tariff_price = $tariffPrice->price;
-                                        break;
+
+                                        $tariff_price = null;
+                                        if($kq>10 and $oneKgPrice > 0 and $tenKgPrice > 0){
+
+                                            $firstTen = 10 * $oneKgPrice;
+                                            $extraKg = $kq - 10;
+                                            $extraPrice = $extraKg * $tariffPrice->price;
+
+                                            $tariff_price = $firstTen + $extraPrice;
+
+                                        }else{
+                                            //echo "tpid=".$tariffPrice->id."  twid=".$tariffWeight->id." pw=".$tariffWeight->per_weight." tp=".$tariffPrice->price." tp=".$tariff_price." cid=".$city_id."  tcid=".$tariffPrice->city_id;
+                                            if ($tariffWeight->per_weight && $tariffWeight->per_weight > 0)
+                                                $tariff_price = ($kq / $tariffWeight->per_weight) * $tariffPrice->price;
+                                            else
+                                                $tariff_price = $tariffPrice->price;
+                                            break;
+                                        }
                                     }
                                 }
                         }
@@ -452,10 +528,15 @@ class Warehouse extends Authenticatable
                 }
             }
 
+
+            sendTelegramMessage(now().' '.$custom_id.' tariff_price   - '.json_encode($tariff_price));;
+
+
             //$weightPrice=WeightPrice::where('warehouse_id',$this->id)->where("is_active",1)
             //	->where(function ($q) use($kq) {$q->where('weight_from','<=',$kq)->orWhereNull('weight_from')->orWhere('weight_from','=',0);})
             //	->where(function ($q) use($kq) {$q->where('weight_to','>',$kq)->orWhereNull('weight_to')->orWhere('weight_to','=',0);})
             //	->orderBy('updated_at', 'desc')->first();
+
 
             if ($tariff_price) {
                 $result = $tariff_price;
@@ -495,8 +576,12 @@ class Warehouse extends Authenticatable
         if ($discountPercent > 0 && $discountPercent < 100)
             $result = $result - round($result * $discountPercent / 100, 2);
         else if ($discountPercent >= 100) $result = 0;
+
+        sendTelegramMessage(now().' '.$custom_id.' final result - '.json_encode($result));;
+
         return $result ? (round($result, 2) . ($showCurrency ? " " . $this->currency_with_label : null)) : False;
     }
+
 
     public function calculateDeliveryPriceWithManat(
         $weight,

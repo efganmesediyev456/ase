@@ -28,6 +28,7 @@ use Maatwebsite\Excel\Excel;
 use Carbon\Carbon;
 use Request;
 use View;
+use DB;
 
 class ContainerController extends Controller
 {
@@ -244,6 +245,29 @@ class ContainerController extends Controller
                 ],
                 'allowNull' => 'All Partners',
             ],
+
+            [
+                'name' => 'date_by',
+                'type' => 'select_from_array',
+                'optionsFromConfig' => 'ase.attributes.package.container_by',
+                'wrapperAttributes' => [
+                    'class' => 'col-lg-2',
+                ],
+            ],
+            [
+                'name' => 'event_date_range',
+                'start_name' => 'start_date',
+                'end_name' => 'end_date',
+                'type' => 'date_range',
+
+                'date_range_options' => [
+                    'timePicker' => true,
+                    'locale' => ['format' => 'DD/MM/YYYY'],
+                ],
+                'wrapperAttributes' => [
+                    'class' => 'col-lg-5',
+                ],
+            ],
         ]
     ];
     protected $list = [
@@ -290,9 +314,19 @@ class ContainerController extends Controller
     {
         set_time_limit(20 * 60);
         $this->limit = 5;
-        parent::__construct();
+
         View::share('extraActionsForPackage', $this->extraActionsForPackage);
         View::share('extraActionsForBag', $this->extraActionsForBag);
+
+        $this->middleware(function ($request, $next) {
+            if (optional(auth()->user()->role)->id != 1) {
+//                unset($this->list['weight']);
+//                unset($this->list['number_items']);
+//                unset($this->list['carrier']);
+            }
+            parent::__construct();
+            return $next($request);
+        });
     }
 
     public function containerCustomsClearance($id)
@@ -539,16 +573,62 @@ class ContainerController extends Controller
         return redirect()->back();
     }
 
+    public function createContainer(\Illuminate\Http\Request $request){
+
+
+        $this->validate($request, [
+            'container_name' => 'required',
+            'airbox_name' => 'required',
+            'tracks' => 'required|array|min:1',
+        ]);
+
+        DB::beginTransaction();
+        try{
+            $trackFirst = Track::find($request->input('tracks')[0]);
+            $total_weight = Track::whereIn('id', $request->input('tracks'))->sum('weight');
+            $container = new Container;
+            $container->name = $request->input('container_name');
+            $container->partner_id = $trackFirst->partner_id;
+            $container->save();
+
+            $airbox = new Airbox;
+            $airbox->partner_id = $trackFirst->partner_id;
+            $airbox->container_id = $container->id;
+            $airbox->name = $request->input('airbox_name');
+            $airbox->total_count = count($request->input('tracks'));
+            $airbox->total_weight = $total_weight;
+            $airbox->save();
+
+
+            $tracks = Track::whereIn('id', $request->input('tracks'))->get();
+            foreach ($tracks as $track) {
+                $track->container_id = $container->id;
+                $track->airbox_id = $airbox->id;
+                $track->save();
+            }
+
+            DB::commit();
+
+            return redirect()
+                ->route('containers.index')
+                ->with('status', 'success')
+                ->with('message', 'Container uğurla yaradıldı');
+
+        }catch(\Exception $e){
+            DB::rollback();
+            return redirect()->back()->withInput()->withErrors([$e->getMessage()]);
+        }
+    }
     public function indexObject()
     {
 
-        $container = Container::find(1759);
+//        $container = Container::find(1759);
+//
+//        $new = $container->replicate();
+//        $new->name = 'manifest2';
+//        $new->save();
 
-        $new = $container->replicate();
-        $new->name = 'manifest2';
-        $new->save();
-
-        dd($new);
+//        dd($new);
 
         $items = Container::whereHas('tracks')->with(['tracks' => function ($query) {
             $query->with('carrier')->get()->each->append('declared_weight_goods');
@@ -569,6 +649,16 @@ class ContainerController extends Controller
         if (\Request::get('partner_id') != null) {
             $items->where('partner_id', \Request::get('partner_id'));
         }
+
+        if (\Request::get('start_date') != null) {
+            $dateField = \Request::get('date_by', 'created_at');
+            $items->where($dateField, '>=', \Request::get('start_date') . " 00:00:00");
+        }
+        if (\Request::get('end_date') != null) {
+            $dateField = \Request::get('date_by', 'created_at');
+            $items->where($dateField, '<=', \Request::get('end_date') . " 23:59:59");
+        }
+
         return $items->paginate($this->limit);
     }
 
@@ -867,6 +957,32 @@ class ContainerController extends Controller
         return $excel->download(new ContainerExport($parcels), 'container_' . $id . '.xlsx');
 
     }
+
+
+    public function create(){
+        abort_if(optional(auth()->user()->role)->id != 1, 403);
+        return view('admin.container.create');
+    }
+
+
+    public function search(\Illuminate\Http\Request $request)
+    {
+        $term = $request->q;
+        $tracks = Track::select('id', 'tracking_code')
+            ->where('tracking_code', 'like', "{$term}%")
+            ->limit(20)
+            ->get();
+
+        $results = $tracks->map(function($track) {
+            return [
+                'id' => $track->id,
+                'text' => $track->tracking_code
+            ];
+        });
+
+        return response()->json(['results' => $results]);
+    }
+
 
 
 }

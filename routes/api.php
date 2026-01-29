@@ -53,6 +53,12 @@ Route::group([
             'as' => 'kuryera.update-courier-status',
         ]);
     });
+
+    Route::post('/trendyol/posted/{api_key}', [
+        'uses' => 'TrendyolWebhookController@posted',
+        'as' => 'trendyol.posted',
+    ]);
+
 });
 
 //IniDesk

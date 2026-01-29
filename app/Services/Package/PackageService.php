@@ -137,7 +137,7 @@ class PackageService
 
 
     public function returnDelivery($track, $status = null){
-        $service = $this->getServiceByPartnerId($track->partner_id);
+        $service = $this->getServiceByPartnerId($track->partner_id, $track);
         $response = $service->updateReturnDelivery($track, $status);
         return $response;
     }
@@ -145,7 +145,7 @@ class PackageService
     public function updateStatus($track, $status = null)
     {
 
-        $service = $this->getServiceByPartnerId($track->partner_id);
+        $service = $this->getServiceByPartnerId($track->partner_id, $track);
         if ($service) {
             if($track->id == 337096){
                return $service->updateStatusNew($track,$status);
@@ -167,8 +167,9 @@ class PackageService
         }
     }
 
-    private function getServiceByPartnerId($partnerId)
+    private function getServiceByPartnerId($partnerId, $track = null)
     {
+
         switch ($partnerId) {
             case BaseService::PARTNERS_MAP['GFS']:
                 return new GfsService();
@@ -177,6 +178,8 @@ class PackageService
             case BaseService::PARTNERS_MAP['TAOBAO']:
                 return new EquickService();
             case BaseService::PARTNERS_MAP['CHINA_MEEST']:
+                return new MeestService();
+            case BaseService::PARTNERS_MAP['IHERB'] and $track and $track->is_meest:
                 return new MeestService();
             default:
                 return null;

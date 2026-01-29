@@ -11,6 +11,11 @@
         .panel-title a[aria-expanded="true"] + div .accordion-icon {
             transform: rotate(180deg);
         }
+        @media(min-width: 900px){
+            .trendyol{
+                display:none;
+            }
+        }
     </style>
     <div class=" ">
         <div class="custom-container section-space60">
@@ -176,18 +181,16 @@
 
                                                                                         <div class="row">
                                                                                             <div class="col-lg-4">
-                                                                                                <b class="list-1">
-                                                                                                    Trendyol təsdiq kodu
-                                                                                                </b>
+                                                                                                <div class="trendyol btn btn-success">Trendyol təsdiq</div>
                                                                                             </div>
                                                                                             <div class="col-lg-8">
                                                                                                 <div class="weather">
-                                                                                                    <label class="switch">
-                                                                                                        <input type="checkbox"
-                                                                                                               id="verification_input"
-                                                                                                               {{$checked}} @if($checked) disabled @endif>
-                                                                                                        <span class="slider round"></span>
-                                                                                                    </label>
+{{--                                                                                                    <label class="switch">--}}
+{{--                                                                                                        <input type="checkbox"--}}
+{{--                                                                                                               id="verification_input"--}}
+{{--                                                                                                               {{$checked}} @if($checked) disabled @endif>--}}
+{{--                                                                                                        <span class="slider round"></span>--}}
+{{--                                                                                                    </label>--}}
                                                                                                 </div>
                                                                                             </div>
                                                                                         </div>
@@ -312,37 +315,143 @@
         </div>
     </div>
 
-    <script>
-        document.getElementById("verification_input").addEventListener('change', function (e) {
-            const API_URL = "{{ route('sms-verification-code') }}";
-            if (e.target.checked === true) {
-                fetch(API_URL, {
-                    method: "POST",
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        status: e.target.checked
-                    })
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (!data.success) {
-                            console.log("Falseee");
-                        } else {
-                            alert(data.data);
-                        }
-                    })
-                    .catch(error => {
-                        if (error.response && error.response.status !== 403) {
-                            error.response.json().then(msg => {
-                                document.querySelector(".content-section_span p").textContent = msg.data;
-                                document.querySelector(".content-section_span").style.display = 'flex';
-                            });
-                        }
-                    });
-            }
-        });
-    </script>
+
+
+    <div class="modal fade" id="phoneModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nömrəni təsdiqlə</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="text" id="phone" class="form-control" placeholder="Telefon nömrəsi" value="{{ auth()->user()->phone }}">
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Ləğv et</button>
+                    <button class="btn btn-primary" id="confirmPhone">Təsdiqlə</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
 @endsection
+
+
+
+@push('js')
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-form-validator/2.3.26/jquery.form-validator.min.js"
+            defer></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+
+
+    <script>
+        {{--document.getElementById("verification_input").addEventListener('change', function (e) {--}}
+        {{--    const API_URL = "{{ route('sms-verification-code') }}";--}}
+        {{--    if (e.target.checked === true) {--}}
+        {{--        fetch(API_URL, {--}}
+        {{--            method: "POST",--}}
+        {{--            headers: {--}}
+        {{--                'Content-Type': 'application/json',--}}
+        {{--                'Accept': 'application/json',--}}
+        {{--            },--}}
+        {{--            body: JSON.stringify({--}}
+        {{--                status: e.target.checked--}}
+        {{--            })--}}
+        {{--        })--}}
+        {{--            .then(response => response.json())--}}
+        {{--            .then(data => {--}}
+        {{--                if (!data.success) {--}}
+        {{--                    console.log("Falseee");--}}
+        {{--                } else {--}}
+        {{--                    alert(data.data);--}}
+        {{--                }--}}
+        {{--            })--}}
+        {{--            .catch(error => {--}}
+        {{--                if (error.response && error.response.status !== 403) {--}}
+        {{--                    error.response.json().then(msg => {--}}
+        {{--                        document.querySelector(".content-section_span p").textContent = msg.data;--}}
+        {{--                        document.querySelector(".content-section_span").style.display = 'flex';--}}
+        {{--                    });--}}
+        {{--                }--}}
+        {{--            });--}}
+        {{--    }--}}
+        {{--});--}}
+    </script>
+
+    <script>
+        $(document).ready(function () {
+
+            $('.trendyol').on('click', function () {
+                $('#phoneModal').modal('show');
+            });
+
+            $('#confirmPhone').on('click', function () {
+                let phone = $('#phone').val().trim();
+
+                if (phone === '') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Xəta',
+                        text: 'Telefon nömrəsi boş ola bilməz'
+                    });
+                    return;
+                }
+
+                $.ajax({
+                    url: '{{ route('trendyol.assigned') }}',
+                    method: 'POST',
+                    data: {
+                        phone: phone,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    beforeSend: function () {
+                        $('#confirmPhone').prop('disabled', true);
+                    },
+                    success: function (res) {
+                        $('#phoneModal').modal('hide');
+                        $('#confirmPhone').prop('disabled', false);
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: res.title,
+                            text: res.text,
+                            showConfirmButton: true,
+                            timerProgressBar: false,
+                            position: 'center',
+                        });
+
+                    },
+                    error: function (xhr) {
+                        $('#confirmPhone').prop('disabled', false);
+
+                        let errMsg = 'Xəta baş verdi!';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errMsg = xhr.responseJSON.message;
+                        }
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Xəta',
+                            text: errMsg
+                        });
+                    }
+                });
+            });
+
+        });
+
+    </script>
+
+@endpush

@@ -86,6 +86,7 @@ class PrecinctService implements PackageServiceInterface
     {
 
         $office = DeliveryPoint::query()->where('id', $officeId)->first();
+        $container = null;
         if($office){
             $container = PrecinctOrder::query()
                 ->where('precinct_office_id', $office->id)
@@ -94,7 +95,7 @@ class PrecinctService implements PackageServiceInterface
                 ->first();
         }
 
-        if (!$container) {
+        if (!$container and $office) {
             $authId = Auth::user()->id;
             $container = PrecinctOrder::query()->create([
                 'name' => $office->name . '-' . now()->format('d-m-Y'),

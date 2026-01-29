@@ -77,6 +77,29 @@ class CarriersTrackAdd extends Command
         if (empty($pCustomId)) {
             $query .= " and (t.status in (1,2,5,6)) and (t.partner_id in (3,8,9))";
             $query .= " and ((pc.id is null) or ((pc.status is null or pc.status=0) and (pc.code<>200) and (TIME_TO_SEC(TIMEDIFF('" . $ldate . "',pc.created_at))>3600)))";
+
+
+//            $query .= " AND t.status IN (1,2,5,6)
+//            AND t.partner_id IN (1,3,8,9)";
+//
+//            $query .= " AND (
+//                pc.id IS NULL
+//                OR (
+//                    (pc.status IS NULL OR pc.status = 0)
+//                    AND pc.code <> 200
+//                    AND TIME_TO_SEC(TIMEDIFF('" . $ldate . "', pc.created_at)) > 3600
+//                )
+//            )";
+//
+//            $query .= " AND (
+//                t.partner_id <> 1
+//                OR (t.partner_id = 1 AND t.created_at >= '2025-12-24')
+//            )";
+
+
+
+
+
         } else
             $query .= " and t.tracking_code in ('$pCustomId')";
         //$query.=" and (t.created_at >= '2024-07-01 00:00:00')))";

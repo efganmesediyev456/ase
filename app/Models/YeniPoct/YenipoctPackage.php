@@ -46,6 +46,7 @@ class YenipoctPackage extends Model
         "WAREHOUSE" => 6,
         "ARRIVEDTOPOINT" => 8,
         "DELIVERED" => 10,
+        "NOT_DELIVERED" => 9
     ];
 
     public function scopePayed()

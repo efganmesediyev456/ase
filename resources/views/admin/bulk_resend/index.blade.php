@@ -57,6 +57,17 @@
             font-weight: 500;
         }
 
+        .status-container {
+            display: none;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .status-container.active {
+            display: block;
+            pointer-events: auto;
+        }
+
     </style>
     @if(session('success'))
         <div class="alert alert-success" role="alert">
@@ -77,9 +88,9 @@
 
                         <div class="col-md-6">
                             <label><b>Enter Request Text</b></label>
-                            <div class="input-group">
-                                <textarea style="width: 700px; !important;" name="requestText" id="requestText"
-                                          rows="10" class="form-control" required></textarea>
+                            <div class="input-group w-100" style="width:100%" >
+                                <textarea style="width:100%" name="requestText" id="requestText"
+                                          rows="10" class="form-control w-100" required></textarea>
                             </div>
                         </div>
 
@@ -91,26 +102,38 @@
                                         name="date"
                                         id="statusDate"
                                         class="form-control"
-                                        style="width: 700px; !important;"
+                                        style=""
                                 >
                             </div>
                         </div>
 
-                        <div class="col-md-2">
+                        <div class="col-md-6 mt-4" style="margin-top:40px">
+                            <div class="checkbox" style="margin-bottom: 15px;">
+                                <label>
+                                    <input type="checkbox" name="use_custom_status" id="useCustomStatus" value="1">
+                                    <b>Use Custom Status (əgər seçilməzsə, hər paketin cari statusu göndəriləcək)</b>
+                                </label>
+                            </div>
+
+                            <div id="statusContainer" class="status-container">
+                                <label><b>Status</b></label>
+                                <div class="input-group">
+                                    <select name="status" id="statusSelect" class="form-control">
+                                        @foreach($statuses as $key=>$status)
+                                            <option value="{{ $key }}">{{ $status }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12">
                             <button type="submit" class="btn btn-primary" style="margin-top: 28px;">Submit</button>
                         </div>
 
 
-                        <div class="col-md-6 mt-4" style="margin-top:40px">
-                            <label><b>Status</b></label>
-                            <div class="input-group">
-                                <select name="status" id="" class="form-control">
-                                    @foreach($statuses as $key=>$status)
-                                        <option value="{{ $key }}">{{ $status }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
+
+
                     </form>
 
                 </div>
@@ -124,6 +147,26 @@
                 if (checkbox !== selected) checkbox.checked = false;
             });
         }
+
+        // Status checkbox funksionallığı
+        document.addEventListener('DOMContentLoaded', function() {
+            const useCustomStatusCheckbox = document.getElementById('useCustomStatus');
+            const statusContainer = document.getElementById('statusContainer');
+            const statusSelect = document.getElementById('statusSelect');
+
+            // Başlanğıcda disabled et
+            statusSelect.disabled = true;
+
+            useCustomStatusCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    statusContainer.classList.add('active');
+                    statusSelect.disabled = false;
+                } else {
+                    statusContainer.classList.remove('active');
+                    statusSelect.disabled = true;
+                }
+            });
+        });
     </script>
 
 
@@ -149,6 +192,16 @@
                             <div class="panel-body">
                                 <form action="{{ route('bulk_resend_statuses.index') }}" method="GET">
                                     <div class="row">
+                                        <div class="col-md-4 col-sm-6 col-xs-12 mb-3">
+                                            <label class="mr-2"><b>Limit:</b></label>
+                                            <select name="limit" class="form-control">
+                                                <option value="">-- Choose --</option>
+                                                    <option value="25" {{ request('limit') == 25 ? 'selected' : '' }}>25</option>
+                                                    <option value="50" {{ request('limit') == 50 ? 'selected' : '' }}>50</option>
+                                                    <option value="75" {{ request('limit') == 75 ? 'selected' : '' }}>75</option>
+                                                    <option value="100" {{ request('limit') == 100 ? 'selected' : '' }}>100</option>
+                                            </select>
+                                        </div>
                                         <!-- Satır 1 -->
                                         <div class="col-md-4 col-sm-6 col-xs-12 mb-3">
                                             <label class="mr-2"><b>Log Type:</b></label>
@@ -200,6 +253,10 @@
                                                 <button type="submit" class="btn btn-primary">Filter</button>
                                                 <a href="{{ route('bulk_resend_statuses.index') }}"
                                                    class="btn btn-default">Reset</a>
+                                                <a href="{{ route('bulk_resend_statuses.export', request()->query()) }}"
+                                                   class="btn btn-success">
+                                                    <i class="icon-file-excel"></i> Export Excel
+                                                </a>
                                             </div>
                                         </div>
                                     </div>

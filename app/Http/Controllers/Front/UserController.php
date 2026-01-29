@@ -16,6 +16,7 @@ use App\Models\Order;
 use App\Models\Package;
 use App\Models\Promo;
 use App\Models\Surat\SuratOffice;
+use App\Models\TrNumber;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\Azerpost\AzerpostOffice;
@@ -550,6 +551,7 @@ class UserController extends MainController
             }
         }
         $checkDeclarations = App\Models\PackageCarrier::where('fin',$item->fin)->where('ecoM_REGNUMBER','!=',null)->count();
+
         return view('front.user.edit', compact('item','checkDeclarations', 'breadTitle', 'cities', 'zipcities', 'filials', 'deliverypoints', 'azeriexpressoffices','yenipoctOffices','kargomatOffices', 'suratOffices','nulled'));
     }
 
@@ -1075,5 +1077,21 @@ class UserController extends MainController
         $user->sms_verification_code_queried_at = now();
         $user->save();
         return response()->json(['success' => true, 'data' => 'Uğurlu əməliyyat!'], 200);
+    }
+
+
+    public function assigned(Request $request){
+       try{
+           $userId = auth()->user()->id;
+           $phone  = $request->get('phone');
+           $trnumber = TrNumber::first();
+           $trnumber->assigned_user_id = $userId;
+           $trnumber->assigned_at = now();
+           $trnumber->save();
+
+           return response()->json(['success' => true,'text'=>'Sifariş verəcəyiniz sayta nömrə olaraq qeyd edin', 'title'=>substr($trnumber->phone_number, 2)]);
+       }catch(\Exception $e){
+
+       }
     }
 }

@@ -250,7 +250,11 @@ class CarriersDeclarations extends Command
 			$_track->declaration=1;
 			$_track->save();
 			(new PackageService())->updateStatus($_track, 7);
-		   }
+		   }elseif ($_track->status == 18){
+               $_track->declaration=1;
+               $_track->bot_comment = "The track is currently in Customs and has been declared";
+               $_track->save();
+           }
 		}
                 sleep($intervalPackage);
                 $intervalRequest -= $intervalPackage;

@@ -263,11 +263,19 @@ $(document).scannerDetection({
     }
 });
 
+function normalizeBarcode(barcode) {
+    barcode = barcode.toUpperCase();
+    barcode = barcode.replace('.', '');
+    barcode = barcode.replace(/:(0+)/, ':');
+    return barcode;
+}
 
 function loadBarcodeData(barcode, qty) {
     $("#track_no").html(barcode);
 
     $('#modal').modal('hide');
+
+    // barcode = normalizeBarcode(barcode);
 
     var _url = $("#scan_url").data('scan-url') + "/" + barcode;
     var autoPrint = $("#auto_print").data('enabled');
@@ -284,16 +292,16 @@ function loadBarcodeData(barcode, qty) {
     if (scannerTab.length > 0) {
         _id = scannerTab.data('id');
         bagId = _id;
-        _url = _url + "/?scan=" + _id;
+        _url = _url + "?scan=" + _id;
         if (checkDraftLabel)
             _url += '&cdfl=1';
         else
             _url += '&cdfl=0';
     } else {
         if (checkDraftLabel)
-            _url += '/?cdfl=1';
+            _url += '?cdfl=1';
         else
-            _url += '/?cdfl=0';
+            _url += '?cdfl=0';
     }
 
     var scanUrl=window.location.pathname;

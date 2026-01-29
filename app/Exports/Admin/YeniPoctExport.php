@@ -6,7 +6,7 @@ use Illuminate\Contracts\View\View;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
-class YenipoctExport implements FromView, ShouldAutoSize
+class YeniPoctExport implements FromView, ShouldAutoSize
 {
     protected $items;
 

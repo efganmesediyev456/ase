@@ -1081,6 +1081,7 @@ class CustomsModel extends Model
         //    curl_setopt($ch, CURLOPT_URL, $this->CM_BASE_URL.$this->CM_CARRIERS_COMMERCIAL_URL);
         //else
         //    curl_setopt($ch, CURLOPT_URL, $this->CM_BASE_URL.$this->CM_CARRIERS_URL);
+
         curl_setopt($ch, CURLOPT_URL, $this->get_carriersposts_url());
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_POST, 1);

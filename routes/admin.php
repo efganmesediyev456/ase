@@ -73,8 +73,8 @@ Route::group([
         Route::get('pay/export', 'PayPhoneController@export')->name('pay-phone.export');
 
         Route::resource('bulk_customs', 'BulkCustomController');
+        Route::get('bulk_resend_statuses/export/data', 'BulkResendStatusController@export')->name('bulk_resend_statuses.export');
         Route::resource('bulk_resend_statuses', 'BulkResendStatusController');
-
 //        Route::resource('points', PointController::class);
 
 //        Route::get('points/index', [
@@ -445,6 +445,7 @@ Route::group([
             Route::post('/packages', 'Precinct\PrecinctController@acceptPackage')->name('accept-package');
             Route::get('/packages/receipt', 'Precinct\PrecinctController@receipt')->name('receipt');
             Route::post('/packages/{id}', 'Precinct\PrecinctController@handover')->name('handover');
+            Route::post('/packages/reject/{id}', 'Precinct\PrecinctController@rejected')->name('rejected');
             Route::get('/not-send-packages', 'Precinct\PrecinctController@notSendPackages')->name('not-send-packages');
 
             Route::get('containers', 'Precinct\PrecinctController@containers')->name('containers');
@@ -573,6 +574,8 @@ Route::group([
 //                ['name' => 'resend_status', 'method' => 'post'],
                 ['name' => 'label', 'method' => 'get'],
                 ['name' => 'ue_info', 'method' => 'get'],
+                ['name' => 'ue_user_update', 'method' => 'get'],
+                ['name' => 'ue_weight_update', 'method' => 'get'],
                 ['name' => 'ue_info', 'method' => 'post'],
                 ['name' => 'carrier_update', 'method' => 'get'],
                 ['name' => 'carrier_delete', 'method' => 'get'],
@@ -609,6 +612,7 @@ Route::group([
             'courier_track',
             'in_customs_track',
             'status_track',
+            'contact',
             'email',
             'gift_card' => [
                 ['name' => 'label', 'method' => 'get'],
@@ -645,6 +649,7 @@ Route::group([
                 ['name' => 'airboxCustomsCompleted', 'method' => 'get'],
                 ['name' => 'trackCustomsClearance', 'method' => 'get'],
                 ['name' => 'trackCustomsCompleted', 'method' => 'get'],
+                ['name' => 'create', 'method' => 'get'],
                 ['name' => 'update_name', 'method' => 'post'],
                 ['name' => 'update_mawb', 'method' => 'post'],
             ],
@@ -704,6 +709,9 @@ Route::group([
             ],
         ]);
 
+        Route::get('containers/search', 'ContainerController@search');
+        Route::post('containers/store', 'ContainerController@createContainer')->name('containers.store');
+
         /*        Route::resource('couriers/{courier_id}/courier_areas', 'CourierAreaController', [
                     'parameters' => [
                         'courier_areas' => 'id',
@@ -726,7 +734,7 @@ Route::group([
         Route::get('barcode/{code?}', [
             'as' => 'admin.barcode.scan',
             'uses' => 'PackageController@barcodeScan',
-        ]);
+        ])->where('code', '.*');
 
         Route::get('barcode/test/{code?}', [
             'as' => 'admin.barcode.scanTest',

@@ -479,6 +479,7 @@ class CellController extends Controller
             ],
             'validation' => 'nullable|string',
         ];
+
         if (\Request::has('action') && \Request::get('action')) {
             $action = \Request::get('action');
             if ($action == 'send_filial') {
@@ -576,6 +577,16 @@ class CellController extends Controller
                 $str .= " " . $track->tracking_code;
                 //file_put_contents('/var/log/ase_track_scan.log', $ldate . " " . $str . " \n", FILE_APPEND);
             }
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Package updated',
+                    'track' => isset($track) ? $track : null,
+                    'package' => isset($package) ? $package : null,
+                ]);
+            }
+
             return redirect()->route("cells.index");
         }
 
@@ -614,6 +625,14 @@ class CellController extends Controller
         }
 
         parent::update($request, $id);
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Package updated',
+                'track' => isset($track) ? $track : null,
+                'package' => isset($package) ? $package : null,
+            ]);
+        }
         return redirect()->back();
     }
 }

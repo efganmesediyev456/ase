@@ -394,6 +394,18 @@ class Track extends Model
         return NULL;
     }
 
+    public function getFilialTypeIdForMeestAttribute()
+    {
+        if ($this->store_status && $this->delivery_point) return 'ASE' . $this->delivery_point->id;
+        if ($this->azeriexpress_office_id && $this->azeriexpress_office) return 'AZEXP' . $this->azeriexpress_office->id;
+        if ($this->azerpost_office_id && $this->azerpost_office) return 'AZPOST' . $this->azerpost_office->id;
+        if ($this->surat_office_id && $this->surat_office) return 'SURAT' . $this->surat_office->id;
+        if ($this->yenipoct_office_id && $this->yenipoct_office) return 'YP' . $this->yenipoct_office->id;
+        if ($this->kargomat_office_id && $this->kargomat_office) return 'KR' . $this->kargomat_office->id;
+        if ($this->unknown_office_id && $this->unknown_office) return 'UNKNOWN-' . $this->unknown_office->id;
+        return NULL;
+    }
+
     public function getFilialDetailsAttribute()
     {
         if ($this->store_status && $this->delivery_point) return $this->delivery_point . ' _(ASE)';
@@ -1202,7 +1214,7 @@ class Track extends Model
             $this->errorStr = 'Empty reposnose';
             //echo $cm->get_carriers_json_str()."\n";
             $cm->updateTrackDB2($track->id, $cm->fin, $cm->trackingNumber, $ldate, 999);
-            if ($track->status != 6) {
+            if ($track->status != 6 and $track->status!=18) {
                 $track->status = 6;
                 $track->save();
                 (new PackageService())->updateStatus($track, 6);
@@ -1213,11 +1225,14 @@ class Track extends Model
             $res->code = 888;
         $cm->updateTrackDB2($track->id, $cm->fin, $cm->trackingNumber, $ldate, $res->code, NULL, $cm->idxaL_NAME, $cm->ixraC_NAME);
         if ($res->code == 200) {
-            if ($track->status != 5) {
+            $track->bot_comment = "Track has been added to Customs again";
+            if ($track->status != 5 and $track->status!=18) {
                 $track->status = 5;
                 $track->save();
                 Notification::sendTrack($track->id, 5);
                 (new PackageService())->updateStatus($track, 5);
+            }else{
+                $track->save();
             }
             return true;
         }
@@ -1229,6 +1244,7 @@ class Track extends Model
                 $errs = $exception->validationError;
             if (is_object($exception->validationError))
                 $errs = get_object_vars($exception->validationError);
+            $validationError = '';
             foreach ($errs as $x => $x_value) {
                 if (!empty($validationError))
                     $validationError .= " , ";

@@ -25,7 +25,7 @@ class RequestLogger
             'user_agent' => $request->headers->get('User-Agent'),
         ];
         
-        if (!empty($request->all())) {
+//        if (!empty($request->all())) {
             \App\Models\Request::query()->insert([
                 'uri' => $request->getUri(),
                 'method' => $request->getMethod(),
@@ -33,7 +33,7 @@ class RequestLogger
                 'body' => json_encode($request->all()),
                 'response' => $response->getContent()
             ]);
-        }
+//        }
 
 
         return $response;

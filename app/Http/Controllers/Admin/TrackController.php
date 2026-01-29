@@ -819,7 +819,7 @@ class TrackController extends Controller
             'icon' => 'spinner11',
             'color' => 'default',
             'target' => '_blank',
-        ],
+        ]
     ];
 
     public function __construct()
@@ -959,6 +959,9 @@ class TrackController extends Controller
 
         return \Response::json(['message' => "Status sended successfully"]);
     }
+
+
+
 
     public function carrier_update($id)
     {
@@ -1405,6 +1408,7 @@ class TrackController extends Controller
                 }
             }else{
                 (new PackageService())->updateStatus($track, $status);
+//                exit;
             }
 
 
@@ -1475,6 +1479,9 @@ class TrackController extends Controller
 
         if($request->get('name') == 'paid_debt'){
             $admin = Auth::user();
+//            if($admin->id == 122){
+//                dd($request->get('value'));
+//            }
             if($request->get('value') == 1){
                 return \Response::json(['message' => ' Yes, it cannot be selected.!'],400);
                 exit();
@@ -1485,17 +1492,56 @@ class TrackController extends Controller
                     return response()->json(['message' => 'Only Super Admin can select this option!'], 403);
                 }
 
+                Transaction::where('custom_id', $track->id)
+                    ->where('paid_for', 'TRACK_DEBT')
+                    ->where('paid_by', 'KAPITAL')
+                    ->delete();
+
+                Transaction::create([
+                    'custom_id' => $track->id,
+                    'paid_for'  => 'TRACK_DEBT',
+                    'paid_by'   => 'KAPITAL',
+                    'amount'    => $track->debt_price,
+                    'source_id' => null,
+                    'type'      => 'PENDING',
+                    'debt'      => 1,
+                ]);
+
             }
 
             if($request->get('value') == 3){
+
+                Transaction::where('custom_id', $track->id)
+                    ->where('paid_for', 'TRACK_DEBT')
+                    ->where('paid_by', 'KAPITAL')
+                    ->delete();
+
                 Transaction::create([
                     'custom_id' => $track->id,
-                    'paid_by' => 'KAPITAL',
-                    'amount' => $track->debt_price,
+                    'paid_for'  => 'TRACK_DEBT',
+                    'paid_by'   => 'KAPITAL',
+                    'amount'    => $track->debt_price,
                     'source_id' => null,
-                    'type' => 'OUT',
-                    'paid_for' => 'TRACK_DEBT',
-                    'debt' => 1,
+                    'type'      => 'OUT',
+                    'debt'      => 1,
+                ]);
+
+            }
+
+            if($request->get('value') == 0){
+                Transaction::where('custom_id', $track->id)
+                    ->where('paid_for', 'TRACK_DEBT')
+                    ->where('paid_by', 'KAPITAL')
+                    ->delete();
+
+                Transaction::create([
+                    'custom_id' => $track->id,
+                    'paid_for'  => 'TRACK_DEBT',
+                    'paid_by'   => 'KAPITAL',
+                    'amount'    => $track->debt_price,
+                    'source_id' => null,
+                    'type'      => 'PENDING',
+                    'debt'      => 1,
                 ]);
             }
 

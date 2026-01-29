@@ -71,7 +71,7 @@ class CarriersTrackStatusUpdate extends Command
 	   if ($cpost->code == 200 && !empty($cpost->inserT_DATE) && $cpost->status>0) {
 	       $cm->updateDB(NULL, $track->fin, $track->tracking_code, $ldate, $cpost);
 	       $track->status=7;
-	       $track->save();
+           $track->save();
 	       (new PackageService())->updateStatus($track, 7);
 	       echo " ".$cpost->inserT_DATE." ".$cpost->status." updated from Customs\n";
 	   } else {

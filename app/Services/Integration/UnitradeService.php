@@ -28,7 +28,9 @@ class UnitradeService extends BaseService
         'Delivered' => 10000,
         'StoppedInCustoms' => 307,
         'RTO' => 20050,
-        'DeliveredByCourier' => 10001
+        'DeliveredByCourier' => 10001,
+        'InCustomsNeutral' => '5000(3)',
+        'OutForDelivery' => 405,
     ];
 
     const PLACE = [
@@ -36,12 +38,13 @@ class UnitradeService extends BaseService
         'CustomsCompleted' => "d040b7c0-6a91-4916-906b-06d066f8b063",
         'Sorting' => "67e81fdf-d6c5-428c-9b30-6d73a0b7b786",
         'PudoAccepted' => "67e81fdf-d6c5-428c-9b30-6d73a0b7b786",
+        'InCustomsNeutral' => "67e81fdf-d6c5-428c-9b30-6d73a0b7b786",
+        'OutForDelivery' => "67e81fdf-d6c5-428c-9b30-6d73a0b7b786",
         'AtPudo' => "67e81fdf-d6c5-428c-9b30-6d73a0b7b786",
         'Delivered' => "67e81fdf-d6c5-428c-9b30-6d73a0b7b786",
         'DeliveredByCourier' => "67e81fdf-d6c5-428c-9b30-6d73a0b7b786",
         'StoppedInCustoms' => "d040b7c0-6a91-4916-906b-06d066f8b063",
         'RTO' => "67e81fdf-d6c5-428c-9b30-6d73a0b7b786",
-
     ];
 
     const CLIENT_AUTH_URL = 'https://oauth.unitrade.space';
@@ -134,6 +137,12 @@ class UnitradeService extends BaseService
             'longitude' => $params->buyer['longitude'] ?? null,
         ]);
 
+        Log::channel('unitrade_ozon_tracks')->debug('create Track:', [
+            'track_id' => $track->id,
+            'track_data' => $track->toArray(),
+            'params' => is_array($params) ? $params : $params->toArray(),
+        ]);
+
         $unitradePackage = UnitradePackage::create([
             'package_id' => null,
             'track_id' => $track->id,
@@ -175,6 +184,11 @@ class UnitradeService extends BaseService
             'buyer_billing_address' => $params->buyer['billing_address'] ?? null,
         ]);
 
+        Log::channel('unitrade_ozon_tracks')->debug('create Unitrade Package:', [
+            'unitrade_package' => $unitradePackage->id,
+            'track' => $track->id,
+        ]);
+
         $total_shipping_amount = 0;
         $total_number_items = 0;
         $total_weight = 0;
@@ -188,7 +202,7 @@ class UnitradeService extends BaseService
                 ['name_ru' => $product['category'] . ' - ' . $product['name']]
             );
 
-            PackageGood::create([
+            $packageGood = PackageGood::create([
                 'track_id' => $track->id,
                 'number_items' => $product['quantity'],
                 'weight' => floatval(($product['weight'] ?? 0) / 1000),
@@ -197,6 +211,11 @@ class UnitradeService extends BaseService
                 'shipping_amount_cur' => self::CURRENCIES[$params['invoice']['currency']],
                 'country_id' => $track->country_id,
                 'warehouse_id' => 12
+            ]);
+
+            Log::channel('unitrade_ozon_tracks')->debug('create Unitrade Products:', [
+                'unitrade_package' => $unitradePackage->id,
+                'track' => $packageGood->id,
             ]);
 
             $total_shipping_amount += $product['unit_price'] * $product['quantity'];
@@ -550,6 +569,10 @@ class UnitradeService extends BaseService
             $track->save();
         }
 
+        if ($status == 46) {
+            return $this->cancelTrack($track);
+        }
+
         if ($status == 16) {
             $this->updateStatus($track, 24, $date);
         }
@@ -581,8 +604,6 @@ class UnitradeService extends BaseService
                 "eventCode" => self::STATE_MAP[$statusString],
                 "moment" => now('UTC')->format('Y-m-d\TH:i:s.v\Z')
             ]];
-
-
 
 
             $headers = [
@@ -618,7 +639,7 @@ class UnitradeService extends BaseService
             if ($responseCode >= 200 && $responseCode < 300) {
 
                 $track->tracking_code . ' final response';
-
+               
                 Log::channel('unitrade_status')->debug($track->tracking_code . ' final response', [
                     'response' => $response,
                     'responseCode' => $responseCode
@@ -658,6 +679,106 @@ class UnitradeService extends BaseService
             return false;
         }
     }
+
+    private function cancelTrack(Track $track): bool
+    {
+        Log::channel('unitrade_status')->debug(
+            $track->tracking_code . ' cancel is started',
+            [
+                'tracking_code' => $track->tracking_code,
+                'status' => 46,
+            ]
+        );
+
+        try {
+            $trackStatus = TrackStatus::create([
+                'track_id' => $track->id,
+                'user_id' => auth()->id() ?? 1,
+                'status' => 46,
+                'note' => null,
+            ]);
+
+            $uri = self::CLIENT_URL . "/v3/parcels/cancel";
+
+            $body = [
+                'cancels' => [
+                    [
+                        'trackNumber' => $track->tracking_code,
+                        'cancellationReasonType' => 3,
+                    ]
+                ]
+            ];
+
+
+            $headers = [
+                'Accept: application/json',
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $this->token,
+            ];
+
+            Log::channel('unitrade_status')->debug(
+                $track->tracking_code . ' cancel body',
+                [
+                    'uri' => $uri,
+                    'body' => $body,
+                    'headers' => $headers,
+                ]
+            );
+
+            $curl = curl_init();
+            curl_setopt_array($curl, [
+                CURLOPT_URL => $uri,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CUSTOMREQUEST => 'POST',
+                CURLOPT_POSTFIELDS => json_encode($body),
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_TIMEOUT => 20,
+            ]);
+
+            $response = curl_exec($curl);
+            $responseCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            curl_close($curl);
+
+            if ($responseCode >= 200 && $responseCode < 300) {
+
+                Log::channel('unitrade_status')->debug(
+                    $track->tracking_code . ' cancel final response',
+                    [
+                        'response' => $response,
+                        'responseCode' => $responseCode,
+                    ]
+                );
+
+                $trackStatus->update([
+                    'note' => $response,
+                ]);
+
+                return true;
+            }
+
+            Log::channel('unitrade_status')->error(
+                $track->tracking_code . ' cancel failed attempt',
+                [
+                    'responseCode' => $responseCode,
+                    'response' => $response,
+                ]
+            );
+
+            return false;
+
+        } catch (\Throwable $e) {
+
+            Log::channel('unitrade_status')->error(
+                $track->tracking_code . ' cancel exception',
+                [
+                    'message' => $e->getMessage(),
+                ]
+            );
+
+            return false;
+        }
+    }
+
 
 
     public function updateReturnDelivery(Track $track, $status = null)

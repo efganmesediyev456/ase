@@ -565,6 +565,17 @@ class UserController extends Controller
                     }
                 }
             }
+
+            // Password field yalnız Super Admin-lərə görsənsin
+            if (optional(auth()->guard('admin')->user()->role)->name !== 'super_admin') {
+                foreach ($this->fields as $key => $field) {
+                    if (isset($field['name']) && $field['name'] === 'password') {
+                        unset($this->fields[$key]);
+                        break;
+                    }
+                }
+            }
+
             parent::__construct();
             return $next($request);
         });
@@ -575,6 +586,11 @@ class UserController extends Controller
     public function generateValidation($action, $id = false)
     {
         $validation = parent::generateValidation($action, $id);
+
+        // Password field-i yalnız Super Admin dəyişə bilsin
+        if (optional(auth()->guard('admin')->user()->role)->name !== 'super_admin') {
+            unset($validation['password']);
+        }
 
         $validation['azeri_express_office_id'] = [
             'nullable',
@@ -647,6 +663,11 @@ class UserController extends Controller
      */
     public function beforeSave($item, $request)
     {
+        // Password field-i yalnız Super Admin dəyişə bilsin
+        if (optional(auth()->guard('admin')->user()->role)->name !== 'super_admin') {
+            $request->request->remove('password');
+        }
+
         $data = $request->all();
 
         // Check which office is selected

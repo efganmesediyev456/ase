@@ -163,12 +163,15 @@ class CarriersCheck2 extends Command
             echo "$num " . $post->trackinG_NO . "  " . $post->status . " ";
 	    $track=$tracks[0];
 	    $cm->updateDB(NULL, $track->fin, $track->tracking_code, $ldate2, $post);
-	    if($track->status != 7) {
+	    if($track->status != 7 and $track->status != 18) {
 	       $track->status=7;
-	       $track->save();
+            $track->save();
 	       (new PackageService())->updateStatus($track, 7);
 	       echo "updated\n";
-	    }
+	    }elseif ($track->status == 18){
+            $track->bot_comment = "The track is currently in Customs and has been declared (CarriersCheck2:172)";
+            $track->save();
+        }
         }
     }
 

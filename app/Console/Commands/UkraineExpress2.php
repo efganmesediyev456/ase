@@ -587,7 +587,7 @@ class UkraineExpress2 extends Command
         //echo $package->generateHTMLInvoice()."\n";
     }
 
-    public function packages_update_packing_data($reload = false)
+    public function packages_update_packing_data($reload = false, $cwb = null)
     {
 
         $ldate = date('Y-m-d H:i:s');
@@ -606,6 +606,9 @@ class UkraineExpress2 extends Command
         //    $packages=$packages->where('packages.ukr_express_pd', 0);
         //}
         //})->where('tracking_code','393798232483')->limit(1)->get();
+        if(!is_null($cwb)){
+            $packages = Package::where('tracking_code', $cwb)->get();
+        }
         if (count($packages) > 0) {
             $this->info(count($packages) . " packages to update packing data");
         }
@@ -666,7 +669,7 @@ class UkraineExpress2 extends Command
         }
     }
 
-    public function packages_update_declaration()
+    public function packages_update_declaration($cwb = null)
     {
         $ldate = date('Y-m-d H:i:s');
         //$this->info("===== update declaration data =====");
@@ -684,6 +687,9 @@ class UkraineExpress2 extends Command
             $this->info(count($packages) . " packages to update declaration data");
         }
         $cnt = 1;
+        if(!is_null($cwb)){
+            $packages = Package::where('tracking_code', $cwb)->get();
+        }
         foreach ($packages as $package) {
             $ldate = date('Y-m-d H:i:s');
             $this->line($ldate . " " . $cnt . " " . $package->tracking_code . " " . $package->ukr_express_id . " " . $package->detailed_type);
@@ -909,8 +915,8 @@ class UkraineExpress2 extends Command
             $this->info("   failed: " . $this->ue->code . " " . $this->ue->message);
             if (!$fromConsole) {
                 $this->err("package_add", "   failed: " . $package->tracking_code . " " . $this->ue->code . " " . $this->ue->message);
-                if (!$package->ukr_express_error_at)
-                    SMS::sendPureTextByNumber(env('UKRAINE_ERROR_PHONE'), $content);
+//                if (!$package->ukr_express_error_at)
+//                    SMS::sendPureTextByNumber(env('UKRAINE_ERROR_PHONE'), $content);
                 $package->ukr_express_status = 104;
                 $package->bot_comment = "Add error " . $this->ue->message;
                 $package->ukr_express_error_at = $ldate;
@@ -1026,14 +1032,21 @@ class UkraineExpress2 extends Command
         $packages->whereRaw("((status in (0,6) and ukr_express_status>0) or (status in (0,6) and (bot_comment='notpacked' or bot_comment='Added' or ukr_express_status>=100)))");
         $packages->whereRaw("(ukr_express_error_at is null or TIME_TO_SEC(TIMEDIFF('" . $ldate . "',ukr_express_error_at))>3*3600)");
         $packages = $packages->limit(1000)->get();
+//        $packages = Package::where('id',384095)->get();
+        $cwb = $this->option('cwb');
+
+        if(!is_null($cwb)){
+            $packages = Package::where('tracking_code', $cwb)->orWhere('custom_id',$cwb)->get();
+        }
+
         if (count($packages) > 0) {
-            //$this->info(count($packages)." packages to update");
+            $this->info(count($packages)." packages to update");
         }
         $cnt = 1;
         foreach ($packages as $package) {
             $ldate = date('Y-m-d H:i:s');
             if ($this->package_update($package)) {
-                $this->line($ldate . " " . $cnt . " " . $package->tracking_code . " " . $package->warehouse_id . " " . $package->deleted_at);
+                $this->info($ldate . " " . $cnt . " " . $package->tracking_code . " " . $package->warehouse_id . " " . $package->deleted_at);
                 $cnt++;
             }
             sleep(1);
@@ -1052,6 +1065,7 @@ class UkraineExpress2 extends Command
             $q->orWhere('packages.warehouse_id', $warehouse->id)->orWhere('packages.country_id', $warehouse->country_id);
         })->whereNull('packages.ukr_express_id')->whereNotNull('packages.user_id');
 //        $packages = Package::where('custom_id','ASE0960854047355');
+//        $packages = $packages->where('packages.custom_id', 'ASE2902487319015');
         $packages->whereRaw("((packages.status = 6 and (bot_comment is NULL or packages.ukr_express_status=1)) or (packages.status in (0,6) and (packages.bot_comment='notpacked' or packages.ukr_express_status>=100)))");
         $packages->whereRaw("(packages.ukr_express_error_at is null or TIME_TO_SEC(TIMEDIFF('" . $ldate . "',packages.ukr_express_error_at))>3*3600)");
         $packages = $packages->leftJoin('users as uu', 'packages.user_id', 'uu.id');

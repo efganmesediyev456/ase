@@ -368,6 +368,25 @@ class PackageController extends Controller
             'color' => 'default',
             'target' => '_blank',
         ],
+
+        [
+            'route' => 'packages.ue_user_update',
+            'key' => 'id',
+            'label' => 'UE User update',
+            'icon' => 'spinner11',
+            'color' => 'default',
+            'target' => '_blank',
+            'name' => 'ue_user_update'
+        ],
+        [
+            'route' => 'packages.ue_weight_update',
+            'key' => 'id',
+            'label' => 'UE Weight update',
+            'icon' => 'spinner11',
+            'color' => 'default',
+            'target' => '_blank',
+            'name' => 'ue_weight_update'
+        ],
     ];
 
     protected $list = [
@@ -752,6 +771,8 @@ class PackageController extends Controller
             ],
             'validation' => 'nullable|numeric',
         ],
+
+
         /*[
             'name'              => 'paid',
             'label'             => 'Paid',
@@ -819,6 +840,15 @@ class PackageController extends Controller
                 'class' => 'col-md-2',
             ],
             'validation' => 'nullable|string',
+        ],
+        [
+            'name' => 'delivery_price',
+            'label' => "Delivery Price",
+            'type' => 'text',
+            'wrapperAttributes' => [
+                'class' => 'col-md-12 mt-15',
+            ],
+            'validation' => 'nullable|numeric',
         ],
         [
             'type' => 'html',
@@ -1093,15 +1123,32 @@ class PackageController extends Controller
         if (\Request::has('action') && \Request::get('action') == 'return_form')
             $this->fields = $this->return_fields;
         $this->middleware(function ($request, $next) {
-            if (auth()->check() && auth()->user()->role && auth()->user()->role->id == 10) {
+            if (auth()->check() && auth()->user()->role && auth()->user()->role->id != 1) {
                 $this->fields = array_filter($this->fields, function ($field) {
                     return !isset($field['name']) || $field['name'] !== 'debt_price';
+                });
+
+                $this->extraActions = array_filter($this->extraActions, function ($field) {
+                    return !isset($field['name']) || $field['name'] !== 'ue_user_update';
+                });
+
+                $this->extraActions = array_filter($this->extraActions, function ($field) {
+                    return !isset($field['name']) || $field['name'] !== 'ue_weight_update';
+                });
+
+
+
+            }
+            if (!auth()->user()->can('delivery_price_changeable')) {
+                $this->fields = array_filter($this->fields, function ($field) {
+                    return !isset($field['name']) || $field['name'] !== 'delivery_price';
                 });
             }
             parent::__construct();
             return $next($request);
         });
     }
+
     public function ue_photos($id)
     {
         $item = Package::find($id);
@@ -1116,6 +1163,7 @@ class PackageController extends Controller
             return [];
         }
     }
+
     public function editObject($id)
     {
         $item = Package::with(['goods'])->find($id);
@@ -1196,6 +1244,25 @@ class PackageController extends Controller
     }
 
 
+    public function ue_user_update($id)
+    {
+        $package = Package::find($id);
+        if (!$package) {
+            $out = 'Package not found';
+            return \Response::json(['message' => $out]);
+        }
+
+        $ukraineExpress = new UkrExpressModel();
+
+        $ukraineExpressStatus = $ukraineExpress->change_customer($package);
+        return \Response::json(['message' => $ukraineExpressStatus]);
+    }
+
+    public function ue_weight_update($id){
+        $package = Package::find($id);
+        Artisan::call('ukraine:express2', ['type' => 'packages-update', 'cwb' => $package->tracking_code]);
+        return redirect()->back()->withSuccess("Package has been updated");
+    }
 
     public function ue_info($id)
     {
@@ -1354,8 +1421,8 @@ class PackageController extends Controller
         }
 
         $packageLogs = PackageLog::query()->where('package_id', $id)->get();
-        $CourierShelfLog = CourierShelfLog::where('type','packages')->where('custom_id',$id)->get();
-        return view('admin.widgets.logs', compact('logs', 'id', 'packageLogs','CourierShelfLog'));
+        $CourierShelfLog = CourierShelfLog::where('type', 'packages')->where('custom_id', $id)->get();
+        return view('admin.widgets.logs', compact('logs', 'id', 'packageLogs', 'CourierShelfLog'));
     }
 
     /**
@@ -1488,23 +1555,23 @@ class PackageController extends Controller
 
         $paid_debt = \Request::get('paid_debt');
 
-        if($paid_debt != null){
+        if ($paid_debt != null) {
 
-            if($paid_debt == 1){
-                $items->whereIn('paid_debt',[1,3])->where('debt_price','>',0);
-            }elseif($paid_debt == 2){
-                $items->where('paid_debt',0)->where('debt_price','>',0);
+            if ($paid_debt == 1) {
+                $items->whereIn('paid_debt', [1, 3])->where('debt_price', '>', 0);
+            } elseif ($paid_debt == 2) {
+                $items->where('paid_debt', 0)->where('debt_price', '>', 0);
             }
 
         }
         $paid_broker = \Request::get('paid_broker');
 
-        if($paid_broker != null){
+        if ($paid_broker != null) {
 
-            if($paid_broker){
+            if ($paid_broker) {
                 $items->where('paid_broker', 1);
-            }else{
-                $items->where('paid_broker',0);
+            } else {
+                $items->where('paid_broker', 0);
             }
 
         }
@@ -1573,7 +1640,7 @@ class PackageController extends Controller
                 $items = $items->leftJoin('transactions', 'packages.id', 'transactions.custom_id');
                 if ($paid >= 2)
                     $items->paidstr($paidStr);
-                $items->whereNotIn('transactions.type', ['ERROR','PENDING']);
+                $items->whereNotIn('transactions.type', ['ERROR', 'PENDING']);
             }
         }
 
@@ -1635,7 +1702,7 @@ class PackageController extends Controller
             $items = $items->paginate($this->limit);
         }
 
-        if(!Auth::guard('admin')->user()->can('in-customs-debt-read')) {
+        if (!Auth::guard('admin')->user()->can('in-customs-debt-read')) {
             //eger in-customs-debt-read rolu icazesi yoxdursa $list aşağıda ki elemntleri gizledirik
             unset($this->list['stop_debt']);
             unset($this->list['paid_debt']);
@@ -1828,16 +1895,16 @@ class PackageController extends Controller
 
     public function update(Request $request, $id)
     {
-        $package       = Package::findOrFail($id);
-        $oldUserId     = $package->user_id;
-        $newUserId     = $request->input('user_id', $oldUserId);
+        $package = Package::findOrFail($id);
+        $oldUserId = $package->user_id;
+        $newUserId = $request->input('user_id', $oldUserId);
 
 
         if ($oldUserId != $newUserId) {
             Artisan::call('carriers:update', [
-                'package'    => 1,
+                'package' => 1,
                 'package_id' => $id,
-                'checkonly'  => 0,
+                'checkonly' => 0,
                 'htmlformat' => 0,
                 'deleteonly' => 1,
             ]);
@@ -1864,7 +1931,6 @@ class PackageController extends Controller
         }
 
 
-
         $res = parent::update($request, $id);
 
 
@@ -1873,9 +1939,9 @@ class PackageController extends Controller
 
         if ($oldUserId != $reallyNewUserId) {
             Artisan::call('carriers:update', [
-                'package'    => 1,
+                'package' => 1,
                 'package_id' => $id,
-                'checkonly'  => 0,
+                'checkonly' => 0,
                 'htmlformat' => 0,
             ]);
         }
@@ -1883,14 +1949,14 @@ class PackageController extends Controller
 
         if (trim($package->status) !== trim($request->get('status'))) {
             PackageLog::create([
-                'data'      => json_encode([
+                'data' => json_encode([
                     'status' => [
                         'before' => trim($package->getOriginal('status')),
-                        'after'  => trim($request->get('status')),
+                        'after' => trim($request->get('status')),
                     ],
                 ]),
-                'admin_id'  => Auth::guard('admin')->id(),
-                'package_id'=> $id,
+                'admin_id' => Auth::guard('admin')->id(),
+                'package_id' => $id,
             ]);
             Notification::sendPackage($id, trim($request->get('status')));
         }
@@ -1903,8 +1969,9 @@ class PackageController extends Controller
 
     function log($message)
     {
-        file_put_contents("/var/log/package_status_change.log",$message."\n",FILE_APPEND);
+        file_put_contents("/var/log/package_status_change.log", $message . "\n", FILE_APPEND);
     }
+
     public function ajax(Request $request, $id)
     {
 
@@ -2031,7 +2098,7 @@ class PackageController extends Controller
             $data = [];
 
             $requestAll = json_encode($request->all());
-            $this->log(now()->format('Y-m-d H:i:s'). " before id-{$used->id} status-{$used->status}  paid-{$used->paid} paid_debt-{$used->paid_debt} debt_price-{$used->debt_price} request-{$requestAll} ");;
+            $this->log(now()->format('Y-m-d H:i:s') . " before id-{$used->id} status-{$used->status}  paid-{$used->paid} paid_debt-{$used->paid_debt} debt_price-{$used->debt_price} request-{$requestAll} ");;
 
             if (trim($used->status) != trim($request->get('value'))) {
                 $data['status'] = [
@@ -2045,8 +2112,8 @@ class PackageController extends Controller
 
             if (trim($request->get('value')) == 3) {
 
-                if( ($used->debt_price > 0 && $used->paid_debt == 0) || $used->paid == 0 ){
-                    return \Response::json('Items have debt price!',400);
+                if (($used->debt_price > 0 && $used->paid_debt == 0) || $used->paid == 0) {
+                    return \Response::json('Items have debt price!', 400);
                 }
 
                 event(new PackageCell('done', $used->id));
@@ -2065,14 +2132,14 @@ class PackageController extends Controller
 
         }
 
-        if($request->get('name') == 'filial_name'){
+        if ($request->get('name') == 'filial_name') {
             $value = $request->get('value');
             $parts = explode(' - ', $value);
 
             $fid = $parts[0];
             $typeIdParts = $parts[1];
-            $typeId = explode('-',$typeIdParts)[0];
-            if($typeId == 'ASE'){
+            $typeId = explode('-', $typeIdParts)[0];
+            if ($typeId == 'ASE') {
                 $filial = DeliveryPoint::find($fid);
                 $used->store_status = $filial->id;
                 $used->azeri_express_office_id = null;
@@ -2082,7 +2149,7 @@ class PackageController extends Controller
                 $used->kargomat_office_id = null;
                 $used->save();
 
-            }elseif($typeId == 'AZEXP'){
+            } elseif ($typeId == 'AZEXP') {
 
                 $filial = AzeriExpressOffice::find($fid);
                 $used->store_status = null;
@@ -2093,7 +2160,7 @@ class PackageController extends Controller
                 $used->kargomat_office_id = null;
                 $used->save();
 
-            }elseif($typeId == 'AZPOST'){
+            } elseif ($typeId == 'AZPOST') {
 
                 $filial = AzerpostOffice::find($fid);
                 $used->store_status = null;
@@ -2104,7 +2171,7 @@ class PackageController extends Controller
                 $used->kargomat_office_id = null;
                 $used->save();
 
-            }elseif($typeId == 'SURAT'){
+            } elseif ($typeId == 'SURAT') {
 
                 $filial = SuratOffice::find($fid);
                 $used->store_status = null;
@@ -2115,7 +2182,7 @@ class PackageController extends Controller
                 $used->yenipoct_office_id = null;
                 $used->save();
 
-            }elseif ($typeId == 'YP'){
+            } elseif ($typeId == 'YP') {
 
                 $filial = YenipoctOffice::find($fid);
                 $used->store_status = null;
@@ -2126,7 +2193,7 @@ class PackageController extends Controller
                 $used->yenipoct_office_id = $filial->id;
                 $used->save();
 
-            }elseif ($typeId == 'KARGOMAT'){
+            } elseif ($typeId == 'KARGOMAT') {
 
                 $filial = KargomatOffice::find($fid);
                 $used->store_status = null;
@@ -2137,7 +2204,7 @@ class PackageController extends Controller
                 $used->kargomat_office_id = $filial->id;
                 $used->save();
 
-            }else{
+            } else {
                 echo 'Type id not found';
             }
 
@@ -2179,7 +2246,6 @@ class PackageController extends Controller
         }
 
 
-
         if ($request->get('name') == 'paid_debt') {
             $admin = Auth::user();
 
@@ -2191,23 +2257,47 @@ class PackageController extends Controller
                 if (!$admin->hasRole('super_admin')) {
                     return response()->json(['message' => 'Only Super Admin can select this option!'], 403);
                 }
+            }
+            if ($request->get('value') == 0 or $request->get('value') == 2) {
 
+                Transaction::where('custom_id',$used->id)
+                    ->where('paid_for', 'PACKAGE_DEBT')
+                    ->where('paid_by', 'KAPITAL')
+                    ->delete();
+
+                Transaction::create([
+                    'custom_id' =>$used->id,
+                    'paid_for' => 'PACKAGE_DEBT',
+                    'paid_by' => 'KAPITAL',
+                    'user_id' => $used->user_id,
+                    'amount' => $used->debt_price,
+                    'source_id' => null,
+                    'type' => 'PENDING',
+                    'debt' => 1,
+                ]);
             }
 
             if ($request->get('value') == 3) {
+
+                Transaction::where('custom_id',$used->id)
+                    ->where('paid_for', 'PACKAGE_DEBT')
+                    ->where('paid_by', 'KAPITAL')
+                    ->delete();
+
                 Transaction::create([
-                    'user_id'   => $used->user_id,
-                    'custom_id' => $used->id,
-                    'paid_by'   => 'KAPITAL',
-                    'amount'    => $used->debt_price,
+                    'custom_id' =>$used->id,
+                    'paid_for' => 'PACKAGE_DEBT',
+                    'paid_by' => 'KAPITAL',
+                    'user_id' => $used->user_id,
+                    'amount' => $used->debt_price,
                     'source_id' => null,
-                    'type'      => 'OUT',
-                    'paid_for'  => 'PACKAGE_DEBT',
-                    'debt'      => 1,
+                    'type' => 'OUT',
+                    'debt' => 1,
                 ]);
 
             }
-        }if ($request->get('name') == 'broker_paid') {
+        }
+        if ($request->get('name') == 'broker_paid') {
             $admin = Auth::user();
 
             if ($request->get('value') == 1) {
@@ -2224,13 +2314,13 @@ class PackageController extends Controller
 
             if ($request->get('value') == 3) {
                 Transaction::create([
-                    'user_id'   => $used->user_id,
+                    'user_id' => $used->user_id,
                     'custom_id' => $used->id,
-                    'paid_by'   => 'KAPITAL',
-                    'amount'    => (empty($used->user->voen)) ? 15 : 50,
+                    'paid_by' => 'KAPITAL',
+                    'amount' => (empty($used->user->voen)) ? 15 : 50,
                     'source_id' => null,
-                    'type'      => 'OUT',
-                    'paid_for'  => 'PACKAGE_BROKER',
+                    'type' => 'OUT',
+                    'paid_for' => 'PACKAGE_BROKER',
                 ]);
                 $used->broker_price = (empty($used->user->voen)) ? 15 : 50;
                 $used->save();
@@ -2268,592 +2358,23 @@ class PackageController extends Controller
         return "0";
     }
 
-//    public function barcodeScan($code = null)
-//    {
-//        if (!$code) {
-//            return response()->json([
-//                'error' => 'Empty barcode. Please scan a package!',
-//            ]);
-//        }
-//
-//        if ($code == 'courier-page') {
-//            return response()->json([
-//                'redirect' => route('courier.shelf.add.product'),
-//            ]);
-//        }
-//
-//        $scanPath = '';
-//        if (\Request::has('path'))
-//            $scanPath = \Request::get('path');
-//        // Check barcode
-//        $cell = findCell($code);
-//        if (!empty($cell)) {
-//            return response()->json([
-//                'cell' => $cell
-//            ]);
-//        }
-//
-//        $admin = Auth::user();
-//
-//        $track = Track::query()->where('tracking_code', $code)->first();
-//        $package = null;
-//        if (!$track) {
-//            $package = Package::whereTrackingCode($code)->orWhere('custom_id', $code)->first();
-//        }
-//
-////        if (isset($track) && in_array($track->status, [19, 27])) {
-////            $track->scanned_at = Carbon::now();
-////            $track->save();
-////            //(new PackageService())->updateStatus($track, 19);
-////            return response()->json([
-////                'error' => 'Rejected statusunda olan bağlama',
-////            ]);
-////        }
-//
-//        if (isset($track) && in_array($track->status, [45])) {
-//            $track->scanned_at = Carbon::now();
-//            $track->save();
-//            (new PackageService())->updateStatus($track, 44);
-//            return response()->json([
-//                'error' => 'Saxlanc statusunda olan bağlama',
-//            ]);
-//        }
-//
-//        if ($package) {
-//
-//            if($admin->check_declaration){
-//
-//                $package->bot_comment = "Saxlanc hesabı tərəfindən scan edildi.";
-//                $package->save();
-//                if(!$package->is_in_customs){
-//                    return response()->json([
-//                        'error' => 'NO DECLARATION IN CUSTOMS '. $package->custom_id,
-//                    ]);
-//
-//                }else{
-//
-//                    return response()->json([
-//                        'success' => 'DECLARED IN CUSTOMS '. $package->custom_id,
-//                    ]);
-//                }
-//
-//            }
-//
-//            $user = $package->user;
-//            if (!app('laratrust')->can('update-cells') && app('laratrust')->can('update-paids')) {
-//                return response()->json([
-//                    'redirect' => route('paids.index', ['cwb' => $package->custom_id]),
-//                ]);
-//            }
-////            if ($admin->scan_check_only && !$admin->scan_no_alerts) {
-////                $message = '';
-////                if($package->debt_price && $package->paid_debt == 0){
-////                    $message = "Baglamanin saxlanc odenisi var($package->debt_price) ve ÖDƏNİlMƏYİB!";
-////                }else{
-////                    $message = "Bağlamanın saxlanc ödənişi var($package->debt_price) ve ödənilib!";
-////                }
-////
-////                return response()->json([
-////                    'error' => $message,
-////                ]);
-////            }
-//            $status = $package->status;
-//
-////            if (!in_array($package->store_status, [1,3,4,7,8]) && $package->paid == 0){
-////                $message = 'PACKAGE NOT PAID !';
-////                return response()->json([
-////                    'error' => $message,
-////                ]);
-////            }
-//            $notification = false;
-//            /* Send Notification */
-//            if ($admin->store_status == 2) { //In Kobia
-//                if ($status != 8) {
-//                    $package->status = 8;
-//                    $package->save();
-//                    $notification = true;
-//                    //Send notification only if user selected kobia filial
-//                    if ($user && !$user->real_azeri_express_use && !$user->real_azerpoct_send && !$user->real_yenipoct_use && !$user->real_kargomat_use && ($user->real_store_status == $admin->store_status) && $user->delivery_point) {
-//                        Notification::sendPackage($package->id, 8);
-//                    }
-//                }
-//            } else { // In Baku
-//                if ($status != 2) {
-//                    if (($package->store_status && $package->delivery_point)
-//                        || ($package->azeri_express_office_id && $package->azeri_express_office)
-//                        || ($package->surat_office_id && $package->surat_office)
-//                        || ($package->yenipoct_office_id && $package->yenipoct_office)
-//                        || ($package->kargomat_office_id && $package->kargomat_office)
-//                        || ($package->azerpost_office_id && $package->azerpost_office)) {
-//                        if (($package->store_status && $package->delivery_point) && ($package->store_status != $admin->store_status)) {
-//                            $message = ' WRONG PACKAGE FILIAL ! ' . $package->delivery_point->description . ' Send to Kobia';
-//                            return response()->json([
-//                                'error' => $message,
-//                            ]);
-//                        }
-//                        if ($package->azeri_express_office_id && $package->azeri_express_office) {
-//                            $message = ' WRONG PACKAGE AZERI EXPRESS ! ' . $package->azeri_express_office->description . ' Send to Kobia';
-//                            return response()->json([
-//                                'error' => $message,
-//                            ]);
-//                        }
-//                        if ($package->yenipoct_office_id && $package->yenipoct_office) {
-//                            $message = ' WRONG PACKAGE YENI POCT ! ' . $package->yenipoct_office->description . ' Send to Kobia';
-//                            return response()->json([
-//                                'error' => $message,
-//                            ]);
-//                        }
-//                        if ($package->kargomat_office_id && $package->kargomat_office) {
-//                            $message = ' WRONG PACKAGE Kargomat ! ' . $package->kargomat_office->description . ' Send to Kobia';
-//                            return response()->json([
-//                                'error' => $message,
-//                            ]);
-//                        }
-//                        if ($package->surat_office_id && $package->surat_office) {
-//                            $message = ' WRONG PACKAGE SURAT CARGO ! ' . $package->surat_office->description . ' Send to Kobia';
-//                            return response()->json([
-//                                'error' => $message,
-//                            ]);
-//                        }
-//                        if ($package->azerpost_office_id && $package->azerpost_office) {
-//                            $message = ' WRONG USER AZERPOST ! ' . strtoupper($package->azerpost_office->name) . ' Send to Kobia';
-//                            return response()->json([
-//                                'error' => $message,
-//                            ]);
-//                        }
-//                    } else {
-//                        if ($user && !$user->real_azeri_express_use && !$user->real_azerpoct_send && ($user->real_store_status != $admin->store_status) && $user->delivery_point) {
-//                            $message = ' WRONG UER FILIAL ! ' . $user->delivery_point->description . ' Send to Kobia';
-//                            return response()->json([
-//                                'error' => $message,
-//                            ]);
-//                        }
-//                        if ($user && $user->real_azeri_express_use && $user->real_azeri_express_office_id && $user->azeri_express_office) {
-//                            $message = ' WRONG USER AZERI EXPRESS ! ' . $user->azeri_express_office->description . ' Send to Kobia';
-//                            return response()->json([
-//                                'error' => $message,
-//                            ]);
-//                        }
-//                        if ($user && $user->real_surat_use && $user->real_surat_office_id && $user->surat_office) {
-//                            $message = ' WRONG USER SURAT CARGO ! ' . $user->surat_office->description . ' Send to Kobia';
-//                            return response()->json([
-//                                'error' => $message,
-//                            ]);
-//                        }
-//                        if ($user && $user->real_yenipoct_use && $user->real_yenipoct_office_id && $user->yenipoct_office) {
-//                            $message = ' WRONG USER YENIPOCT CARGO ! ' . $user->yenipoct_office->description . ' Send to Kobia';
-//                            return response()->json([
-//                                'error' => $message,
-//                            ]);
-//                        }
-//                        if ($user && $user->real_kargomat_use && $user->real_kargomat_office_id && $user->kargomat_office) {
-//                            $message = ' WRONG USER Kargomat CARGO ! ' . $user->kargomat_office->description . ' Send to Kobia';
-//                            return response()->json([
-//                                'error' => $message,
-//                            ]);
-//                        }
-//                        if ($user && $user->real_azerpoct_send && $user->real_zip_code && $user->azerpost_office) {
-//                            $message = ' WRONG USER AZERPOST ! ' . strtoupper($user->azerpost_office->name) . ' Send to Kobia';
-//                            return response()->json([
-//                                'error' => $message,
-//                            ]);
-//                        }
-//                    }
-//                    $package->status = 2;
-//                    $package->save();
-//                    $notification = true;
-//                    Notification::sendPackage($package->id, 2);
-//                }
-//            }
-//            if (!$package->scanned_at) {
-//                $notification = true;
-//                $package->scanned_at = Carbon::now();
-//                $package->save();
-//                if ($package->parcel && $package->parcel->count()) {
-//                    $parcel = $package->parcel->first();
-//                    if (!$parcel->first_scanned_at)
-//                        $parcel->first_scanned_at = $package->scanned_at;
-//                    $parcel->scanned_cnt++;
-//                    $parcel->save();
-//                }
-//                if ($package->bag && $package->bag->count()) {
-//                    $bag = $package->bag->first();
-//                    if (!$bag->first_scanned_at)
-//                        $bag->first_scanned_at = $package->scanned_at;
-//                    $bag->scanned_cnt++;
-//                    $bag->save();
-//                }
-//            }
-//            if (app('laratrust')->can('update-cells') /*&& !$package->cell*/) {
-//                //Percint filial (store_status) is equal to admin's filial then it arrived filial and must be accepted
-//                if ($package->store_status && $package->store_status == $admin->store_status) {
-//                    $precintContainerCheck = PrecinctPackage::where('barcode',$package->custom_id)->first();
-//                    //if it is not sended by kobia workers can not scan
-//                    if ($precintContainerCheck && $precintContainerCheck->status == PrecinctPackage::STATUSES['NOT_SENT']){
-//                        return response()->json([
-//                            'error' => 'Baglama gonderilib statusunda deyil',
-//                        ]);
-//                    }
-//                    if ($admin->role_id != 1) {
-//                        $pService = new PrecinctService();
-//                        $pService->acceptPackage($package->custom_id);
-//                        if ($package->delivery_point) {
-//                            $package->bot_comment = "Received at " . $package->delivery_point->description;
-//                            $package->save();
-//                        }
-//                    }
-//                }
-//                //---------
-//                $message = NULL;
-//                $cd = $package->courier_delivery;
-//                if ($cd && $cd->courier && $admin->store_status == 2) {
-//                    $message = ' Package KURYER: ' . $cd->courier->name;
-//                    return response()->json([
-//                        'success' => $message,
-//                    ]);
-//                } else {
-//                    return response()->json([
-//                        'redirect' => route('cells.edit', $package->id),
-//                    ]);
-//                }
-//            } else {
-//                /*if ($package->azerpoct_send) {
-//                    return response()->json([
-//                        'success' => "This package has to be send to Azerpost. City: " . $user->city_name . ", Postal: " . strtoupper($user->zip_code),
-//                    ]);
-//	            }*/
-//
-//                return response()->json([
-//                    'redirect' => route('packages.index', ['q' => $package->custom_id]),
-//                ]);
-//                //return response()->json([
-//                //    'success' => $notification ? 'Notification was sent' : 'You have already scanned this package :-)',
-//                //]);
-//            }
-//        }
-//
-//        if ($track) {
-//            if($admin->check_declaration){
-//                $track->bot_comment = "Saxlanc hesabı tərəfindən scan edildi.";
-//                $track->save();
-//                if($track->carrier && !$track->carrier->status && !$track->carrier->depesH_NUMBER){
-//                    return response()->json([
-//                        'error' => 'NO DECLARATION IN CUSTOMS '. $track->tracking_code,
-//                    ]);
-//
-//                }else{
-//
-//                    return response()->json([
-//                        'success' => 'DECLARED IN CUSTOMS '. $track->tracking_code,
-//                    ]);
-//                }
-//
-//            }
-//
-////            if($track->tracking_code = 'TEST1232142'){
-////                $track->status = 20;
-////                $track->save();
-////            };
-////            if (!in_array($track->store_status, [1,3,4,7,8]) && $track->paid == 0){
-////                $message = 'PACKAGE NOT PAID !';
-////                return response()->json([
-////                    'error' => $message,
-////                ]);
-////            }
-//
-//            $add_message = "";
-//            if ($track->container_id)
-//                $add_message .= " \nMAWB: " . $track->container_name;
-//            if ($scanPath == 'tracks') {
-//                return response()->json([
-//                    'redirect' => route('tracks.index', ['q' => $track->tracking_code]),
-//                ]);
-//            }
-//            if (!app('laratrust')->can('update-cells') && app('laratrust')->can('update-paids')) {
-//                return response()->json([
-//                    'redirect' => route('paids.index', ['cwb' => $track->tracking_code]),
-//                ]);
-//            }
-//            if (!$track->scanned_at) {
-//                $track->scanned_at = Carbon::now();
-//                $track->save();
-//                if ($track->container_id) {
-//                    $container = Container::find($track->container_id);
-//                    if ($container && $container->first_scanned_at == null){
-//                        $container->first_scanned_at = $track->scanned_at;
-//                        $container->status = 16;
-//                    }
-//                    $container->scanned_cnt++;
-//                    $container->save();
-//                }
-//
-//            }
-//
-//            if ($admin->store_status == 2 && in_array($track->partner_id, [3, 8, 9]) && !$track->scan_no_check) { //InKOBIA admin GFS & Ozon check
-//                if ($track->in_customs_status) {
-//                    if ($track->status != 18 && (!$admin->scan_check_only || !$admin->scan_no_alerts)) {
-//                        $track->status = 18;
-//                        $track->bot_comment = "Scanned but Different price";
-//                        $track->save();
-//                        (new PackageService())->updateStatus($track, 18);
-//                        Notification::sendTrack($track->id, 'track_scan_diff_price');
-//                    }
-//                    if (!$admin->scan_no_alerts) {
-//                        $message = "DIFFERENT PRICE" . $add_message;
-//                        return response()->json([
-//                            'error' => $message,
-//                        ]);
-//                    }
-//                }
-//                if (!$track->carrier) {
-//                    if ($track->status != 18 && (!$admin->scan_check_only || !$admin->scan_no_alerts)) {
-//                        $track->status = 18;
-//                        $track->bot_comment = "Scanned but not IN  Customs";
-//                        $track->save();
-//                        (new PackageService())->updateStatus($track, 18);
-//                        Notification::sendTrack($track->id, $track->status);
-//                    }
-//
-//                    if (!$admin->scan_no_alerts) {
-//                        $message = "NOT IN CUSTOMS" . $add_message;
-//                        return response()->json([
-//                            'error' => $message,
-//                        ]);
-//                    }
-//                }
-//                if ($track->carrier && !$track->carrier->status && !$track->carrier->depesH_NUMBER) {
-//                    if ($track->status != 18 && (!$admin->scan_check_only || !$admin->scan_no_alerts)) {
-//                        $track->status = 18;
-//                        $track->bot_comment = "Scanned but no declaration in Customs";
-//                        $track->save();
-//                        (new PackageService())->updateStatus($track, 18);
-//                        Notification::sendTrack($track->id, 'track_scan_no_dec');
-//                    }
-//
-//                    if (!$admin->scan_no_alerts) {
-//                        $message = "NO DECLARATION IN CUSTOMS" . $add_message;
-//                        return response()->json([
-//                            'error' => $message,
-//                        ]);
-//                    }
-//                }
-//                if ($track->carrier && !$track->carrier->depesH_NUMBER) {
-//                    if ($track->status != 18 && (!$admin->scan_check_only || !$admin->scan_no_alerts)) {
-//                        $track->status = 18;
-//                        $track->bot_comment = "Scanned but no Depesh in Customs";
-//                        $track->save();
-//                        (new PackageService())->updateStatus($track, 18);
-//                        //Notification::sendTrack($track->id, $track->status);
-//                    }
-//
-//                    if (!$admin->scan_no_alerts) {
-//                        $message = "NO DEPESH IN CUSTOMS" . $add_message;
-//                        return response()->json([
-//                            'warning' => $message,
-//                        ]);
-//                    }
-//                }
-//                /*if(!$track->carrier->depesH_NUMBER) {
-//                    $message="NO DEPESH IN CUSTOMS";
-//                            return response()->json([
-//                                'error' => $message,
-//                            ]);
-//                }*/
-//            }
-//            if ($admin->scan_check_only && !$admin->scan_no_alerts) {
-//                $message = $track->partner_with_label . ' Track ' . $track->worker_comments . $add_message;
-//                $cd = $track->courier_delivery;
-//                if ($cd && $cd->courier /*&& $admin->store_status == 2*/) {
-//                    $message .= ' KURYER: ' . $cd->courier->name . $add_message;
-//                    $message .= ' ....';
-//                    //$cd->status = 2;
-//                    //$cd->save();
-//                }
-//                return response()->json([
-//                    'success' => $message,
-//                ]);
-//            }
-//
-//            $notification = false;
-//            $status = $track->status;
-//            if ($admin->store_status == 2 && !($track->store_status == 2 && in_array($track->partner_id, [3, 8, 9]))) { //In Kobia
-//                if (!($track->partner_id == 3 && in_array($status, [ 28]))) {
-//                    if ($status <= 16 || in_array($status, [18, 21, 22, 23, 25, 44])) {
-//                        $track->status = 20;
-//                        $notification = true;
-//                    }
-//                }
-//            } else { // In Baku
-//                //check for wrong filial
-//                if (($track->store_status && $track->delivery_point) && ($track->store_status != $admin->store_status)) {
-//                    $message = ' WRONG TRACK FILIAL ! ' . $track->delivery_point->description . ' Send to Kobia';
-//                    return response()->json([
-//                        'error' => $message,
-//                    ]);
-//                }
-//                if ($track->azeri_express_office_id && $track->azeri_express_office) {
-//                    $message = ' WRONG TRACK AZERI EXPRESS ! ' . $track->azeri_express_office->description . ' Send to Kobia';
-//                    return response()->json([
-//                        'error' => $message,
-//                    ]);
-//                }
-//                if ($track->surat_office_id && $track->surat_office) {
-//                    $message = ' WRONG TRACK SURAT CARGO ! ' . $track->surat_office->description . ' Send to Kobia';
-//                    return response()->json([
-//                        'error' => $message,
-//                    ]);
-//                }
-//                if ($track->yenipoct_office_id && $track->yenipoct_office) {
-//                    $message = ' WRONG TRACK YENIPOCT CARGO ! ' . $track->yenipoct_office->description . ' Send to Kobia';
-//                    return response()->json([
-//                        'error' => $message,
-//                    ]);
-//                }
-//                if ($track->kargomat_office_id && $track->kargomat_office) {
-//                    $message = ' WRONG TRACK KARGOMAT CARGO ! ' . $track->kargomat_office->description . ' Send to Kobia';
-//                    return response()->json([
-//                        'error' => $message,
-//                    ]);
-//                }
-//                if ($track->azerpost_office_id && $track->azerpost_office) {
-//                    $message = ' WRONG TRACK AZERPOST ! ' . strtoupper($track->azerpost_office->name) . ' Send to Kobia';
-//                    return response()->json([
-//                        'error' => $message,
-//                    ]);
-//                }
-//                //-----------
-//                if (!($track->partner_id == 3 && in_array($status, [28]))) {
-//                    if ($status < 16 || in_array($status, [18, 20, 21, 22, 23, 25, 44])) {
-//                        $track->status = 16;
-//                        $notification = true;
-//                    }
-//                }
-//            }
-//            $track->comment_txt = $track->comment_txt . '|' . "Scanned: " . now() . ', ' . $status . '-' . $track->status;
-//            $track->save();
-//            if ($status != $track->status) {
-//                (new PackageService())->updateStatus($track, $track->status);
-//            }
-//            if ($admin->store_status == 2 && $track->status == 20 && in_array($track->partner_id, [9]) && !$track->paid) { //If IN Kobia and TAOBAO and not PAID
-//                Notification::sendTrack($track->id, $track->status);
-//                $message = " TAOBAO NOT PAID." . $add_message;
-//                $track->bot_comment = "Scanned In Kobia but TAOBAO Not Paid " . now();
-//                $track->save();
-//                return response()->json([
-//                    'redirect' => route('cells.edit', ['id' => $track->id, 'track' => 1]),
-////                    'warning' => $message,
-//                ]);
-//            }
-//            if (app('laratrust')->can('update-cells') /*&& !$track->cell*/) {
-//                if ($track->status == 16 || $track->status == 20) { //In Store or In Baku
-//                    $wcomm = $track->worker_comments;
-//                    $message = NULL;
-//                    $cd = null;
-//                    if ((
-//                            ($track->courier_delivery && !isOfficeWord($wcomm))
-//                            || ($wcomm && !empty($wcomm) && !isOfficeWord($wcomm) && !in_array($track->partner_id, [8]))
-//                        ) && $admin->store_status == 2) {
-//                        $message = $track->partner_with_label . ' Track ' . $track->worker_comments . $add_message;
-//                        $cd = $track->courier_delivery;
-//                        if ($cd && $cd->courier && $admin->store_status == 2) {
-//                            $message .= ' KURYER: ' . $cd->courier->name . $add_message;
-//                            //if ($cd->courier->name == 'Azeriexpress')
-//                            //    $cd->status = 3;
-//                            //else
-//                            $cd->status = 2;
-//                            $cd->save();
-//
-//                        }
-//                    }
-//                    if (!$cd || !$cd->courier) { // If no courier assigned send notification
-//                        if (!$track->notification_inbaku_at) {
-//                            $track->notification_inbaku_at = Carbon::now();
-//                            $track->save();
-//                        }
-//                        if ($notification) {
-//                            if ($track->partner_id != 5 && $track->partner_id != 6 /*&& $track->city_id != 3 && $track->city_id != 6*/) {
-//                                if ($track->status == 16) { // In Baku
-//                                    $isPudo = false;
-//                                    //if($track->delivery_type != 'HD' && ($track->store_status || $track->azeriexpress_office_id || $track->azerpost_office_id || $track->surat_office_id))
-//                                    if ($track->store_status || $track->azeriexpress_office_id || $track->azerpost_office_id || $track->surat_office_id)
-//                                        $isPudo = true;
-//                                    if (!in_array($track->partner_id, [8]) || $isPudo) { //If GFS then must be PUDO
-//                                        Notification::sendTrack($track->id, $track->status);
-//                                    }
-//                                } else { //In Kobia
-//                                    if (!in_array($track->partner_id, [9]) || !$track->paid) { //If TAOBAO then must not be PAID
-//                                        Notification::sendTrack($track->id, $track->status);
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    } //-----
-//                    //Percint filial (store_status) is equal to admin's filial then it arrived filial and must be accepted
-//                    if ($track->store_status && $track->store_status == $admin->store_status) {
-//                        $precintContainerCheck = PrecinctPackage::where('barcode',$track->tracking_code)->first();
-//                        //if it is not sended by kobia workers can not scan
-//                        if ($precintContainerCheck && $precintContainerCheck->status == PrecinctPackage::STATUSES['NOT_SENT']){
-//                            return response()->json([
-//                                'error' => 'Baglama gonderilib statusunda deyil',
-//                            ]);
-//                        }
-//                        if ($admin->role_id != 1) {
-//                            $pService = new PrecinctService();
-//                            $pService->acceptPackage($track->tracking_code);
-//                            if ($track->delivery_point) {
-//                                $track->bot_comment = "Received at " . $track->delivery_point->description;
-//                                $track->save();
-//                            }
-//                        }
-//                    }
-//                    //--------
-//                    if ($message) { //If message assigned just show message
-//                        return response()->json([
-//                            'success' => $message,
-//                        ]);
-//                    } else { // if message is not assigned go to edit cell
-//                        return response()->json([
-//                            'redirect' => route('cells.edit', ['id' => $track->id, 'track' => 1]),
-//                        ]);
-//                    }//-----
-//                } else {
-//                    return response()->json([
-//                        'success' => $track->partner_with_label . ' Track status: ' . config('ase.attributes.track.statusShort')[$track->status] . $add_message.' DeliveryAT: '.$track->scanned_at,
-//                    ]);
-//                }
-//            } else {
-//                return response()->json([
-//                    'redirect' => route('tracks.index', ['q' => $track->tracking_code]),
-//                ]);
-//                //return response()->json([
-//                //    'success' => $notification ? 'Notification was sent' : 'You have already scanned this track :-)',
-//                //]);
-//            }
-//        }
-//
-//        return response()->json([
-//            'error' => 'Package does not exist!',
-//        ]);
-//    }
-
-
-
-    public function sendTrackNotification($track, $status){
-        if($track->store_status==2 and $track->status==20){
+    public function sendTrackNotification($track, $status)
+    {
+        if ($track->store_status == 2 and $track->status == 20) {
             Notification::sendTrack($track->id, $status, now()->addHours(3));
-        }else{
+        } else {
             Notification::sendTrack($track->id, $status);
         }
     }
-    public function sendPackageNotification($package, $status){
-        if($package->store_status==2 and $package->status==8){
+
+    public function sendPackageNotification($package, $status)
+    {
+        if ($package->store_status == 2 and $package->status == 8) {
             Notification::sendPackage($package->id, 2, now()->addHours(3));
-        }else{
+        } else {
             Notification::sendPackage($package->id, 2);
         }
     }
-
-
 
 
     public function barcodeScan($code = null)
@@ -2910,30 +2431,29 @@ class PackageController extends Controller
 
         if ($package) {
 
-            if($admin->check_declaration){
+            if ($admin->check_declaration) {
 
                 if (isset($package) && in_array($package->status, [5])) {
                     return response()->json([
-                        'error' => 'Rejected statusunda olan bağlama '.$package->custom_id,
+                        'error' => 'Rejected statusunda olan bağlama ' . $package->custom_id,
                     ]);
                 }
 
                 $package->bot_comment = "Saxlanc hesabı tərəfindən scan edildi.";
                 $package->save();
-                if(!$package->is_in_customs){
+                if (!$package->is_in_customs) {
                     return response()->json([
-                        'error' => 'NO DECLARATION IN CUSTOMS '. $package->custom_id.' MAWB '.$package->parcel_name,
+                        'error' => 'NO DECLARATION IN CUSTOMS ' . $package->custom_id . ' MAWB ' . $package->parcel_name,
                     ]);
 
-                }else{
+                } else {
 
                     return response()->json([
-                        'success' => 'DECLARED IN CUSTOMS '. $package->custom_id.' MAWB '.$package->parcel_name,
+                        'success' => 'DECLARED IN CUSTOMS ' . $package->custom_id . ' MAWB ' . $package->parcel_name,
                     ]);
                 }
 
             }
-
 
 
             $user = $package->user;
@@ -3088,9 +2608,9 @@ class PackageController extends Controller
             if (app('laratrust')->can('update-cells') /*&& !$package->cell*/) {
                 //Percint filial (store_status) is equal to admin's filial then it arrived filial and must be accepted
                 if ($package->store_status && $package->store_status == $admin->store_status) {
-                    $precintContainerCheck = PrecinctPackage::where('barcode',$package->custom_id)->first();
+                    $precintContainerCheck = PrecinctPackage::where('barcode', $package->custom_id)->first();
                     //if it is not sended by kobia workers can not scan
-                    if ($precintContainerCheck && $precintContainerCheck->status == PrecinctPackage::STATUSES['NOT_SENT']){
+                    if ($precintContainerCheck && $precintContainerCheck->status == PrecinctPackage::STATUSES['NOT_SENT']) {
                         return response()->json([
                             'error' => 'Baglama gonderilib statusunda deyil',
                         ]);
@@ -3134,21 +2654,26 @@ class PackageController extends Controller
         }
 
         if ($track) {
-            if($admin->check_declaration ){
+            if ($admin->check_declaration) {
                 if (isset($track) && in_array($track->status, [19, 27])) {
                     return response()->json([
-                        'error' => 'Rejected statusunda olan bağlama '.$track->tracking_code,
+                        'error' => 'Rejected statusunda olan bağlama ' . $track->tracking_code,
                     ]);
                 }
                 $track->bot_comment = "Saxlanc hesabı tərəfindən scan edildi.";
                 $track->save();
-                if($track->carrier && !$track->carrier->status && !$track->carrier->depesH_NUMBER ){
+                if ($track->carrier && !$track->carrier->status ) {
                     return response()->json([
-                        'error' => 'NO DECLARATION IN CUSTOMS '. $track->tracking_code.' MAWB : '.$track->container_name,
+                        'error' => 'NO DECLARATION IN CUSTOMS ' . $track->tracking_code . ' MAWB : ' . $track->container_name,
                     ]);
-                }else{
+                } else {
+                    if(!optional($track->carrier)->depesH_NUMBER){
+                        return response()->json([
+                            'warning' => 'NO DEPESH',
+                        ]);
+                    }
                     return response()->json([
-                        'success' => 'DECLARED IN CUSTOMS'. $track->tracking_code.' MAWB : '.$track->container_name,
+                        'success' => 'DECLARED IN CUSTOMS' . $track->tracking_code . ' MAWB : ' . $track->container_name,
                     ]);
                 }
             }
@@ -3156,10 +2681,9 @@ class PackageController extends Controller
             //warehouse hesabindadirsa ve track check customsda check edilibse
             if ((optional($admin->role)->id == 10 && $track->in_customs_status == 1) or (optional($admin->role)->id == 26 && $track->in_customs_status == 1)) {
                 return response()->json([
-                    'error' => "Bu bağlama SAXLANC hesabındadır. "."Səbəb - ".$track->worker_comments
+                    'error' => "Bu bağlama SAXLANC hesabındadır. " . "Səbəb - " . $track->worker_comments
                 ]);
             }
-
 
 
 //            if($track->tracking_code = 'TEST1232142'){
@@ -3191,7 +2715,7 @@ class PackageController extends Controller
                 $track->save();
                 if ($track->container_id) {
                     $container = Container::find($track->container_id);
-                    if ($container && $container->first_scanned_at == null){
+                    if ($container && $container->first_scanned_at == null) {
                         $container->first_scanned_at = $track->scanned_at;
                         $container->status = 16;
                     }
@@ -3410,9 +2934,9 @@ class PackageController extends Controller
                     } //-----
                     //Percint filial (store_status) is equal to admin's filial then it arrived filial and must be accepted
                     if ($track->store_status && $track->store_status == $admin->store_status) {
-                        $precintContainerCheck = PrecinctPackage::where('barcode',$track->tracking_code)->first();
+                        $precintContainerCheck = PrecinctPackage::where('barcode', $track->tracking_code)->first();
                         //if it is not sended by kobia workers can not scan
-                        if ($precintContainerCheck && $precintContainerCheck->status == PrecinctPackage::STATUSES['NOT_SENT']){
+                        if ($precintContainerCheck && $precintContainerCheck->status == PrecinctPackage::STATUSES['NOT_SENT']) {
                             return response()->json([
                                 'error' => 'Baglama gonderilib statusunda deyil',
                             ]);
@@ -3427,7 +2951,7 @@ class PackageController extends Controller
                         }
                     }
 
-                    if($track->status == 19 ){
+                    if ($track->status == 19) {
                         $message = '';
                     }
                     //--------
@@ -3442,7 +2966,7 @@ class PackageController extends Controller
                     }//-----
                 } else {
                     return response()->json([
-                        'success' => $track->partner_with_label . ' Track status: ' . config('ase.attributes.track.statusShort')[$track->status] . $add_message.' DeliveryAT: '.$track->scanned_at,
+                        'success' => $track->partner_with_label . ' Track status: ' . config('ase.attributes.track.statusShort')[$track->status] . $add_message . ' DeliveryAT: ' . $track->scanned_at,
                     ]);
                 }
             } else {
@@ -3459,6 +2983,7 @@ class PackageController extends Controller
             'error' => 'Package does not exist!',
         ]);
     }
+
     public function barcodeScanTest($code = null)
     {
 
@@ -3514,24 +3039,23 @@ class PackageController extends Controller
 
         if ($package) {
 
-            if($admin->check_declaration){
+            if ($admin->check_declaration) {
 
                 $package->bot_comment = "Saxlanc hesabı tərəfindən scan edildi.";
                 $package->save();
-                if(!$package->is_in_customs){
+                if (!$package->is_in_customs) {
                     return response()->json([
-                        'error' => 'NO DECLARATION IN CUSTOMS '. $package->custom_id.' MAWB '.$package->parcel_name,
+                        'error' => 'NO DECLARATION IN CUSTOMS ' . $package->custom_id . ' MAWB ' . $package->parcel_name,
                     ]);
 
-                }else{
+                } else {
 
                     return response()->json([
-                        'success' => 'DECLARED IN CUSTOMS '. $package->custom_id.' MAWB '.$package->parcel_name,
+                        'success' => 'DECLARED IN CUSTOMS ' . $package->custom_id . ' MAWB ' . $package->parcel_name,
                     ]);
                 }
 
             }
-
 
 
             $user = $package->user;
@@ -3686,9 +3210,9 @@ class PackageController extends Controller
             if (app('laratrust')->can('update-cells') /*&& !$package->cell*/) {
                 //Percint filial (store_status) is equal to admin's filial then it arrived filial and must be accepted
                 if ($package->store_status && $package->store_status == $admin->store_status) {
-                    $precintContainerCheck = PrecinctPackage::where('barcode',$package->custom_id)->first();
+                    $precintContainerCheck = PrecinctPackage::where('barcode', $package->custom_id)->first();
                     //if it is not sended by kobia workers can not scan
-                    if ($precintContainerCheck && $precintContainerCheck->status == PrecinctPackage::STATUSES['NOT_SENT']){
+                    if ($precintContainerCheck && $precintContainerCheck->status == PrecinctPackage::STATUSES['NOT_SENT']) {
                         return response()->json([
                             'error' => 'Baglama gonderilib statusunda deyil',
                         ]);
@@ -3733,16 +3257,16 @@ class PackageController extends Controller
 
         if ($track) {
 
-            if($admin->check_declaration ){
+            if ($admin->check_declaration) {
                 $track->bot_comment = "Saxlanc hesabı tərəfindən scan edildi.";
                 $track->save();
-                if($track->carrier && !$track->carrier->status && !$track->carrier->depesH_NUMBER ){
+                if ($track->carrier && !$track->carrier->status && !$track->carrier->depesH_NUMBER) {
                     return response()->json([
-                        'error' => 'NO DECLARATION IN CUSTOMS '. $track->tracking_code.' MAWB : '.$track->container_name,
+                        'error' => 'NO DECLARATION IN CUSTOMS ' . $track->tracking_code . ' MAWB : ' . $track->container_name,
                     ]);
-                }else{
+                } else {
                     return response()->json([
-                        'success' => 'DECLARED IN CUSTOMS '. $track->tracking_code.' MAWB : '.$track->container_name,
+                        'success' => 'DECLARED IN CUSTOMS ' . $track->tracking_code . ' MAWB : ' . $track->container_name,
                     ]);
                 }
             }
@@ -3750,10 +3274,9 @@ class PackageController extends Controller
             //warehouse hesabindadirsa ve track check customsda check edilibse
             if ((optional($admin->role)->id == 10 && $track->in_customs_status == 1) or (optional($admin->role)->id == 26 && $track->in_customs_status == 1)) {
                 return response()->json([
-                    'error' => "Bu bağlama SAXLANC hesabındadır. "."Səbəb - ".$track->worker_comments
+                    'error' => "Bu bağlama SAXLANC hesabındadır. " . "Səbəb - " . $track->worker_comments
                 ]);
             }
-
 
 
 //            if($track->tracking_code = 'TEST1232142'){
@@ -3766,7 +3289,6 @@ class PackageController extends Controller
 //                    'error' => $message,
 //                ]);
 //            }
-
 
 
             $add_message = "";
@@ -3787,7 +3309,7 @@ class PackageController extends Controller
                 $track->save();
                 if ($track->container_id) {
                     $container = Container::find($track->container_id);
-                    if ($container && $container->first_scanned_at == null){
+                    if ($container && $container->first_scanned_at == null) {
                         $container->first_scanned_at = $track->scanned_at;
                         $container->status = 16;
                     }
@@ -4020,9 +3542,9 @@ class PackageController extends Controller
                     if ($track->store_status && $track->store_status == $admin->store_status) {
 
 
-                        $precintContainerCheck = PrecinctPackage::where('barcode',$track->tracking_code)->first();
+                        $precintContainerCheck = PrecinctPackage::where('barcode', $track->tracking_code)->first();
                         //if it is not sended by kobia workers can not scan
-                        if ($precintContainerCheck && $precintContainerCheck->status == PrecinctPackage::STATUSES['NOT_SENT']){
+                        if ($precintContainerCheck && $precintContainerCheck->status == PrecinctPackage::STATUSES['NOT_SENT']) {
                             return response()->json([
                                 'error' => 'Baglama gonderilib statusunda deyil',
                             ]);
@@ -4037,7 +3559,7 @@ class PackageController extends Controller
                         }
                     }
 
-                    if($track->status == 19 ){
+                    if ($track->status == 19) {
                         $message = '';
                     }
 
@@ -4055,7 +3577,7 @@ class PackageController extends Controller
                     }//-----
                 } else {
                     return response()->json([
-                        'success' => $track->partner_with_label . ' Track status: ' . config('ase.attributes.track.statusShort')[$track->status] . $add_message.' DeliveryAT: '.$track->scanned_at,
+                        'success' => $track->partner_with_label . ' Track status: ' . config('ase.attributes.track.statusShort')[$track->status] . $add_message . ' DeliveryAT: ' . $track->scanned_at,
                     ]);
                 }
             } else {
@@ -4082,8 +3604,8 @@ class PackageController extends Controller
         if ($count) {
             $key = $request->get('key');
             foreach ($items as $item) {
-                if( ($item->debt_price > 0 && $item->paid_debt == 0) || $item->paid == 0 ){
-                    return \Response::json(['message' => ' Items have debt price!'],400);
+                if (($item->debt_price > 0 && $item->paid_debt == 0) || $item->paid == 0) {
+                    return \Response::json(['message' => ' Items have debt price!'], 400);
                 }
                 $item->{$key} = $request->get('value');
                 $item->save();
@@ -4104,26 +3626,26 @@ class PackageController extends Controller
     {
         $query = Package::query();
 
-        if($request->status){
-            $query->where('status',$request->status);
+        if ($request->status) {
+            $query->where('status', $request->status);
         }
 
-        $query->where('debt_price','>',0);
+        $query->where('debt_price', '>', 0);
 
 
-        if($request->start_date != null && $request->end_date != null){
-            $query->whereHas('transactionDebt',function($q) use($request){
-               $q->whereBetween('created_at',[$request->start_date . " 00:00:00",$request->end_date . " 23:59:59"]);
+        if ($request->start_date != null && $request->end_date != null) {
+            $query->whereHas('transactionDebt', function ($q) use ($request) {
+                $q->whereBetween('created_at', [$request->start_date . " 00:00:00", $request->end_date . " 23:59:59"]);
             });
         }
 
         $paid_debt = $request->paid_debt;
 
-        if($paid_debt != null){
-            if($paid_debt == 1){
-                $query->whereIn('paid_debt',[1,3]);
-            }elseif($paid_debt == 2){
-                $query->whereIn('paid_debt',[0,2]);
+        if ($paid_debt != null) {
+            if ($paid_debt == 1) {
+                $query->whereIn('paid_debt', [1, 3]);
+            } elseif ($paid_debt == 2) {
+                $query->whereIn('paid_debt', [0, 2]);
             }
         }
 

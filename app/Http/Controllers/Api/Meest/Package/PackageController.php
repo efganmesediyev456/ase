@@ -100,16 +100,16 @@ class PackageController extends Controller
             $user = Customer::query()
                 ->where('fin', $pin_code)
                 ->where('phone', "994$phoneNumber")
-                ->where('partner_id', BaseService::PARTNERS_MAP['CHINA_MEEST'])
+                ->where('partner_id', BaseService::PARTNERS_MAP['IHERB'])
                 ->first();
         }
 
         if ($user == null) {
-            $request->merge(['partner_id' => BaseService::PARTNERS_MAP['CHINA_MEEST']]);
+            $request->merge(['partner_id' => BaseService::PARTNERS_MAP['IHERB']]);
             $user = $this->meestService->createCustomer($request);
         }
         //handle package
-        $request->merge(['partner' => 'CHINA_MEEST']);
+        $request->merge(['partner' => 'IHERB']);
         $package = $this->meestService->createPackage($request, $user);
         $response = [
             'status' => true,

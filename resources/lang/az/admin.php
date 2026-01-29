@@ -71,6 +71,8 @@ return array(
     'azeriexpress_warehouse_package_status_8' => 'Məntəqəyə çatıb',
     'azeriexpress_warehouse_package_status_10' => 'Təhvil verildi',
     'azeriexpress_warehouse_package_status_9' => 'Geri qaytarıldı(Rejected)',
+    'azeriexpress_warehouse_package_status_12' => 'Geri qaytarıldı(Rejected)',
+
 
     'azeriexpress_courier_status_0' => 'Gözləmədə',
     'azeriexpress_courier_status_1' => 'Göndərildi',
@@ -99,6 +101,7 @@ return array(
     'precinct_warehouse_package_status_6' => 'Çeşidləmə mərkəzidədir',
     'precinct_warehouse_package_status_8' => 'Məntəqəyə çatıb',
     'precinct_warehouse_package_status_10' => 'Təhvil verildi',
+    'precinct_warehouse_package_status_12' => 'Geri qaytarıldı',
 
     //Azerpost
     'azerpost_warehouse_group_status_0' => 'Yaradılıb',
@@ -155,6 +158,7 @@ return array(
     'yenipoct_warehouse_package_status_6' => 'Çeşidləmə mərkəzidədir',
     'yenipoct_warehouse_package_status_8' => 'Məntəqəyə çatıb',
     'yenipoct_warehouse_package_status_10' => 'Təhvil verildi',
+    'yenipoct_warehouse_package_status_9' => 'Geri qaytarıldı',
 
     //Kargomat
 

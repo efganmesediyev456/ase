@@ -95,6 +95,22 @@ class TariffWeightController extends Controller
             ],
             'validation' => 'nullable|string|max:50',
         ],
+        [
+            'name' => 'is_one_kg',
+            'label' => 'Get 1 Kg price from this',
+            'type' => 'checkbox',
+            'wrapperAttributes' => [
+                'class' => ' col-md-4',
+            ]
+        ],
+        [
+            'name' => 'is_ten_kg',
+            'label' => 'Get 10 and over Kg price from this',
+            'type' => 'checkbox',
+            'wrapperAttributes' => [
+                'class' => ' col-md-4',
+            ]
+        ],
     ];
 
     public function __construct()

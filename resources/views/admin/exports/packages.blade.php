@@ -2,6 +2,7 @@
     <thead>
     <tr>
         <th><b>Receiver</b></th>
+        <th><b>Dealer</b></th>
         <th><b>Customer Id</b></th>
         <th><b>Delivery Date</b></th>
         <th><b>Cell</b></th>
@@ -19,6 +20,7 @@
         <th><b>Delivery Price [AZN] With Discount</b></th>
         <th><b>Delivery Price [USD] With Discount</b></th>
         <th><b>Value</b></th>
+        <th><b>Paid</b></th>
         <th><b>Paid By</b></th>
         <th><b>Debt Price</b></th>
         <th><b>Paid Debt</b></th>
@@ -39,11 +41,12 @@
     @foreach($packages1 as $package)
         <tr>
             <td>{{ $package->user ? $package->user->full_name : '-' }}</td>
+            <td>{{ ($package->user && $package->user->dealer) ? $package->user->dealer->full_name : '-' }}</td>
             <td>{{ $package->user ? $package->user->customer_id : '-' }}</td>
             <td>{{ $package->scanned_at ? date( 'Y-m-d',strtotime($package->scanned_at)) : '-' }}</td>
             <td>{{ $package->cell }}</td>
             <td>{{ $package->user ? $package->user->city_name : '-' }}</td>
-            <td>{{ $package->warehouse ? $package->warehouse->country->code : '-' }}</td>
+            <td>{{ ($package->warehouse and $package->warehouse->country) ? $package->warehouse->country->code : '-' }}</td>
             {{--<td>{{ $package->user ? ($package->user->phone ? \App\Models\Extra\SMS::clearNumber($package->user->phone) : '-' ) : '-' }}</td>--}}
             <td>{{ count($package->parcel)>0?$package->parcel[0]->custom_id:'' }}</td>
             <td>{{ $package->custom_id }}</td>
@@ -57,6 +60,7 @@
             <td>{{ $package->delivery_manat_price_discount }}</td>
             <td>{{ $package->delivery_usd_price_discount }}</td>
             <td>{{ $package->total_price_with_label }}</td>
+            <td>{{ $package->paid_att_with_label }}</td>
             <td>{{ $package->transaction ? $package->transaction->paid_by : '-' }}</td>
             <td>{{ $package->debt_price }}</td>
             <td>{{ $package->paid_debt_att_with_label }}</td>

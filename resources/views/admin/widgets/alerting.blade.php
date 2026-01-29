@@ -1,5 +1,4 @@
 <?php
-
 use App\Services\Package\PackageService;
 
 $alertText = null;
@@ -399,6 +398,7 @@ if ($track) {
             $alertType = 'danger';
             if ($track->store_status != 2 && ($track->paid || ($track->partner_id == 9 && $track->status == 20))) {
                 if (!($track->partner_id == 9 && !$track->paid) and !($track->debt_price > 0 && !$track->paid_debt) and !in_array($track->status,[19,27])) {
+
                     $serviceStatus = (new  PackageService())->addPackageToContainer('precinct', $track->store_status, 'track', $track->tracking_code);
                 }
             }
@@ -548,7 +548,8 @@ if ($track) {
         $alertSize = 'font-size:20px';
     }
     else {
-        if ($track->partner_id != 1 && !$track->courier_delivery) {
+//        if ($track->partner_id != 1 && !$track->courier_delivery) {
+        if ( !$track->courier_delivery) {
             $alertText = "NO FILIAL</b>";
             if ($track->scanned_at) {
                 $alertText .= "<br> <b> DeliveryAT: " . $track->scanned_at . "</b>";

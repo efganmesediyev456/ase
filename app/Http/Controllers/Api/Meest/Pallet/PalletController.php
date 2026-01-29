@@ -24,7 +24,7 @@ class PalletController
         $box = Airbox::query()->updateOrCreate(
             [
                 "name" => $request->barcode,
-                "partner_id" => MeestService::PARTNERS_MAP['CHINA_MEEST'],
+                "partner_id" => MeestService::PARTNERS_MAP['IHERB'],
             ],
             [
                 "container_id" => null,

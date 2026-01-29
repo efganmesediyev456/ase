@@ -332,7 +332,7 @@ class UkraineExpress extends Command
                         $icon = '🆘 ';
                         $text = 'əlavə edilmir. Adminlər yoxlasın nə məsələdir.';
                         $content = $package->tracking_code . ". Error : " . $warning;
-                        SMS::sendPureTextByNumber(env('UKRAINE_ERROR_PHONE'), $content);
+//                        SMS::sendPureTextByNumber(env('UKRAINE_ERROR_PHONE'), $content);
                     }
                     $message = null;
                     $message .= $icon . "<a href='https://admin." . env('DOMAIN_NAME') . "/packages/" . $package->id . "/edit'>" . $package->tracking_code . "</a> tracking kod ilə olan bağlama Ukraine Express-ə " . $text;

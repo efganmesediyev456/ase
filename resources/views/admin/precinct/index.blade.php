@@ -44,6 +44,7 @@
                                     <th>Tarix</th>
                                     <th>Məntəqəyə çatıb</th>
                                     <th></th>
+                                    <th></th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -109,7 +110,7 @@
                                                 <span class="btn btn-success">Təhvil verildi</span>
                                             @else
                                                 @if($_package && $_package->paid || $package->type == 'track')
-                                                    <button type="button" class="btn btn-primary handover"
+                                                    <button type="button" class="btn btn-primary handover" data-type="handover"
                                                             data-url="{{ route('precinct.handover', $package->id) }}">
                                                         Təhvil ver
                                                     </button>
@@ -118,6 +119,22 @@
                                                 @endif
                                             @endif
                                         </td>
+
+                                        <td>
+                                            @if($package->status === PrecinctPackage::STATUSES['REJECTED'])
+                                                <span class="btn btn-danger">Geri qaytarıldı</span>
+                                            @else
+                                                @if($_package && $_package->paid || $package->type == 'track')
+                                                    <button type="button" class="btn btn-danger handover" data-type="rejected"
+                                                            data-url="{{ route('precinct.rejected', $package->id) }}">
+                                                        Geri qaytar
+                                                    </button>
+                                                @else
+                                                    <span class="btn btn-danger cursor-default">Ödənilməyib</span>
+                                                @endif
+                                            @endif
+                                        </td>
+
                                     </tr>
                                 @endforeach
                                 </tbody>
@@ -150,7 +167,11 @@
                     contentType: 'application/json',
                     success: function (response) {
                         if (response.status) {
-                            button.text('Təhvil verildi')
+                            if(button.attr('data-type')=="rejected"){
+                                button.text('Geri qaytarıldı')
+                            }else{
+                                button.text('Təhvil verildi')
+                            }
                             button.attr('disabled', true)
                         } else {
                             alert(response.message)

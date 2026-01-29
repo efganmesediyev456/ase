@@ -42,6 +42,7 @@ class PrecinctPackage extends Model
         "WAREHOUSE" => 6,
         "ARRIVEDTOPOINT" => 8,
         "DELIVERED" => 10,
+        'REJECTED' => 12,
     ];
 
     public function scopePayed()

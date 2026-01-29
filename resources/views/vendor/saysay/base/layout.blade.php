@@ -151,11 +151,13 @@
 
     <script src="{{ asset('admin/js/jquery.pos.js') }}"></script>
     @if(!Request::is('container/check/*'))
-        <script src="{{ asset('admin/js/scanner.js') }}?v=1.2.1.79"></script>
+        <script src="{{ asset('admin/js/scanner.js') }}?v={{time()}}"></script>
     @endif
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script src="{{ asset('admin/js/types.js') }}?v=1.0.1.4"></script>
 @endif
+
+
 
 
 </body>

@@ -124,6 +124,11 @@ Route::group(['middleware' => ['auth', 'email_verified'], 'prefix' => 'user'], f
         'as' => 'edit',
         'uses' => 'UserController@edit'
     ]);
+
+    Route::post('/trendyol/assigned', [
+        'as' => 'trendyol.assigned',
+        'uses' => 'UserController@assigned'
+    ]);
     Route::post('edit', [
         'as' => 'update',
         'uses' => 'UserController@update'

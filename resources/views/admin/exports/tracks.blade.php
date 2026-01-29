@@ -27,7 +27,9 @@
         <th><b>City</b></th>
         <th><b>Address</b></th>
         <th><b>Detailed type</b></th>
+        <th><b>Cell</b></th>
         <th><b>Created at</b></th>
+        <th><b> Delivered At	</b></th>
     </tr>
     </thead>
     <tbody>
@@ -65,7 +67,9 @@
             <td>{{ $track->city_name }}</td>
             <td>{{ $track->address }}</td>
             <td>{{ $track->detailed_type }}</td>
+            <td>{{ $track->cell }}</td>
             <td>{{ $track->created_at }}</td>
+            <td>{{ $track->scanned_at }}</td>
         </tr>
 
     @endforeach

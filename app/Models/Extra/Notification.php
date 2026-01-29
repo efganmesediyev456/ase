@@ -54,6 +54,210 @@ class Notification extends Model
      * @param $status
      * @return bool
      */
+
+    public static function sendPackageTest($packageId, $status)
+    {
+        $package = Package::find($packageId);
+
+        if (!$package || !$package->user) {
+            return false;
+        }
+
+        if ($status == '2') { // In Baku
+            if ($package->user->city_id == 6) { //Sheki city
+                return false;
+            }
+        }
+
+        $azeri_express_name = null;
+        $azeri_express_address = null;
+        $filial_url = null;
+        $filial_work_time = null;
+        $user = $package->user;
+        if ($user && $user->real_azeri_express_use && $user->azeri_express_office) {
+            if ($user->azeri_express_office->description)
+                $azeri_express_name = $user->azeri_express_office->description;
+            if ($user->azeri_express_office->address)
+                $azeri_express_address = $user->azeri_express_office->address;
+            $filial_url = locationUrl($user->azeri_express_office->latitude, $user->azeri_express_office->longitude);
+            $filial_work_time = $user->azeri_express_office->work_time;
+        }
+        if ($user && $user->real_surat_use && $user->surat_office) {
+            if ($user->surat_office->description)
+                $azeri_express_name = $user->surat_office->description;
+            if ($user->surat_office->address)
+                $azeri_express_address = $user->surat_office->address;
+            $filial_url = locationUrl($user->surat_office->latitude, $user->surat_office->longitude);
+            $filial_work_time = $user->surat_office->work_time;
+        }
+        if ($user && $user->real_yenipoct_use && $user->yenipoct_office) {
+            if ($user->yenipoct_office->description)
+                $azeri_express_name = $user->yenipoct_office->description;
+            if ($user->yenipoct_office->address)
+                $azeri_express_address = $user->yenipoct_office->address;
+            $filial_url = locationUrl($user->yenipoct_office->latitude, $user->yenipoct_office->longitude);
+            $filial_work_time = $user->yenipoct_office->work_time;
+        }
+        if ($user && $user->real_kargomat_use && $user->kargomat_office) {
+            if ($user->kargomat_office->description)
+                $azeri_express_name = $user->kargomat_office->description;
+            if ($user->kargomat_office->address)
+                $azeri_express_address = $user->kargomat_office->address;
+            $filial_url = locationUrl($user->kargomat_office->latitude, $user->kargomat_office->longitude);
+            $filial_work_time = $user->kargomat_office->work_time;
+        }
+        if ($user && !$user->real_azerpoct_send && !$user->real_yenipoct_use && !$user->real_kargomat_use && !$user->real_azeri_express_use && !$user->real_surat_use && $user->delivery_point && $user->real_store_status != 2) {
+            if ($user->delivery_point->description)
+                $azeri_express_name = $user->delivery_point->description;
+            if ($user->delivery_point->address)
+                $azeri_express_address = $user->delivery_point->address;
+            $filial_url = locationUrl($user->delivery_point->latitude, $user->delivery_point->longitude);
+            $filial_work_time = $user->delivery_point->work_time;
+        }
+        if ($user && $user->real_azerpoct_send && $user->real_zip_code && $user->azerpost_office) {
+            if ($user->azerpost_office->description)
+                $azeri_express_name = $user->azerpost_office->description;
+            if ($user->azerpost_office->address)
+                $azeri_express_address = $user->azerpost_office->address;
+            $filial_url = locationUrl($user->azerpost_office->latitude, $user->azerpost_office->longitude);
+            $filial_work_time = $user->azerpost_office->work_time;
+        }
+
+
+        $package_azeri_express_name = null;
+        $package_azeri_express_address = null;
+        $package_filial_contact_name = null;
+        $package_filial_contact_phone = null;
+        $package_filial_url = null;
+        $package_filial_work_time = null;
+        $package_filial_lunch_time = null;
+        if ($package->azerpost_office) {
+            if ($package->azerpost_office->description)
+                $package_azeri_express_name = $package->azerpost_office->description;
+            if ($package->azerpost_office->address)
+                $package_azeri_express_address = $package->azerpost_office->address;
+            if (isset($package->azerpost_office->contact_phone) && $package->azerpost_office->contact_phone) {
+                $package_filial_contact_phone = $package->azerpost_office->contact_phone;
+            }
+            if (isset($package->azerpost_office->contact_name) && $package->azerpost_office->contact_name) {
+                $package_filial_contact_name = $package->azerpost_office->contact_name;
+            }
+            $package_filial_url = locationUrl($package->azerpost_office->latitude, $package->azerpost_office->longitude);
+            $package_filial_work_time = $package->azerpost_office->work_time;
+            $package_filial_lunch_time = $package->azerpost_office->lunch_time;
+        } else if ($package->azeri_express_office) {
+            if ($package->azeri_express_office->description)
+                $package_azeri_express_name = $package->azeri_express_office->description;
+            if ($package->azeri_express_office->address)
+                $package_azeri_express_address = $package->azeri_express_office->address;
+            if (isset($package->azeri_express_office->contact_phone) && $package->azeri_express_office->contact_phone) {
+                $package_filial_contact_phone = $package->azeri_express_office->contact_phone;
+            }
+            if (isset($package->azeri_express_office->contact_name) && $package->azeri_express_office->contact_name) {
+                $package_filial_contact_name = $package->azeri_express_office->contact_name;
+            }
+            $package_filial_url = locationUrl($package->azeri_express_office->latitude, $package->azeri_express_office->longitude);
+            $package_filial_work_time = $package->azeri_express_office->work_time;
+            $package_filial_lunch_time = $package->azeri_express_office->lunch_time;
+        } else if ($package->surat_office) {
+            if ($package->surat_office->description)
+                $package_azeri_express_name = $package->surat_office->description;
+            if ($package->surat_office->address)
+                $package_azeri_express_address = $package->surat_office->address;
+            if (isset($package->surat_office->contact_phone) && $package->surat_office->contact_phone) {
+                $package_filial_contact_phone = $package->surat_office->contact_phone;
+            }
+            if (isset($package->surat_office->contact_name) && $package->surat_office->contact_name) {
+                $package_filial_contact_name = $package->surat_office->contact_name;
+            }
+            $package_filial_url = locationUrl($package->surat_office->latitude, $package->surat_office->longitude);
+            $package_filial_work_time = $package->surat_office->work_time;
+            $package_filial_lunch_time = $package->surat_office->lunch_time;
+        } else if ($package->yenipoct) {
+            if ($package->yenipoct->description)
+                $package_azeri_express_name = $package->yenipoct->description;
+            if ($package->yenipoct->address)
+                $package_azeri_express_address = $package->yenipoct->address;
+            if (isset($package->yenipoct->contact_phone) && $package->yenipoct->contact_phone) {
+                $package_filial_contact_phone = $package->yenipoct->contact_phone;
+            }
+            if (isset($package->yenipoct->contact_name) && $package->yenipoct->contact_name) {
+                $package_filial_contact_name = $package->yenipoct->contact_name;
+            }
+            $package_filial_url = locationUrl($package->yenipoct->latitude, $package->yenipoct->longitude);
+            $package_filial_work_time = $package->yenipoct->work_time;
+            $package_filial_lunch_time = $package->yenipoct->lunch_time;
+        } else if ($package->kargomat) {
+            if ($package->kargomat->description)
+                $package_azeri_express_name = $package->kargomat->description;
+            if ($package->kargomat->address)
+                $package_azeri_express_address = $package->kargomat->address;
+            if (isset($package->kargomat->contact_phone) && $package->kargomat->contact_phone) {
+                $package_filial_contact_phone = $package->kargomat->contact_phone;
+            }
+            if (isset($package->kargomat->contact_name) && $package->kargomat->contact_name) {
+                $package_filial_contact_name = $package->kargomat->contact_name;
+            }
+            $package_filial_url = locationUrl($package->kargomat->latitude, $package->kargomat->longitude);
+            $package_filial_work_time = $package->kargomat->work_time;
+            $package_filial_lunch_time = $package->kargomat->lunch_time;
+        } else if ($package->delivery_point && !($package->store_status == 2 && $status == '8')) {
+            if ($package->delivery_point->description)
+                $package_azeri_express_name = $package->delivery_point->description;
+            if ($package->delivery_point->address)
+                $package_azeri_express_address = $package->delivery_point->address;
+            if (isset($package->delivery_point->contact_phone) && $package->delivery_point->contact_phone) {
+                $package_filial_contact_phone = $package->delivery_point->contact_phone;
+            }
+            if (isset($package->delivery_point->contact_name) && $package->delivery_point->contact_name) {
+                $package_filial_contact_name = $package->delivery_point->contact_name;
+            }
+            $package_filial_url = locationUrl($package->delivery_point->latitude, $package->delivery_point->longitude);
+            $package_filial_work_time = $package->delivery_point->work_time;
+            $package_filial_lunch_time = $package->delivery_point->lunch_time;
+        }
+
+        $data = [
+            'id' => $package->id,
+            'cwb' => $package->custom_id,
+            'track_code' => $package->tracking_code,
+            'user' => $package->user->full_name,
+            'code' => $package->user->customer_id,
+            'city' => $package->user->city_name,
+            'package_city' => $package->city_name,
+            'price' => $package->merged_delivery_price,
+            'web_site' => getOnlyDomain($package->website_name),
+            'azeri_express_name' => $azeri_express_name,
+            'azeri_express_address' => $azeri_express_address,
+            'filial_name' => $azeri_express_name,
+            'incustom_url' => 'www.aseshop.az',
+            'incustom_price' => $package->debt_price,
+            'broker_url' => str_replace('admin.', '', route('package-pay-broker', $package->custom_id)),
+            'broker_fee' => (empty($package->user->voen)) ? 15 : 50,
+            'filial_address' => $azeri_express_address,
+            'filial_url' => $filial_url,
+            'filial_work_time' => $filial_work_time,
+            'package_filial_name' => $package_azeri_express_name,
+            'package_filial_address' => $package_azeri_express_address,
+            'package_filial_contact_name' => $package_filial_contact_name,
+            'package_filial_contact_phone' => $package_filial_contact_phone,
+            'package_filial_url' => $package_filial_url,
+            'package_filial_work_time' => $package_filial_work_time,
+            'package_filial_lunch_time' => $package_filial_lunch_time,
+            'weight' => $package->weight_with_type,
+            'country' => (isset($package->warehouse) && isset($package->warehouse->country)) ? $package->warehouse->country->name : 'xarici',
+        ];
+        $template = ($status == 'no_declaration' || $status == 'courier_picked_up' || $status == 'customs_storage_fee' || $status == 'Precint_notpaid' || $status == 'package_not_paid' || $status == 'PUDO_DELIVERED_STATUS_PACKAGES' || $status == 'customs_broker_fee') ? $status : ('package_status_' . $status);
+        $template1 = null;
+
+        if ($package->warehouse_id)
+            $template1 = $template . '_' . $package->warehouse_id;
+
+        dd($package->user_id, $data, $template, $template1);
+
+        return self::sendBoth($package->user_id, $data, $template, $template1);
+    }
+
     public static function sendPackage($packageId, $status)
     {
         $package = Package::find($packageId);
@@ -248,6 +452,7 @@ class Notification extends Model
         ];
         $template = ($status == 'no_declaration' || $status == 'courier_picked_up' || $status == 'customs_storage_fee' || $status == 'Precint_notpaid' || $status == 'package_not_paid' || $status == 'PUDO_DELIVERED_STATUS_PACKAGES' || $status == 'customs_broker_fee') ? $status : ('package_status_' . $status);
         $template1 = null;
+
         if ($package->warehouse_id)
             $template1 = $template . '_' . $package->warehouse_id;
 
@@ -260,6 +465,9 @@ class Notification extends Model
      * @param $template
      * @return bool
      */
+
+
+
 
     public static function sendBoth($userID, $data, $template, $template1 = NULL)
     {
@@ -689,6 +897,12 @@ class Notification extends Model
 //        @self::sendQueueWhatsapp($queue);
         @self::sendQueueWhatsappNew($queue);
         @self::sendQueueMobile($queue);
+
+        return true;
+    }
+    public static function sendBothForQueueOnlySmS(NotificationQueue $queue)
+    {
+        @self::sendQueueSMS($queue);
 
         return true;
     }
