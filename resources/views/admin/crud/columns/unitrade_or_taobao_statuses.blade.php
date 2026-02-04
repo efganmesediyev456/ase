@@ -1,0 +1,1 @@
+<a href="/tracks/states/{{$item->id}}" target="_blank" class="btn btn-success">Get States</a>

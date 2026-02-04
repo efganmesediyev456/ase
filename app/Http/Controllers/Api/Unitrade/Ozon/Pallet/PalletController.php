@@ -22,10 +22,10 @@ class PalletController
             'parcel_ids' => 'required|array',
         ]);
 
-        DB::table('pallet_shipment_logs')->insert([
-            'action' => 'create',
-            'request_data' => json_encode($request->all()),
-        ]);
+//        DB::table('pallet_shipment_logs')->insert([
+//            'action' => 'create',
+//            'request_data' => json_encode($request->all()),
+//        ]);
 
         $from_country = isset($request->from_country) ? $request->from_country : 'RU';
 
@@ -62,10 +62,10 @@ class PalletController
 //        ]);
 
 
-        DB::table('pallet_shipment_logs')->insert([
-            'action' => 'create response',
-            'request_data' => json_encode($tracks).' -- '.json_encode($box),
-        ]);
+//        DB::table('pallet_shipment_logs')->insert([
+//            'action' => 'create response',
+//            'request_data' => json_encode($tracks).' -- '.json_encode($box),
+//        ]);
 
         return response()->json([
             "status" => true,
@@ -95,10 +95,10 @@ class PalletController
             'parcel_ids' => 'required|array',
         ]);
 
-        DB::table('pallet_shipment_logs')->insert([
-            'action' => 'update',
-            'request_data' => json_encode($request->all()),
-        ]);
+//        DB::table('pallet_shipment_logs')->insert([
+//            'action' => 'update',
+//            'request_data' => json_encode($request->all()),
+//        ]);
 
         $from_country = isset($request->from_country) ? $request->from_country : 'RU';
 
@@ -123,10 +123,10 @@ class PalletController
         }
 
 
-        DB::table('pallet_shipment_logs')->insert([
-            'action' => 'update response',
-            'request_data' => json_encode($tracks).' -- '.json_encode($box),
-        ]);
+//        DB::table('pallet_shipment_logs')->insert([
+//            'action' => 'update response',
+//            'request_data' => json_encode($tracks).' -- '.json_encode($box),
+//        ]);
 
         return response()->json([
             "status" => true,

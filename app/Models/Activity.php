@@ -147,7 +147,7 @@ class Activity extends Model
                     if ($courier) {
                         $str .= " courier: " . $courier->name . " ";
                     }
-                    $str .= " status: " . $cd->status_with_label . " ";
+                    $str .= " status: " . $cd->status_with_label_log . " ";
                     if (!empty($cd->courier_comment)) {
                         $str .= " comm: " . $cd->courier_comment . " ";
                     }

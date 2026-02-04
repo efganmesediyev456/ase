@@ -375,17 +375,17 @@ class Warehouse extends Authenticatable
     {
 
 
-        sendTelegramMessage(now().' '.$custom_id.' gelen datalar  - '.json_encode([ $weight,
-            $weightUnit = 0,
-            $width = null,
-            $height = null,
-            $length = null,
-            $sizeUnit = 0,
-            $showCurrency = false,
-            $discountPercent = 0,
-            $azerpoct = 0,
-            $city_id = 0,
-            $additional_delivery_price = 0]));
+//        sendTelegramMessage(now().' '.$custom_id.' gelen datalar  - '.json_encode([ $weight,
+//            $weightUnit = 0,
+//            $width = null,
+//            $height = null,
+//            $length = null,
+//            $sizeUnit = 0,
+//            $showCurrency = false,
+//            $discountPercent = 0,
+//            $azerpoct = 0,
+//            $city_id = 0,
+//            $additional_delivery_price = 0]));
 
         $result = 0;
         if (!$this->country)
@@ -408,14 +408,14 @@ class Warehouse extends Authenticatable
         $kq = $size_index > $weight ? $size_index : $weight;
 
 
-        sendTelegramMessage(now().' '.$custom_id.' size index ve kq  - '.json_encode([ $size_index, $kq]));;
+//        sendTelegramMessage(now().' '.$custom_id.' size index ve kq  - '.json_encode([ $size_index, $kq]));;
 
         if ($kq) {
             $tariff_price = null;
             $weightPrice = null;
 
             $tariffs = $this->active_tariffs;
-            sendTelegramMessage(now().' '.$custom_id.' tariffler  - '.json_encode($tariffs->toArray()));;
+//            sendTelegramMessage(now().' '.$custom_id.' tariffler  - '.json_encode($tariffs->toArray()));;
 
             if ($tariffs && count($tariffs) > 0) {
                 foreach ($tariffs as $tariff) {
@@ -424,7 +424,7 @@ class Warehouse extends Authenticatable
                     foreach ($tariff->tariff_weights as $tariffWeight) {
                         $tariffPrices = null;
 
-                        sendTelegramMessage(now().' '.$custom_id.' tariffWeight  - '.json_encode($tariffWeight->toArray()));;
+//                        sendTelegramMessage(now().' '.$custom_id.' tariffWeight  - '.json_encode($tariffWeight->toArray()));;
 
 //                        if ($azerpoct)
 //                            $tariffPrices = $tariffWeight->azerpoct_tariff_prices;
@@ -469,7 +469,7 @@ class Warehouse extends Authenticatable
                                 }
                             }
 
-                            sendTelegramMessage(now().' '.$custom_id.' oneKgPrice,tenKgPrice   - '.json_encode($oneKgPrice.','.$tenKgPrice));;
+//                            sendTelegramMessage(now().' '.$custom_id.' oneKgPrice,tenKgPrice   - '.json_encode($oneKgPrice.','.$tenKgPrice));;
 
 
                             //echo "  twid=".$tariffWeight->id." pw=".$tariffWeight->per_weight." cid=".$city_id;
@@ -529,7 +529,7 @@ class Warehouse extends Authenticatable
             }
 
 
-            sendTelegramMessage(now().' '.$custom_id.' tariff_price   - '.json_encode($tariff_price));;
+//            sendTelegramMessage(now().' '.$custom_id.' tariff_price   - '.json_encode($tariff_price));;
 
 
             //$weightPrice=WeightPrice::where('warehouse_id',$this->id)->where("is_active",1)
@@ -577,7 +577,7 @@ class Warehouse extends Authenticatable
             $result = $result - round($result * $discountPercent / 100, 2);
         else if ($discountPercent >= 100) $result = 0;
 
-        sendTelegramMessage(now().' '.$custom_id.' final result - '.json_encode($result));;
+//        sendTelegramMessage(now().' '.$custom_id.' final result - '.json_encode($result));;
 
         return $result ? (round($result, 2) . ($showCurrency ? " " . $this->currency_with_label : null)) : False;
     }

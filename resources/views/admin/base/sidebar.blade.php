@@ -630,6 +630,11 @@
             <li {!! classActiveRoute('faqs.index') !!}><a href="{{ route('faqs.index') }}"><i class="icon-qrcode"></i>
                     <span>FAQ</span></a></li>
             @endpermission
+
+            @permission('read-contacts')
+            <li {!! classActiveRoute('contacts.index') !!}><a href="{{ route('contacts.index') }}"><i class="icon-envelope"></i>
+                    <span>Contact Messages</span></a></li>
+            @endpermission
         </ul>
     </li>
     @endpermission
@@ -662,7 +667,7 @@
     @permission('read-notifications')
     <li {!! classActiveRoute('notifications.index') !!}>
         <a href="{{ route('notifications.index') }}">
-            <i class="icon-mail-read"></i> <span>Notifications</span>
+            <i class="icon-mail-read"></i> Notifications
         </a>
     </li>
     @endpermission
@@ -700,13 +705,23 @@
     <li {!! classActiveRoute('settings.index') !!}><a href="{{ url('translations') }}"><i class="icon-code"></i> <span>Translations</span></a>
     </li>
     @endpermission
+    @permission('read-export_delivery_date')
     <li {!! classActiveRoute('export_delivery_date.index') !!}><a href="{{ route('export_delivery_date.index') }}"><i class="icon-code"></i> <span>Export Delivery Dates</span></a>
     </li>
+    @endpermission
+    @permission('read-bulk_resend_statuses')
     <li {!! classActiveRoute('bulk_resend_statuses.index') !!}><a href="{{ route('bulk_resend_statuses.index') }}"><i class="icon-code"></i> <span>Bulk resend status</span></a>
+    @endpermission
+    @permission('read-instagrams')
     <li {!! classActiveRoute('instagrams.index') !!}><a href="{{ route('instagrams.index') }}"><i class="icon-code"></i> <span>Bizi instagramdan izləyin</span></a>
     </li>
+    @endpermission
+    @permission('read-careers')
     <li {!! classActiveRoute('careers.index') !!}><a href="{{ route('careers.index') }}"><i class="icon-code"></i> <span>Vakansiyalar</span></a>
     </li>
+    @endpermission
+    @permission('read-applications')
     <li {!! classActiveRoute('applications.index') !!}><a href="{{ route('applications.index') }}"><i class="icon-code"></i> <span>Vakansiya müraciətlər</span></a>
     </li>
+    @endpermission
 </ul>

@@ -384,13 +384,11 @@
                                                     </div>
                                                 @endif
 
-                                                @if($log->response_body)
-                                                    <div class="form-group">
+                                                <div class="form-group">
                                                         <label><strong>Response Body:</strong></label>
                                                         <pre class="bg-light p-3"
                                                              style="max-height: 300px; overflow-y: auto;">{{ json_encode(json_decode($log->response_body), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
-                                                    </div>
-                                                @endif
+                                                </div>
 
                                                 <hr>
 

@@ -756,6 +756,7 @@ class Package extends Model
 
     public function getDeliveryPrice($value, $weight = 0)
     {
+//        dd($value, $weight);
         if (!$this->warehouse) {
             return null;
         }
@@ -784,7 +785,7 @@ class Package extends Model
 
 //        return $params;
 
-        return $value ? $value : $this->warehouse->calculateDeliveryPrice($dweight, $this->attributes['weight_type'], $this->attributes['width'], $this->attributes['height'], $this->attributes['length'], $this->attributes['length_type'], false, 0, $azerpoct, $city_id, $additionalDeliveryPrice);
+        return $value ? $value : $this->warehouse->calculateDeliveryPrice2($dweight, $this->attributes['weight_type'], $this->attributes['width'], $this->attributes['height'], $this->attributes['length'], $this->attributes['length_type'], false, 0, $azerpoct, $city_id, $additionalDeliveryPrice, $this->custom_id);
     }
 
     public function getParcelIdAttribute()
@@ -796,11 +797,13 @@ class Package extends Model
     {
         $deliveryPriceUSD = $this->delivery_price_usd;
         $deliveryPriceAZN = $this->delivery_price_azn;
+
         if (!empty($deliveryPriceUSD) && !empty($deliveryPriceAZN))
             return;
         if (!$this->warehouse || !$this->delivery_price) {
             return;
         }
+
 
         $usdCur = 0;
         $warCur = $this->warehouse->currency;
@@ -1641,7 +1644,7 @@ class Package extends Model
                         $query->insurance_price = $insurance_price;
                         $additionalDeliveryPrice += $insurance_price;
 
-                        $deliveryPrice = $warehouse->calculateDeliveryPrice($weight, $weight_type, $query->width, $query->height, $query->length, $length_type, false, 0, $azerpoct, $city_id, $additionalDeliveryPrice);
+                        $deliveryPrice = $warehouse->calculateDeliveryPrice2($weight, $weight_type, $query->width, $query->height, $query->length, $length_type, false, 0, $azerpoct, $city_id, $additionalDeliveryPrice, $query->custom_id);
                         $query->delivery_price = $deliveryPrice;
                     }
                 }
@@ -1671,7 +1674,6 @@ class Package extends Model
 
         static::updating(function ($query) {
 
-//            2055
             $_package = Package::withTrashed()->find($query->id);
             $user = null;
             if ($_package->user_id)
@@ -1707,7 +1709,7 @@ class Package extends Model
                 $warehouse = Warehouse::find($query->warehouse_id);
                 $curWeightGoods = $query->weight_goods;
                 $curWeight = $query->weight;
-                $delPrice = $query->delivery_price;
+                $delPrice = $query->attributes['delivery_price'];
                 $hasBattery = $query->has_battery;
                 $curShippingAmount = Package::s_getShippingAmountUSD($query);
                 $prevWeight = null;
@@ -1726,6 +1728,11 @@ class Package extends Model
                 if (env('APP_ENV') != "local") {
                     file_put_contents('/var/log/ase_delivery_price.log', 'weight: ' . $weight . ' prev : (' . $prevWeight . ',' . $prevWeightGoods . ',' . $prevHasBattery . ')' . ' cur : (' . $curWeight . ',' . $curWeightGoods . ',' . $hasBattery . ')', FILE_APPEND);
                 }
+
+//                dd($warehouse, $weight, $delPrice, $curWeight, $prevWeight,$curWeightGoods,$prevWeightGoods,$hasBattery,$prevHasBattery,$prevShippingAmount,$curShippingAmount);
+
+//                dd($warehouse && $weight && (empty($delPrice) || ($curWeight != $prevWeight) || ($curWeightGoods != $prevWeightGoods) || ($curShippingAmount != $prevShippingAmount) || ($hasBattery != $prevHasBattery && $warehouse->battery_price && $warehouse->battery_price > 0)));
+
                 //if ($warehouse && $weight && (empty($delPrice) || ($weight != $prevWeight))) {
                 if ($warehouse && $weight && (empty($delPrice) || ($curWeight != $prevWeight) || ($curWeightGoods != $prevWeightGoods) || ($curShippingAmount != $prevShippingAmount) || ($hasBattery != $prevHasBattery && $warehouse->battery_price && $warehouse->battery_price > 0))) {
                     $additionalDeliveryPrice = 0;
@@ -1748,7 +1755,7 @@ class Package extends Model
                     $query->insurance_price = $insurance_price;
                     $additionalDeliveryPrice += $insurance_price;
 
-                    $deliveryPrice = $warehouse->calculateDeliveryPrice($weight, $query->weight_type, $query->width, $query->height, $query->length, $query->length_type, false, 0, $azerpoct, $city_id, $additionalDeliveryPrice);
+                    $deliveryPrice = $warehouse->calculateDeliveryPrice2($weight, $query->weight_type, $query->width, $query->height, $query->length, $query->length_type, false, 0, $azerpoct, $city_id, $additionalDeliveryPrice, $query->custom_id);;
 
                     $query->delivery_price = $deliveryPrice;
                     if (env('APP_ENV') != "local") {

@@ -21,10 +21,10 @@ class ShipmentController
             'shipment.awb_number' => 'required',
         ];
 
-        DB::table('pallet_shipment_logs')->insert([
-            'action' => 'finish',
-            'request_data' => json_encode($request->all()),
-        ]);
+//        DB::table('pallet_shipment_logs')->insert([
+//            'action' => 'finish',
+//            'request_data' => json_encode($request->all()),
+//        ]);
 
         $validator = \Validator::make($request->all(), $this->rules);
         if ($validator->fails()) {
@@ -88,10 +88,10 @@ class ShipmentController
         }
 
 
-        DB::table('pallet_shipment_logs')->insert([
-            'action' => 'finish response',
-            'request_data' => json_encode($container).' -- '.json_encode($airboxes).' -- '.json_encode($tracks),
-        ]);
+//        DB::table('pallet_shipment_logs')->insert([
+//            'action' => 'finish response',
+//            'request_data' => json_encode($container).' -- '.json_encode($airboxes).' -- '.json_encode($tracks),
+//        ]);
 
         return response()->json(['success' => true], 200);
     }

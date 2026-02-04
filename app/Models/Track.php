@@ -86,7 +86,8 @@ class Track extends Model
         'paid_debt',
         'latitude',
         'longitude',
-        'shelf_id'
+        'shelf_id',
+        'is_meest'
     ];
 
     protected $dates = [

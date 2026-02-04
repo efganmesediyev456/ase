@@ -229,6 +229,7 @@ Route::group([
             'uses' => 'TracksImportWBController@index'
         ]);
 
+
         Route::post('tracks_import_ihb/import', [
             'as' => 'tracks_import_ihb.import',
             'uses' => 'TracksImportIHBController@import'
@@ -808,6 +809,16 @@ Route::group([
         Route::get('tracks/parselcarrierlist/{id?}', [
             'as' => 'tracks.parselcarrierlist',
             'uses' => 'TrackController@parselcarrierlist',
+        ]);
+
+
+        Route::get('tracks/states/{id?}', [
+            'as' => 'tracks.states',
+            'uses' => 'TrackController@statesList',
+        ]);
+        Route::post('tracks/states/{id?}', [
+            'as' => 'tracks.states.post',
+            'uses' => 'TrackController@statesPost',
         ]);
 
         Route::get('tracks/parselcarrierupdate/{id?}', [

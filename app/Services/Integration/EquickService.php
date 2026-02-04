@@ -269,6 +269,9 @@ class EquickService extends BaseService
 
     public function updateStatus(Track $track, $status = null)
     {
+//        sendTelegramMessage(json_encode($track).' bu trackdir');
+//        sendTelegramMessage($status);
+
         if ($status) {
             $statusString = array_search((int)$status, self::STATES, true);
         } else {

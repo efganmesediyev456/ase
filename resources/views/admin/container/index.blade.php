@@ -82,7 +82,7 @@
                                     </td>
                                     <td colspan="2"></td>
 
-                                    @if(optional(auth()->user()->role)->id!=1 and $item->partner_id == 3)
+                                    @if(!in_array(optional(auth()->user()->role)->id, [1, 4]) && $item->partner_id == 3)
                                         <td></td>
                                         <td></td>
                                         <td></td>
@@ -181,7 +181,7 @@
                                             <td>{{ $item->partner_with_label }}
                                             <td colspan="3"></td>
 
-                                            @if(optional(auth()->user()->role)->id!=1 and $item->partner_id == 3)
+                                            @if(!in_array(optional(auth()->user()->role)->id, [1, 4]) && $item->partner_id == 3)
                                                 <td></td>
                                                 <td></td>
                                                 <td></td>
@@ -235,7 +235,7 @@
                                                         @endphp
 
 
-                                                        @if(optional(auth()->user()->role)->id!=1 and $item->partner_id == 3 and in_array($key,['weight','number_items','carrier']))
+                                                        @if(!in_array(optional(auth()->user()->role)->id, [1, 4]) && $item->partner_id == 3 and in_array($key,['weight','number_items','carrier']))
 
                                                         @else
                                                             @if(view()->exists('admin.crud.columns.' . $type))

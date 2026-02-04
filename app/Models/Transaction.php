@@ -7,6 +7,7 @@ use Eloquent;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * App\Models\Transaction
@@ -48,6 +49,8 @@ use Illuminate\Support\Carbon;
 class Transaction extends Model
 {
     use ModelEventLogger;
+    use SoftDeletes;
+
 
     protected $fillable = [
         'paid_by',

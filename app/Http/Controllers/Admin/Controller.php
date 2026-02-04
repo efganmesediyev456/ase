@@ -550,6 +550,8 @@ class Controller extends BaseController
             $item->setDefaultLocale($this->currentLang);
         }
 
+
+
 //        dd($this->panelView('form'));
         return view($this->panelView('form'), compact('item', 'form'));
     }

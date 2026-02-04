@@ -20,9 +20,11 @@ use App\Models\Kargomat\KargomatOffice;
 use App\Models\Package;
 use App\Models\Surat\SuratOffice;
 use App\Models\Track;
+use App\Models\TrackStatus;
 use App\Models\Transaction;
 use App\Models\UnknownOffice;
 use App\Models\YeniPoct\YenipoctOffice;
+use App\Services\Integration\UnitradeService;
 use App\Services\Package\PackageService;
 use Auth;
 use Carbon\Carbon;
@@ -555,6 +557,10 @@ class TrackController extends Controller
         'created_at' => [
             'label' => 'CreatedAt',
             'order' => 'created_at',
+        ],
+        'states' => [
+            'label' => 'states',
+            'type' => 'unitrade_or_taobao_statuses',
         ],
     ];
 
@@ -1271,6 +1277,9 @@ class TrackController extends Controller
     }
     public function ajax(Request $request, $id)
     {
+//        sendTelegramMessage(json_encode($request->all()));
+//        sendTelegramMessage($id);
+
         $track = Track::find($id);
         if ($request->get('name') == 'status') {
 
@@ -2053,4 +2062,30 @@ class TrackController extends Controller
     }
 
 
+    public function statesList(Request $request, $id)
+    {
+        $track = Track::find($id);
+        $statuses = TrackStatus::query()->where('track_id', $id)->orderBy('id','desc')->get();
+        $statuses->transform(function ($status) {
+            $st = array_search($status->status, UnitradeService::STATES);
+            return [
+                'status' => $st,
+                'date' => $status->created_at->format('d-m-Y H:i'),
+                'note' => $status->note,
+            ];
+        });
+        $statusOptions = config('ase.attributes.track.statusShort');
+
+        return view('admin.states_list', compact('track', 'statuses','statusOptions'));
+    }
+
+
+    public function statesPost(Request $request,$id){
+        $track = Track::find($id);
+        $response = (new PackageService())->updateStatus($track, $request->status);
+        if($response){
+            return redirect()->back()->with('success','Status updated successfully');
+        }
+        return redirect()->back()->with('error','Status didn\'t update successfully');
+    }
 }

@@ -712,6 +712,10 @@ class CD extends Model
 
     }
 
+    public function getStatusWithLabelLogAttribute(){
+        return "Kuryer təyin edilmişdir";
+    }
+
     public function getNotDeliveredStatusWithLabelAttribute()
     {
         $status = $this->attributes['not_delivered_status'];

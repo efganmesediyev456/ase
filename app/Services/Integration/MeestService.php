@@ -87,6 +87,7 @@ class MeestService extends BaseService
     {
         $statusId = $params->weight ? self::STATES['WaitingForDeclaration'] : self::STATES['WaitingDomesticShipment'];
 
+
         $warehouse = $params->warehouse_id;
         $warehousePrefix = substr($warehouse, 0, 2);
         $warehouseId = substr($warehouse, 2);
@@ -98,7 +99,7 @@ class MeestService extends BaseService
             "status" => $statusId,
             "website" => self::PARTNER_WEBSITES[$params->partner ?: 'IHERB'],
             "number_items" => count($params['products']) ?? 1,
-            "weight" => null,
+            "weight" => $params['weight'] ? $params['weight'] : null,
             "delivery_price" => $params->shipping_invoice['invoice_price'],
             "delivery_price_cur" => $params->shipping_invoice['currency'],
             "delivery_price_status" => $params->shipping_invoice['status']??null,
@@ -159,7 +160,9 @@ class MeestService extends BaseService
             'buyer_pin_code' => $params->buyer['pin_code'] ?? null,
             'buyer_shipping_address' => $params->buyer['shipping_address'] ?? null,
             'buyer_billing_address' => $params->buyer['billing_address'] ?? null,
+            'weight' => $params['weight'] ?? null,
         ]);
+
 
         $total_shipping_amount = 0;
         $total_number_items = 0;
@@ -206,6 +209,7 @@ class MeestService extends BaseService
             "delivery_number" => $track->delivery_number,
             "status" => array_search($track->status, self::STATES),
             "is_liquid" => $track->is_liquid,
+            "weight"=>$track->weight,
             "buyer" => [
                 "city" => $track->customer->city,
                 "country" => $track->buyer_country,
@@ -232,10 +236,10 @@ class MeestService extends BaseService
             "is_door" => $track->is_door,
             "domestic_cargo_company" => $track->domestic_cargo_company,
             "invoice" => [
-                "invoice_price" => $track->shipping_invoice_price,
-                "currency" => $track->shipping_currency,
-                "invoice_due_date" => $track->shipping_invoice_due,
-                "invoice_url" => $track->shipping_invoice_url
+                "invoice_price" => $track->invoice_price,
+                "currency" => $track->invoice_currency,
+                "invoice_due_date" => $track->invoice_due_date,
+                "invoice_url" => $track->invoice_url
             ],
             "shipping_invoice" => [
                 "invoice_price" => $track->shipping_invoice_price,
@@ -317,6 +321,8 @@ class MeestService extends BaseService
                 ]);
             }
         }
+
+        $unitradePackage = $unitradePackage->refresh();
 
         return $this->prepareResponse($unitradePackage);
     }

@@ -55,7 +55,47 @@ class Test extends Command
     public function handle()
     {
 
+        $packages = Package::where('paid',0)->whereIn('status',[0,8,1])->where('weight','>',10)->orderBy('id','desc')->get();
 
+
+
+        foreach ($packages as $key=>$package) {
+            $this->info(($key+1).'. '.$package->id.' tamamlandi');
+            $package->delivery_price = 0;
+            $package->delivery_price_usd = 0;
+            $package->delivery_price_azn = 0;
+            $package->save();
+        }
+
+        $this->info("Bitdi hamisi".count($packages));;
+
+        dd("exit");
+
+        $kapitalBankTxpgService = new KapitalBankTxpgService();
+        $botToken = "7784139238:AAGfstOZANbUgTV3hYKV8Xua8xQ_eJs5_wU";
+        $website = "https://api.telegram.org/bot" . $botToken;
+        $chatId = "-1002397303546";
+
+        $orderStatus = $kapitalBankTxpgService->getOrderStatus(200826580);
+
+        dd($orderStatus);
+
+
+
+        $track = Track::find(676721);
+        $replicate = $track->replicate();
+        $replicate->customer_id = 166085;
+        $replicate->tracking_code = 'Test64653hhk758874';
+        $replicate->save();
+        dd($replicate->toArray());
+
+
+        $track = Track::find(710943);
+        $track->updated_at = now();
+        $track->bot_comment = 'Web link pay';
+        $track->paid_debt = 1;
+        $track->save();
+        dd($track);
 
         $q = Track::whereIn('status', [18, 45]);
         $q = $q->where('paid_debt', 0);

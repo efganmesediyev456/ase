@@ -165,6 +165,24 @@ class PackageController extends Controller
             return response()->json($response, 404);
         }
 
+        if ($request->new_delivery_number && !empty($request->new_delivery_number)) {
+
+            $unitradePackageChange = $unitradePackageQuery->first();
+
+            $unitradePackageChange->delivery_number = $request->new_delivery_number;
+            $unitradePackageChange->save();
+
+
+            $track->tracking_code = $request->new_delivery_number;
+            $track->save();
+
+            $unitradePackageQuery = UnitradePackage::with(['package', 'user'])->where([
+                'delivery_number' => $request->input('new_delivery_number'),
+                'track_id' => $request->input('package_id'),
+            ]);
+        }
+
+
         // Extract request data
         $buyer = $request->buyer;
         $pin_code = $buyer['pin_code'];

@@ -239,7 +239,7 @@ class UnitradeService extends BaseService
             "status" => array_search($track->status, self::STATES),
             "is_liquid" => $track->is_liquid,
             "buyer" => [
-                "city" => $track->customer->city,
+                "city" => $track->customer ? $track->customer->city : '',
                 "country" => $track->buyer_country,
                 "phone_number" => $track->buyer_phone_number,
                 "billing_address" => $track->buyer_billing_address,
@@ -277,7 +277,7 @@ class UnitradeService extends BaseService
             ],
             "current_state" => null,
             "uid" => $track->uid,
-            "created_date" => $track->created_at->toDateTimeString(),
+            "created_date" => $track->created_at ? $track->created_at->toDateTimeString() : '',
 //            "warehouse" => [
 //                "id" => FilialController::PREFIX . $track->filial_id,
 //                "name" => $track->filial->name ?? null,
