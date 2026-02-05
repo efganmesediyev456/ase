@@ -138,7 +138,8 @@ class MeestService extends BaseService
             'seller_address' => $params->seller['address'] ?? null,
             'seller_ioss_number' => $params->seller['IOSS_number'] ?? null,
             'seller_country' => $params->seller['country'] ?? null,
-            'seller_city' => $params->seller['IOSS_number'] ?? null,
+            'seller_city' => $params->seller['city'] ?? null,
+            'seller_zip_code' => $params->seller['zip_code'] ?? null,
             'invoice_price' => $params->invoice['invoice_price'] ?? null,
             'invoice_due_date' => $params->invoice['invoice_due_date'] ?? null,
             'invoice_url' => $params->invoice['invoice_url'] ?? null,
@@ -211,7 +212,7 @@ class MeestService extends BaseService
             "is_liquid" => $track->is_liquid,
             "weight"=>$track->weight,
             "buyer" => [
-                "city" => $track->customer->city,
+                "city" => $track->customer->city_name,
                 "country" => $track->buyer_country,
                 "phone_number" => $track->buyer_phone_number,
                 "billing_address" => $track->buyer_billing_address,
@@ -219,18 +220,18 @@ class MeestService extends BaseService
                 "last_name" => $track->buyer_last_name,
                 "email_address" => $track->buyer_email_address,
                 "zip_code" => $track->buyer_zip_code,
-                "pin_code" => $track->fin,
-                "shipping_address" => $track->passport_fin
+                "pin_code" => $track->buyer_pin_code,
+                "shipping_address" => $track->buyer_shipping_address
             ],
             "seller" => [
                 "full_name" => $track->seller_name,
-                "city" => null,
-                "country" => null,
+                "city" => $track->seller_city,
+                "country" => $track->seller_country,
                 "phone_number" => $track->seller_phone,
                 "IOSS_number" => $track->seller_ioss_number,
                 "email_address" => $track->seller_email,
                 "address" => $track->seller_address,
-                "zip_code" => null
+                "zip_code" => $track->seller_zip_code
             ],
             "comment" => $track->comment,
             "is_door" => $track->is_door,

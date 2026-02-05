@@ -229,7 +229,6 @@ Route::group([
             'uses' => 'TracksImportWBController@index'
         ]);
 
-
         Route::post('tracks_import_ihb/import', [
             'as' => 'tracks_import_ihb.import',
             'uses' => 'TracksImportIHBController@import'
@@ -303,6 +302,16 @@ Route::group([
             'as' => 'in_customs_tracks.set',
             'uses' => 'InCustomsTrackController@index'
         ]);
+
+        Route::post('in_customs_packages/set', [
+            'as' => 'in_customs_packages.set',
+            'uses' => 'InCustomsPackageController@index'
+        ]);
+        Route::get('in_customs_packages/set', [
+            'as' => 'in_customs_packages.set',
+            'uses' => 'InCustomsPackageController@index'
+        ]);
+
         Route::post('status_tracks/set', [
             'as' => 'status_tracks.set',
             'uses' => 'StatusTrackController@index'

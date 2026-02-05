@@ -475,6 +475,15 @@ class PackageController extends Controller
             ],
             'order' => 'worker_comments',
         ],
+        'worker2_comments' => [
+            'label' => 'Comments 2',
+            'type' => 'editable',
+            'editable' => [
+                'route' => 'packages.ajax',
+                'type' => 'text',
+            ],
+            'order' => 'worker2_comments',
+        ],
         'user.city_name' => [
             'label' => 'City',
         ],
@@ -846,7 +855,7 @@ class PackageController extends Controller
             'label' => "Delivery Price",
             'type' => 'text',
             'wrapperAttributes' => [
-                'class' => 'col-md-12 mt-15',
+                'class' => 'col-md-3 mt-15',
             ],
             'validation' => 'nullable|numeric',
         ],
