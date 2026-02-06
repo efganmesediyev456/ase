@@ -1574,6 +1574,19 @@ class Package extends Model
 
         // auto-sets values on creation
         static::creating(function ($query) {
+
+            //tracking code yoxlamasi
+            $trackingCode = $query->tracking_code;
+
+            if (!$trackingCode) {
+                throw new \Exception("tracking_code yoxdur");
+            }
+
+            $exists = Package::where('tracking_code', $trackingCode)->lockForUpdate()->exists();
+            if ($exists) {
+                throw new \Exception("Bu tracking_code artıq mövcuddur, ikinciyi qoymaq olmaz!");
+            }
+
             $user = null;
             if (request()->has('user_id'))
                 $user = User::find(request()->get('user_id'));
@@ -1834,6 +1847,8 @@ class Package extends Model
             if ($query->do_use_goods != null && !$query->do_use_goods)
                 $query->use_goods = 0;
         });
+
+
     }
 
     public static function getCarrier($trackingNumber)

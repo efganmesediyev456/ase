@@ -33,7 +33,7 @@ class PalletController
             "name" => $request->barcode,
             "partner_id" => UnitradeService::PARTNERS_MAP['OZON'],
         ],[
-            "container_id" => null,
+//            "container_id" => null,
             "total_weight" => $request->total_weight,
             "total_count" => $request->total_count,
             "from_country" => $from_country

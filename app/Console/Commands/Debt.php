@@ -67,7 +67,7 @@ class Debt extends Command
             ->orWhere(function ($q) {
                 $q->where('partner_id', 3)
                     ->whereNotNull('customs_at')
-                    ->where('customs_at', '>=', Carbon::create(2026, 2, 5));
+                    ->where('customs_at', '>=', Carbon::create(2026, 2, 13));
             })
             ->get();
 

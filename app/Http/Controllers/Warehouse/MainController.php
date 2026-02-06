@@ -1130,16 +1130,76 @@ class MainController extends Controller
         return $res;
     }
 
+//    public function store(Request $request)
+//    {
+//        file_put_contents('/var/log/ase_error.log', date('Y-m-d H:i:s') . " Request: ".json_encode($request->all())."\n", FILE_APPEND);
+//        $res = parent::store($request);
+//        $id = $this->itemId;
+//        if (!empty($id)) {
+//            $package = Package::find($id);
+//            if ($package) $package->saveGoodsFromRequest($request);
+//        }
+//        return $res;
+//    }
+
+
+
+
     public function store(Request $request)
     {
-        file_put_contents('/var/log/ase_error.log', date('Y-m-d H:i:s') . " Request: ".json_encode($request->all())."\n", FILE_APPEND);
-        $res = parent::store($request);
-        $id = $this->itemId;
-        if (!empty($id)) {
-            $package = Package::find($id);
-            if ($package) $package->saveGoodsFromRequest($request);
+        $trackingCode = $request->tracking_code;
+        if (!$trackingCode) {
+            abort(400, 'tracking_code yoxdu');
         }
-        return $res;
+        $lockKey = 'package_tracking_' . $trackingCode;
+        $lock = DB::selectOne(
+            "SELECT GET_LOCK(?, 10) as l",
+            [$lockKey]
+        );
+        if (!$lock || $lock->l != 1) {
+            abort(423, 'Sistem məşğuldur, yenidən cəhd et');
+        }
+        try {
+            return DB::transaction(function () use ($request, $trackingCode) {
+                $old = Package::where('tracking_code', $trackingCode)->lockForUpdate()->first();
+                if ($old) {
+                    return redirect()
+                        ->back()
+                        ->withErrors([
+                            'tracking_code' => 'Bu tracking_code üçün paket artıq mövcuddur'
+                        ])
+                        ->with('package_id', $old->id);
+                }
+                file_put_contents(
+                    '/var/log/ase_error.log',
+                    date('Y-m-d H:i:s') . " Request: " . json_encode($request->all()) . PHP_EOL,
+                    FILE_APPEND
+                );
+                $res = parent::store($request);
+                $id = $this->itemId;
+                if (!empty($id)) {
+                    $package = Package::find($id);
+                    if ($package) {
+                        $package->saveGoodsFromRequest($request);
+                    }
+                }
+                return $res;
+            });
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                $old = Package::where('tracking_code', $trackingCode)->first();
+                return redirect()
+                    ->back()
+                    ->withErrors([
+                        'tracking_code' => 'Bu tracking_code üçün paket artıq mövcuddur'
+                    ])
+                    ->with('package_id', optional($old)->id);
+            }
+            throw $e;
+        } finally {
+            DB::select("SELECT RELEASE_LOCK(?)", [$lockKey]);
+        }
     }
 
     public function ajax(Request $request, $id)
@@ -1758,6 +1818,5 @@ class MainController extends Controller
 
     public function aseLogic()
     {
-
     }
 }

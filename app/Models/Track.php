@@ -106,6 +106,22 @@ class Track extends Model
     protected static function boot()
     {
         parent::boot();
+
+        static::creating(function ($query) {
+
+            //tracking code yoxlamasi
+            $trackingCode = $query->tracking_code;
+
+            if (!$trackingCode) {
+                throw new \Exception("tracking_code yoxdur");
+            }
+
+            $exists = Track::where('tracking_code', $trackingCode)->lockForUpdate()->exists();
+            if ($exists) {
+                throw new \Exception("Bu tracking_code artıq mövcuddur, ikinciyi qoymaq olmaz!");
+            }
+        });
+
         static::created(function ($query) {
             if ($query->partner_id == 8 && $query->delivery_type == 'HD') {
                 if (Track::auto_courier($query)) {

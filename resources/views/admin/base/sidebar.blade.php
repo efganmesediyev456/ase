@@ -143,6 +143,13 @@
                 </a>
             </li>
             @endpermission
+            @permission('read-packages')
+            <li {!! classActiveRoute('in_customs_packages.set') !!}>
+                <a href="{{ route('in_customs_packages.set') }}">
+                    <i class="icon-cart"></i> <span>Check Customs Packages</span>
+                </a>
+            </li>
+            @endpermission
             @permission('read-tracks')
             <li {!! classActiveRoute('status_tracks.index') !!}>
                 <a href="{{ route('status_tracks.index') }}">
