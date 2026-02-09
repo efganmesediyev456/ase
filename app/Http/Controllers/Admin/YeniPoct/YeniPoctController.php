@@ -365,10 +365,18 @@ class YeniPoctController extends Controller
 
         $packages = $tracks->merge($packages);
         $assignAdmin = Auth::user()->name ?? null;
+
         foreach ($packages as $package) {
+//            $package->company_sent = 1;
+//            $package->track->bot_comment = "Bağlama YeniPoct-ə göndərildi".' - '.$assignAdmin;
+//            $package->save();
+
             $package->company_sent = 1;
-            $package->bot_comment = "Bağlama YeniPoct-ə göndərildi".' - '.$assignAdmin;
             $package->save();
+
+            $package->track->bot_comment = "Bağlama YeniPoct-ə göndərildi - ".$assignAdmin;
+            $package->track->save();
+
 //            dispatch(new SendPackageToYeniPoctJob($package))->onQueue('default');
         }
 
@@ -377,6 +385,8 @@ class YeniPoctController extends Controller
             'user_sent_id' => Auth::user()->id,
             'sent_at' => Carbon::now(),
         ]);
+
+
 
         return back()->withSuccess('Göndərilməyib statusunda olan bağlamalar YeniPoct\'a göndərilir!');
     }

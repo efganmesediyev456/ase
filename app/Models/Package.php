@@ -1722,7 +1722,7 @@ class Package extends Model
                 $warehouse = Warehouse::find($query->warehouse_id);
                 $curWeightGoods = $query->weight_goods;
                 $curWeight = $query->weight;
-                $delPrice = $query->attributes['delivery_price'];
+                $delPrice = $query->delivery_price;
                 $hasBattery = $query->has_battery;
                 $curShippingAmount = Package::s_getShippingAmountUSD($query);
                 $prevWeight = null;

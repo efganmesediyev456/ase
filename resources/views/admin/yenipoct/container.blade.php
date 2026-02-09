@@ -45,7 +45,6 @@
             left: 0;
         }
     </style>
-
     <div class="card box-primary">
         <div class="card-body">
             <div class="row">

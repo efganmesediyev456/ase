@@ -23,6 +23,7 @@ class AzeriExpressController extends Controller
 
         $tracking = $request->input('track_number');
         $status = $request->input('fedex');
+
         $ignore = DB::table('tracks_ignore_list')->where('tracking_code', $tracking)->first();
         if($ignore) {
             return response()->json(['status' => true, 'data' => []]);

@@ -448,6 +448,7 @@ class UserController extends MainController
             $package->status = 6;
         }
 
+
         $package->user_id = Auth::user()->id;
         $package->shipping_amount_cur = \Request::get('shipping_amount_cur');
         $package->do_use_goods = true;
@@ -459,6 +460,7 @@ class UserController extends MainController
         $package->declaration = true;
         $package->otp_code = \Request::get('otp_code');
 
+
         if (\Request::hasFile('invoice')) {
             $fileName = uniqid() . '.' . \Request::file('invoice')->getClientOriginalExtension();
             \Request::file('invoice')->move(public_path('uploads/packages/'), $fileName);
@@ -466,6 +468,7 @@ class UserController extends MainController
         }
 
         $package->save();
+
         $package->saveGoodsFromRequest(\request());
 
         /* Send notification */

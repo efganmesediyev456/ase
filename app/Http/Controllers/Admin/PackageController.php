@@ -1155,8 +1155,8 @@ class PackageController extends Controller
             }
             $admin = Auth::user();
 
-            if ((optional($admin->role)->id != 10) and (optional($admin->role)->id != 26)) {
-                unset($this->list['worker_comments']);
+            if ((optional($admin->role)->id == 10) or (optional($admin->role)->id == 26)) {
+                unset($this->list['worker2_comments']);
             }
             parent::__construct();
             return $next($request);

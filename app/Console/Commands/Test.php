@@ -55,6 +55,14 @@ class Test extends Command
     public function handle()
     {
 
+       $ukraineExpress2=new UkraineExpress2();
+       $package = Package::find(388969);
+       $ukraineExpress2->package_update_declaration($package);
+       dd($package);
+
+
+
+
         $packages = Package::where('paid',0)->whereIn('status',[0,8,1])->where('weight','>',10)->orderBy('id','desc')->get();
 
 
