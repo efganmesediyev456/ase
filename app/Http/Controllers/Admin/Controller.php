@@ -378,6 +378,8 @@ class Controller extends BaseController
 
         // dump($this->list);
 
+//        dd($this->panelView('list'));
+
         return view($this->panelView('list'), compact('items'));
     }
 

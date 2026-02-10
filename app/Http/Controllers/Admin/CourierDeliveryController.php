@@ -186,6 +186,15 @@ class CourierDeliveryController extends Controller
     ];
 
     protected $list = [
+        'urgent' => [
+            'label' => 'Urgent',
+            'type' => 'select-editable',
+            'editable' => [
+                'route' => 'courier_deliveries.urgent',
+                'type' => 'select',
+                'sourceFromConfig' => 'ase.attributes.package.urgentWithLabel',
+            ],
+        ],
         'payment_link' => [
             'label' => 'Payment Link',
             //'type' => 'select-editable',
@@ -938,6 +947,21 @@ class CourierDeliveryController extends Controller
 
         return view('front.track.pay-debt', compact('item'));
 
+    }
+
+
+    public function urgent(Request $request){
+        $this->validate($request, [
+            'name'  => 'required|in:urgent',
+            'value' => 'required|boolean',
+            'pk'    => 'required|integer|exists:courier_deliveries,id',
+        ]);
+        $courierDelivery=CD::find($request->pk);
+        if($courierDelivery){
+            $courierDelivery->urgent=$request->value;
+            $courierDelivery->save();
+        }
+        return response()->json(['status' => 'success','message'=>'Successfully updated']);
     }
 
 }

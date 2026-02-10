@@ -10,6 +10,7 @@
         <th><b>Date</b>{{ str_repeat("_", 15) }}</th>
         <th><b>Amount</b></th>
         <th><b>Amount 90%</b></th>
+        <th><b>For</b></th>
     </tr>
     </thead>
     <tbody>
@@ -27,6 +28,7 @@
             <td>{{ $transaction->created_at }}</td>
             <td>{{ $transaction->amount }}</td>
             <td>{{ $transaction->amount_90 }}</td>
+            <td>{{ $transaction->paid_for }}</td>
         </tr>
     @endforeach
 

@@ -1,0 +1,13 @@
+curl request
+
+curl -X PUT "http://partnersapi.ukraine-express.com/partners/v2/us/customer/747562/tracking-numbers/14042931/declaration" \
+>   -H "accept: text/plain" \
+>   -H "access_token: 60b29738a2fd15426f0b62cb445986ad" \
+>   -H "Content-Type: application/json" \
+>   -A "curl/7.58.0" \
+>   -d '[{"title_en":"Clothes","quantity":3}]'
+
+curl response
+
+[{"title_en":"Clothes","quantity":3}]
+

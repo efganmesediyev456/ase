@@ -729,6 +729,38 @@ class UkraineExpress2 extends Command
             $this->info("   Ok res: " . $this->ue->code . "  message: " . $this->ue->message);
         }
     }
+    public function package_update_declarationtest($package, $fromConsole = false)
+    {
+        $ldate = date('Y-m-d H:i:s');
+        $res_ok = $this->ue->declarationtest($package);
+
+        dd($res_ok);
+        if ($res_ok) {
+            $package->ukr_express_dec = $package->ukr_express_dec + 1;
+            $package->ukr_express_error_at = null;
+            $package->ukr_express_status = 10;
+            $package->bot_comment = "declaration Ok";
+            $package->save();
+        }
+        if (!$res_ok) {
+            $message = "🛑 Eror declaration data to Ukraine Express\n";
+            if ($package->user)
+                $message .= " <b>" . $package->user->full_name . "</b>  (<a href='https://admin." . env('DOMAIN_NAME') . "/users?q=" . $package->user->customer_id . "'>" . $package->user->customer_id . "</a>)";
+            $message .= "   <a href='https://admin." . env('DOMAIN_NAME') . "/packages?q=" . $package->custom_id . "'>" . $package->tracking_code . "(" . $package->custom_id . ")</a>\n";
+            $message .= "Error: " . $this->ue->message . "\n";
+            $content = "Error declaration data to Ukr Express " . $package->tracking_code . " (" . $package->custom_id . "): " . $this->ue->message;
+            $this->info("   failed: " . $this->ue->code . " " . $this->ue->message);
+            if (!$fromConsole) {
+                $this->err("update_declaration", "   failed: " . $package->tracking_code . " " . $this->ue->code . " " . $this->ue->message);
+                $package->bot_comment = "declaration error " . $this->ue->code . " " . $this->ue->message;
+                $package->ukr_express_error_at = $ldate;
+                $package->save();
+                if ($this->sendTelegram) sendTGMessage($message);
+            }
+        } else {
+            $this->info("   Ok res: " . $this->ue->code . "  message: " . $this->ue->message);
+        }
+    }
 
     public function package_update($package)
     {

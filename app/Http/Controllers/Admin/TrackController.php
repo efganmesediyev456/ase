@@ -395,8 +395,16 @@ class TrackController extends Controller
                 'sourceFromConfig' => 'ase.attributes.package.stopDebt',
             ],
         ],
+//        'debt_price' => [
+//            'label' => 'Debt Price',
+//        ],
         'debt_price' => [
-            'label' => 'Debt Price',
+            'label' => 'Debt price',
+            'type' => 'editable',
+            'editable' => [
+                'route' => 'tracks.debtPrice',
+                'type' => 'text',
+            ],
         ],
         'paid_broker' => [
             'label' => 'Paid broker fee',
@@ -2087,5 +2095,27 @@ class TrackController extends Controller
             return redirect()->back()->with('success','Status updated successfully');
         }
         return redirect()->back()->with('error','Status didn\'t update successfully');
+    }
+
+    public function debtPrice(Request $request)
+    {
+        $this->validate($request,[
+            "name"=>"required|in:debt_price",
+            "value"=>"required|integer",
+            "pk"=>"required|integer",
+        ]);
+        $admin = Auth::user();
+        if($admin->role->id != 1){
+            abort(400,'Only super admins can update debt price');
+        }
+        $track=Track::find($request->pk);
+        if($track){
+            $track->debt_price=$request->value;
+            $track->save();
+        }
+        return response()->json([
+            "success"=>true,
+            "message"=>"Price updated successfully."
+        ]);
     }
 }

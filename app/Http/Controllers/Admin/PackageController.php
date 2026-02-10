@@ -452,6 +452,8 @@ class PackageController extends Controller
             'label' => 'User',
         ],
 
+
+
 //        'id' => [
 //            'type' => 'custom.ue_photos',
 //            'label' => 'Photos',
@@ -576,9 +578,17 @@ class PackageController extends Controller
             'label' => 'Paid By',
         ],
         //Debt
+//        'debt_price' => [
+//            'order' => 'debt_price',
+//            'label' => 'Debt Price',
+//        ],
         'debt_price' => [
-            'order' => 'debt_price',
-            'label' => 'Debt Price',
+            'label' => 'Debt price',
+            'type' => 'editable',
+            'editable' => [
+                'route' => 'packages.debtPrice',
+                'type' => 'text',
+            ],
         ],
         //Debt
         'paid_debt' => [
@@ -3127,4 +3137,27 @@ class PackageController extends Controller
 //    {
 //        return 'admin.packages.list';
 //    }
+
+
+    public function debtPrice(Request $request)
+    {
+        $this->validate($request,[
+            "name"=>"required|in:debt_price",
+            "value"=>"required|integer",
+            "pk"=>"required|integer",
+        ]);
+        $admin = Auth::user();
+        if($admin->role->id != 1){
+            abort(400,'Only super admins can update debt price');
+        }
+        $package=Package::find($request->pk);
+        if($package){
+            $package->debt_price=$request->value;
+            $package->save();
+        }
+        return response()->json([
+            "success"=>true,
+            "message"=>"Price updated successfully."
+        ]);
+    }
 }

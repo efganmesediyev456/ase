@@ -323,6 +323,7 @@ class YeniPoctController extends Controller
 
     public function sendPackages(Request $request, $id)
     {
+//        dd($request->all());
 
         $container = YenipoctOrder::query()->where('id', $id)->first();
         if (!$container) {

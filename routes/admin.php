@@ -543,6 +543,7 @@ Route::group([
             'courier',
             'courier_delivery' => [
                 ['name' => 'ajax', 'method' => 'post'],
+                ['name' => 'urgent', 'method' => 'post'],
                 ['name' => 'info', 'method' => 'get'],
                 ['name' => 'logs', 'method' => 'get'],
             ],
@@ -590,6 +591,7 @@ Route::group([
                 ['name' => 'carrier_update', 'method' => 'get'],
                 ['name' => 'carrier_delete', 'method' => 'get'],
                 ['name' => 'ajax', 'method' => 'post'],
+                ['name' => 'debtPrice', 'method' => 'post'],
                 ['name' => 'bagcarrierupdate', 'method' => 'get'],
                 ['name' => 'bagdepeshcheck', 'method' => 'get'],
                 ['name' => 'bagdepesh', 'method' => 'get'],
@@ -644,6 +646,7 @@ Route::group([
                 ['name' => 'bagdepesh', 'method' => 'get'],
                 ['name' => 'label', 'method' => 'get'],
                 ['name' => 'track_filial', 'method' => 'post'],
+                ['name' => 'debtPrice', 'method' => 'post'],
             ],
             'customer' => [
                 ['name' => 'logs', 'method' => 'get'],

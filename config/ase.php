@@ -428,6 +428,7 @@ return [
             ],
             'unknownStatusWithLabel' => '[{value: 0, text: "---"}, {value: 1, text: "Invisible ASE Code"}, {value: 2, text: "No Photo"}, {value: 3, text: "Split 2"} , {value: 3, text: "Split 3"}, {value: 5, text: "Split 4"}, {value: 6, text: "Add to Group 1"}, {value: 7, text: "Add to Group 2"}, {value: 8, text: "Add to Group 3"}, {value: 9, text: "Add to Group 4"}, {value: 10, text: "Return"}]',
             'statusWithLabel' => '[{value: 0, text: "In Warehouse"}, {value: 7, text: "Departed"} , {value: 1, text: "Sent"}, {value: 8, text: "In Kobia"}, {value: 2, text: "In Baku"}, {value: 48, text: "In customs - Neutral"}, {value: 3, text: "Done"}, {value: 4, text: "In customs"}, {value: 5, text: "Rejected"}, {value: 6, text: "Early Declaration"}]',
+            'urgentWithLabel' => '[{value: 0, text: "No"}, {value: 1, text: "Yes"}]',
             'statusNotPaidWithLabel' => '[{value: 0, text: "In Warehouse"}, {value: 7, text: "Departed"} , {value: 1, text: "Sent"}, {value: 8, text: "In Kobia"}, {value: 2, text: "In Baku"},{value: 3, text: "Done"}, {value: 4, text: "In customs"},{value: 48, text: "In customs - Neutral"}, {value: 5, text: "Rejected"}, {value: 6, text: "Early Declaration"}]',
             'paidWithLabel' => '[{value: 0, text: "No"}, {value: 1, text: "Yes"}, {value: 2, text: "By POST_TERMINAL"}, {value: 3, text: "By GIFT_CARD"}, {value: 4, text: "By BONUS"},{value: 8, text: "By Bank Transfer"}]',
             'brokerPaidWithLabel' => '[{value: 0, text: "No"},{value: 1, text: "Online"}, {value: 2, text: "By POST_TERMINAL"}]',
@@ -605,6 +606,7 @@ return [
                 1 => 'Yes',
             ],
             'paidWithLabel' => '[{value: 0, text: "No"}, {value: 1, text: "Yes"},{value: 4, text: "By Bonus"}]',
+            'courierDeliveryWithLabel' => '[{value: 0, text: "No"}, {value: 1, text: "Yes"}]',
             'partner' => [
                 1 => "iHerb",
                 2 => "Wildberries",

@@ -3,12 +3,15 @@
 namespace App\Models\Surat;
 
 use App\Models\Admin;
+use App\Traits\ModelEventLogger;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SuratOrder extends Model
 {
     use SoftDeletes;
+    use ModelEventLogger;
+
 
     const STATUSES = [
         "WAITING" => 0,

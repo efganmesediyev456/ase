@@ -5,12 +5,15 @@ namespace App\Models\Surat;
 use App\Models\Admin;
 use App\Models\Package;
 use App\Models\Track;
+use App\Traits\ModelEventLogger;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SuratPackage extends Model
 {
     use SoftDeletes;
+    use ModelEventLogger;
+
 
     protected $fillable = [
         'surat_order_id',

@@ -27,6 +27,8 @@ class SuratController extends Controller
             'data.*.status' => ['required', 'in:2,4,5,9']
         ]);
 
+        sendTelegramMessage(json_encode([$request->all()]));
+
         $data = $request->input('data');
         $trackings = $request->input('tracking_code');
         $statuses = $request->input('status');
@@ -37,6 +39,8 @@ class SuratController extends Controller
             if($ignore) {
                 continue;
             }
+//            sendTelegramMessage(json_encode($item['tracking_code']));
+//            sendTelegramMessage(json_encode($item['status']));
             $this->dispatch(new HandleSuratStatusUpdateJob5($item['tracking_code'], $item['status']));
         }
 

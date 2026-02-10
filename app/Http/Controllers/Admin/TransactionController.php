@@ -439,10 +439,13 @@ class TransactionController extends Controller
             $str .= " group by t.extra_data";
             $str .= " order by created_at";
             $items = DB::select($str);
+
             return Excel::download(new PortmanatExport($items), 'portmanat_' . uniqid() . '.xlsx');
+
 	} else if (request()->has('9e') && request()->get('9e') == 1) {
             return Excel::download(new Transactions90Export($items), 'transactions_90usd' . uniqid() . '.xlsx');
         } else {
+
             return Excel::download(new TransactionsExport($items), 'transactions_' . uniqid() . '.pdf', 'Mpdf');
         }
         //return \Excel::download(new TransactionsExport($items), 'transactions_' . uniqid() . '.xlsx');

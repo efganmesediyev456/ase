@@ -1356,10 +1356,123 @@ class UkrExpressModel extends Model
         ));
         curl_setopt($ch, CURLOPT_POSTFIELDS, $str);
         $output = curl_exec($ch);
+        sendTelegramMessage("output deyeri declerationda ".$package->tracking_code);
+        sendTelegramMessage(json_encode($output));
+//        dd($output);
         //echo $output."\n";
         curl_close($ch);
 	$output=$this->parse_output($output);
         $res = json_decode($output);
+
+        //print_r($res);
+        if (empty($res)) {
+            $this->message = 'Empty reponse';
+            $this->log('Error: ' . $package->custom_id . ' declaration data Empty Response');
+            $this->err('Error: ' . $package->custom_id . ' declaration data Empty Response');
+            return false;
+        }
+        $this->res = $res;
+        if ($res && is_array($res) && in_array('code', $res))
+            $this->res = $res['code'];
+        if ($res && is_array($res) && in_array('message', $res))
+            $this->message = $res['message'];
+        if (isset($res->success) && !$res->success) {
+            $this->message = 'message:' . $res->message;
+            $this->log('Error: ' . $package->custom_id . ' declaration data ' . $this->message);
+            $this->err('Error: ' . $package->custom_id . ' declaration data ' . $this->message);
+            return false;
+        }
+        return true;
+    }
+    function declarationtest($package, $test = false)
+    {
+        $this->code = '';
+        $this->message = '';
+        if (!$package) {
+            $this->message = 'no package';
+            $this->log('Error: no package for declaration data');
+            $this->err('Error: no package for declaration data');
+            return false;
+        }
+        if (!$package->ukr_express_id) {
+            $this->message = 'no package ukr';
+            $this->log('Error: no package ukr data for declaration data');
+            $this->err('Error: no package ukr data for declaration data');
+            return false;
+        }
+        $user = $package->user;
+        if (!$user) {
+            $this->message = 'no user';
+            $this->log('Error: no user for declaration data');
+            $this->err('Error: no user for declaration data');
+            return false;
+        }
+        if (!$user->ukr_express_id) {
+            $this->message = 'no user ukr';
+            $this->log('Error: no user ukr data for declaration data');
+            $this->err('Error: no user ukr data for declaration data');
+            return false;
+        }
+        $str = '';
+        if ($package->goods && count($package->goods) > 1) {
+            $arr = [];
+            foreach ($package->goods as $good) {
+                $number_items = $good->number_items;
+                if (!$number_items) {
+                    if (count($package->goods) == 1)
+                        $number_items = $package->getNumberItems();
+                    else
+                        $number_items = 1;
+                }
+                if (!$number_items) {
+                    $number_items = 1;
+                }
+                $arr[] = array('title_en' => $good->name_parent, 'quantity' => $number_items);
+            }
+            $str = json_encode($arr);
+        } else {
+	    $dtn= $package->detailed_type_number;
+	    if(!$dtn) $dtn=1;
+            $str = json_encode(array(array('title_en' => $package->detailed_type_parent_name, 'quantity' => $dtn)));
+        }
+        if ($test) {
+            echo 'URL: ' . $this->UE_BASE_URL . '/' . $this->div . '/customer/' . $user->ukr_express_id . '/tracking-numbers/' . $package->ukr_express_id . '/declaration' . "\n";
+            echo $str . "\n";
+            return true;
+        }
+        //echo "Data: ".$str."\n";
+        //return true;
+
+
+        $ch = curl_init();
+        if ($this->curlDebug)
+            curl_setopt($ch, CURLOPT_VERBOSE, true);
+
+//	   echo  'URL: '.$this->UE_BASE_URL.'/'.$this->div.'/customer/'.$user->ukr_express_id.'/tracking-numbers/'.$package->ukr_express_id.'/declaration'."\n";
+//	   echo $str."\n";
+//       dd("salam");
+
+        curl_setopt($ch, CURLOPT_URL, $this->UE_BASE_URL . '/' . $this->div . '/customer/' . $user->ukr_express_id . '/tracking-numbers/' . $package->ukr_express_id . '/declaration');
+        curl_setopt($ch, CURLOPT_USERAGENT, 'curl/7.58.0');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+        //curl_setopt($ch, CURLOPT_PUT, 1);
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'accept: text/plain',
+            'access_token:' . $this->UE_KEY,
+            "Content-Type: application/json"
+        ));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $str);
+        $output = curl_exec($ch);
+        sendTelegramMessage("output deyeri declerationda ".$package->tracking_code);
+        sendTelegramMessage(json_encode($output));
+//        dd($output);
+        //echo $output."\n";
+        curl_close($ch);
+	$output=$this->parse_output($output);
+        $res = json_decode($output);
+
         //print_r($res);
         if (empty($res)) {
             $this->message = 'Empty reponse';

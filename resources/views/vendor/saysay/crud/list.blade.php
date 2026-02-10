@@ -103,8 +103,8 @@
                                                 $type = isset($head['type']) ? $head['type'] : 'text';
                                                 $entry = parseRelation($item, $key);
                                             @endphp
-
                                             @if(view()->exists('admin.crud.columns.' . $type))
+
                                                 @include('admin.crud.columns.' . $type)
                                             @else
                                                 @include('crud::components.columns.' . $type )
