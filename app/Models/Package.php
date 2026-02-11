@@ -1568,6 +1568,36 @@ class Package extends Model
         return $this->attributes['paid_broker'] ? ($this->transactionBroker ? $this->transactionBroker->paid_by : '-') : "-";
     }
 
+    public function getUserDiscountPercent($user, $countryId)
+    {
+        if (!$user) {
+            return 0;
+        }
+
+        $discountPercent = 0;
+//        dd($user->discount_check , $user->discount_percent,$user->discount_country_id,$countryId );
+
+        if ($user->discount_check && $user->discount_percent) {
+            if ($user->discount_country_id and $user->discount_country_id == $countryId) {
+                $discountPercent = $user->discount_percent;
+            }
+        }
+
+
+        if ($discountPercent == 0 && $user->parent_id) {
+            $dealer = $user->dealer;
+
+            if ($dealer && $dealer->discount_check && $dealer->discount_percent) {
+                if (!$dealer->discount_country_id || $dealer->discount_country_id == $countryId) {
+                    $discountPercent = $dealer->discount_percent;
+                }
+            }
+        }
+
+        return $discountPercent;
+    }
+
+
     protected static function boot()
     {
         parent::boot();
@@ -1657,7 +1687,10 @@ class Package extends Model
                         $query->insurance_price = $insurance_price;
                         $additionalDeliveryPrice += $insurance_price;
 
-                        $deliveryPrice = $warehouse->calculateDeliveryPrice2($weight, $weight_type, $query->width, $query->height, $query->length, $length_type, false, 0, $azerpoct, $city_id, $additionalDeliveryPrice, $query->custom_id);
+                        $userDiscountPercent = $query->getUserDiscountPercent($user, $warehouse->country_id);
+//                        $userDiscountPercent = 0;
+
+                        $deliveryPrice = $warehouse->calculateDeliveryPrice2($weight, $weight_type, $query->width, $query->height, $query->length, $length_type, false, $userDiscountPercent, $azerpoct, $city_id, $additionalDeliveryPrice, $query->custom_id);
                         $query->delivery_price = $deliveryPrice;
                     }
                 }

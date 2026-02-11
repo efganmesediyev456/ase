@@ -362,6 +362,7 @@ class Controller extends BaseController
             if (method_exists($this, 'indexObject') && $this->can['export'] && (\request()->has('export') || (\request()->has('search_type') && \request()->get('search_type') == 'export')) && $items->count()) {
 
                 return $this->export($items);
+//                return $this->export($items->getCollection());
             }
         } else {
             $items = $this->modelObject->latest();
@@ -377,8 +378,7 @@ class Controller extends BaseController
         }
 
         // dump($this->list);
-
-//        dd($this->panelView('list'));
+//         dump($this->panelView('list'));
 
         return view($this->panelView('list'), compact('items'));
     }

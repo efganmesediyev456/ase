@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use Alert;
 use App\Exports\Admin\ContainerExport;
+use App\Exports\Admin\ContainersExport;
+use App\Exports\Admin\TracksExport;
 use App\Jobs\ResetPackageWeightJob;
 use App\Models\Airbox;
 use App\Models\AzeriExpress\AzeriExpressOrder;
@@ -25,6 +27,8 @@ use App\Models\YeniPoct\YenipoctPackage;
 use App\Services\Package\PackageService;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Excel;
+use Excel as FacadeExcel;
+
 use Carbon\Carbon;
 use Request;
 use View;
@@ -225,6 +229,9 @@ class ContainerController extends Controller
         ],
     ];
     protected $modelName = 'Container';
+    protected $can = [
+        'export' => true,
+    ];
     protected $view = [
         'name' => 'Parcel',
         'search' => [
@@ -983,6 +990,21 @@ class ContainerController extends Controller
         return response()->json(['results' => $results]);
     }
 
+
+    public function export($items = null)
+    {
+
+        $formats = ['Xlsx' => 'Xlsx', 'Mpdf' => 'pdf'];
+        $type = isset($formats[\request()->get('format')]) ? \request()->get('format') : 'Xlsx';
+        $ext = $formats[$type];
+
+        if ($ext == 'pdf') {
+            $pdf = PDF::loadView('admin.exports.containers', compact('items'));
+            return $pdf->download('packages_' . uniqid() . '.' . $ext);
+        }
+
+        return FacadeExcel::download(new ContainersExport($items), 'tracks_' . uniqid() . '.' . $ext, $type);
+    }
 
 
 }

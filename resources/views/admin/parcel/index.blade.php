@@ -184,7 +184,7 @@
                                          @endif 
 					 @if($item->scanned_cnt) 
 					    ({{ $item->scanned_cnt }})
-                                         @endif 
+                                         @endif
 				    </font></td>
 				    <td></td>
                                     <td>{{ $item->created_at->diffForHumans() }}</td>
@@ -201,6 +201,7 @@
                                                     $type = isset($head['type']) ? $head['type'] : 'text';
                                                     $entry = parseRelation($item, $key);
                                                 @endphp
+
 
                                                 @if(view()->exists('admin.crud.columns.' . $type))
                                                     @include('admin.crud.columns.' . $type)

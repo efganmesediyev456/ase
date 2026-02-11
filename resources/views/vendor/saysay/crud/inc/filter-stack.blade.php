@@ -13,6 +13,7 @@ var putDate = function(form) {
     {!! Form::hidden('search_type') !!}
     {!! Form::hidden('tm',time()) !!}
     {!! Form::hidden('sort', 'created_at__desc') !!}
+    {!! Form::hidden('page', request()->page) !!}
 
     <div class="row">
         <div class="col-lg-9">

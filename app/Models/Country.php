@@ -105,4 +105,8 @@ class Country extends Model
     {
         return $value ? asset($this->uploadDir . $value) : (file_exists(public_path('uploads/default/countries/' . $this->attributes['code'] . '.png')) ? asset('uploads/default/countries/' . $this->attributes['code'] . '.png') : asset(config('ase.default.no-image')));
     }
+
+    public function getCountryNameAttribute(){
+        return $this->name1;
+    }
 }

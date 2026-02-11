@@ -302,74 +302,7 @@ class Test extends Command
     public function handle()
     {
 
-        $this->sendPackages();
-        dd("salam");
-        $ukrexpress2 = new UkraineExpress2();
-        $package = Package::find(388969);
-        $ukrexpress2->package_update_declarationtest($package);
-        dd("salam");
 
-
-        Bugsnag::notifyException(new RuntimeException("Test error"));
-
-
-       $ukraineExpress2=new UkraineExpress2();
-       $package = Package::find(388969);
-       $ukraineExpress2->package_update_declarationtest($package);
-       dd($package);
-
-
-
-
-        $packages = Package::where('paid',0)->whereIn('status',[0,8,1])->where('weight','>',10)->orderBy('id','desc')->get();
-
-
-
-        foreach ($packages as $key=>$package) {
-            $this->info(($key+1).'. '.$package->id.' tamamlandi');
-            $package->delivery_price = 0;
-            $package->delivery_price_usd = 0;
-            $package->delivery_price_azn = 0;
-            $package->save();
-        }
-
-        $this->info("Bitdi hamisi".count($packages));;
-
-        dd("exit");
-
-        $kapitalBankTxpgService = new KapitalBankTxpgService();
-        $botToken = "7784139238:AAGfstOZANbUgTV3hYKV8Xua8xQ_eJs5_wU";
-        $website = "https://api.telegram.org/bot" . $botToken;
-        $chatId = "-1002397303546";
-
-        $orderStatus = $kapitalBankTxpgService->getOrderStatus(200826580);
-
-        dd($orderStatus);
-
-
-
-        $track = Track::find(676721);
-        $replicate = $track->replicate();
-        $replicate->customer_id = 166085;
-        $replicate->tracking_code = 'Test64653hhk758874';
-        $replicate->save();
-        dd($replicate->toArray());
-
-
-        $track = Track::find(710943);
-        $track->updated_at = now();
-        $track->bot_comment = 'Web link pay';
-        $track->paid_debt = 1;
-        $track->save();
-        dd($track);
-
-        $q = Track::whereIn('status', [18, 45]);
-        $q = $q->where('paid_debt', 0);
-        $q = $q->whereNull('deleted_at');
-        $q = $q->where(function ($q2) { $q2->where('partner_id', 3) ->whereNotNull('customs_at') ->where('customs_at', '>=', Carbon::create(2026, 1, 27)); });
-        $tracks = $q->get();
-
-        dd($tracks->pluck('id'));
 
 
 
@@ -378,7 +311,7 @@ class Test extends Command
         $package->warehouse_id = 11;
         $package->tracking_code = '9622001900009795283000432826834502';
         $package->ukr_express_id = 14056605;
-        $package->user_id = 36363; // Alim Salehzade
+        $package->user_id = 35035; // Alim Salehzade
         $package->show_label = 1;
         $package->u_tracing_code = '9622001900009795283000432826834502';
         $package->status = 0; // In Warehouse
@@ -407,6 +340,11 @@ class Test extends Command
 // timestamps auto-dursa bunlara ehtiyac yoxdur
         $package->created_at = '2026-01-23 21:28:04';
         $package->updated_at = '2026-01-23 21:28:04';
+
+        $user = User::find($package->user_id);
+        $warehouse = Warehouse::find($package->warehouse_id);
+
+
 
 
 
@@ -487,6 +425,7 @@ class Test extends Command
                     $additionalDeliveryPrice += $insurance_price;
 
 
+                    $discount_percent = $package->getUserDiscountPercent($user,$warehouse->country_id);
                     $deliveryPrice = $warehouse->calculateDeliveryPrice2($weight, $weight_type, $package->width, $package->height, $package->length, $length_type, false, 0, $azerpoct, $city_id, $additionalDeliveryPrice, $package->custom_id);
                     $package->delivery_price = $deliveryPrice;
 
@@ -496,6 +435,8 @@ class Test extends Command
                 }
             }
         }
+
+        dd($package->delivery_price);
 
         if ($package->warehouse_id && in_array($package->status, [0, 1, 2])) {
             $cdate = Carbon::now();

@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\Admin\ContainersExport;
+use App\Exports\Admin\ParcellsExport;
 use App\Models\Parcel;
 use Request;
 use View;
+use Excel as FacadeExcel;
 
 class ParcellingController extends Controller
 {
     protected $can = [
-        'export' => false,
+        'export' => true,
         'update' => false,
         'create' => false,
         'delete' => false,
@@ -258,5 +261,20 @@ class ParcellingController extends Controller
     public function panelView($blade)
     {
         return 'admin.parcel.index';
+    }
+
+    public function export($items = null)
+    {
+
+        $formats = ['Xlsx' => 'Xlsx', 'Mpdf' => 'pdf'];
+        $type = isset($formats[\request()->get('format')]) ? \request()->get('format') : 'Xlsx';
+        $ext = $formats[$type];
+
+        if ($ext == 'pdf') {
+            $pdf = PDF::loadView('admin.exports.parcells', compact('items'));
+            return $pdf->download('packages_' . uniqid() . '.' . $ext);
+        }
+
+        return FacadeExcel::download(new ParcellsExport($items), 'parcels_' . uniqid() . '.' . $ext, $type);
     }
 }

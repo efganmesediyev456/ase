@@ -321,6 +321,7 @@ class UserController extends Controller
                 'class' => 'form-group col-lg-2',
             ],
         ],
+
         [
             'label' => 'Azeri Express Office',
             'type' => 'select2',
@@ -511,6 +512,40 @@ class UserController extends Controller
                 'class' => 'form-group col-lg-2',
             ],
         ],
+
+
+        [
+            'name' => 'discount_check',
+            'label' => 'Discount Check',
+            'type' => 'checkbox',
+            'wrapperAttributes' => [
+                'class' => 'form-group col-lg-4',
+            ],
+        ],
+
+        [
+            'label' => 'Dicount Country',
+            'type' => 'select2',
+            'name' => 'discount_country_id',
+            'attribute' => 'country_name',
+            'model' => 'App\Models\Country',
+            'wrapperAttributes' => [
+                'class' => 'form-group col-lg-4',
+            ],
+            'validation' => 'nullable|integer',
+            'allowNull'         => true,
+        ],
+
+        [
+            'name' => 'discount_percent',
+            'label' => 'Discount Percent',
+            'type' => 'text',
+            'validation' => 'required|integer|max:100|min:1',
+            'wrapperAttributes' => [
+                'class' => 'form-group col-lg-4',
+            ],
+        ],
+
         [
             'name' => 'passporta',
             'label' => 'Passport A',
