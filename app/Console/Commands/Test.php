@@ -303,6 +303,12 @@ class Test extends Command
     {
 
 
+        $track = Track::find(722071);
+        $uni = new UnitradeService();
+        $uni->updateStatusTestOld($track, 48, now());
+
+        dd("salam");
+
 
 
 

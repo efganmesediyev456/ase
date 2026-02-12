@@ -83,7 +83,7 @@ class PackageController extends Controller
         'sum' => [
             [
                 'key' => 'weight_goods',
-                'skip' => 17,
+                'skip' => 19,
                 'add' => "kg",
             ],
             [

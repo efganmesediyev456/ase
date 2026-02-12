@@ -540,7 +540,7 @@ class UserController extends Controller
             'name' => 'discount_percent',
             'label' => 'Discount Percent',
             'type' => 'text',
-            'validation' => 'required|integer|max:100|min:1',
+            'validation' => 'nullable|integer|max:100|min:1',
             'wrapperAttributes' => [
                 'class' => 'form-group col-lg-4',
             ],

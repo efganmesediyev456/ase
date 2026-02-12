@@ -31,6 +31,8 @@ class UnitradeService extends BaseService
         'DeliveredByCourier' => 10001,
         'InCustomsNeutral' => '5000(3)',
         'OutForDelivery' => 405,
+        'Overlimit' => 308,
+        'Prohibited' => '5000(10)',
     ];
 
     const PLACE = [
@@ -45,6 +47,8 @@ class UnitradeService extends BaseService
         'DeliveredByCourier' => "67e81fdf-d6c5-428c-9b30-6d73a0b7b786",
         'StoppedInCustoms' => "d040b7c0-6a91-4916-906b-06d066f8b063",
         'RTO' => "67e81fdf-d6c5-428c-9b30-6d73a0b7b786",
+        'Overlimit' => "67e81fdf-d6c5-428c-9b30-6d73a0b7b786",
+        'Prohibited' => "67e81fdf-d6c5-428c-9b30-6d73a0b7b786",
     ];
 
     const CLIENT_AUTH_URL = 'https://oauth.unitrade.space';
@@ -451,6 +455,7 @@ class UnitradeService extends BaseService
 
         if ($status) {
             $statusString = array_search((int)$status, self::STATES, true);
+
         } else {
             $statusString = array_search($track->status, self::STATES, true);
         }
@@ -488,7 +493,6 @@ class UnitradeService extends BaseService
                 'headers' => $headers,
                 'uri' => $uri
             ]);
-
 
             $maxAttempts = 5;
             $attempt = 1;
@@ -570,7 +574,15 @@ class UnitradeService extends BaseService
         }
 
         if ($status == 46) {
-            return $this->cancelTrack($track);
+            return $this->cancelTrack($track, 46, 3);
+        }elseif ($status == 49) {
+            return $this->cancelTrack($track, 49, 10);
+        }elseif ($status == 53) {
+            return $this->cancelTrack($track, 53, 6);
+        }elseif ($status == 51) {
+            return $this->cancelTrack($track, 51, 32);
+        }elseif ($status == 52) {
+            return $this->cancelTrack($track, 52, 2);
         }
 
         if ($status == 16) {
@@ -680,13 +692,13 @@ class UnitradeService extends BaseService
         }
     }
 
-    private function cancelTrack(Track $track): bool
+    private function cancelTrack(Track $track,int $status, int $reasonType = 3): bool
     {
         Log::channel('unitrade_status')->debug(
             $track->tracking_code . ' cancel is started',
             [
                 'tracking_code' => $track->tracking_code,
-                'status' => 46,
+                'status' => $status,
             ]
         );
 
@@ -694,7 +706,7 @@ class UnitradeService extends BaseService
             $trackStatus = TrackStatus::create([
                 'track_id' => $track->id,
                 'user_id' => auth()->id() ?? 1,
-                'status' => 46,
+                'status' => $status,
                 'note' => null,
             ]);
 
@@ -704,11 +716,10 @@ class UnitradeService extends BaseService
                 'cancels' => [
                     [
                         'trackNumber' => $track->tracking_code,
-                        'cancellationReasonType' => 3,
+                        'cancellationReasonType' => $reasonType,
                     ]
                 ]
             ];
-
 
             $headers = [
                 'Accept: application/json',

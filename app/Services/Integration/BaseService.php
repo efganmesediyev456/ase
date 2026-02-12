@@ -39,6 +39,8 @@ class BaseService
         'Rejected' => 19,     // The package information has been deleted from the system.
 	    'DeliveredByCourier' => 50, // Unitrade Delivered By Courier
 	    'InCustomsNeutral' => 46, // Unitrade Delivered By Courier
+	    'Overlimit' => 48,
+	    'Prohibited' => 49,
     ];
 
     const WAREHOUSE = [

@@ -54,6 +54,7 @@ return [
                 0 => 'qəbul edildi',
                 1 => 'əlavə olundu',
                 2 => 'göndərildi',
+                3 => 'məntəgəyə çatdı',
             ]
         ],
         'yes_no' => [
@@ -545,6 +546,11 @@ return [
                 45 => 'WRONG PRICE',
                 46 => 'IN CUSTOMS - Neutral',
                 47 => 'SCL_Stopped_in_customs_overlimit',
+                48 => 'OVERLIMIT',
+                49 => 'PROHIBITED',
+                53 => 'REJECTED_BY_CONSIGNEE',
+                51 => 'DAMAGED_PACKAGE',
+                52 => 'PUDO_EXCEED',
             ],
             'statusShort' => [
                 1 => 'IN WAREHOUSE',
@@ -600,6 +606,11 @@ return [
                 ['value' => 45, 'text' => 'WRONG PRICE'],
                 ['value' => 46, 'text' => 'IN CUSTOMS - Neutral'],
                 ['value' => 47, 'text' => 'SCL Stopped in customs overlimit'],
+                ['value' => 48, 'text' => 'OVERLIMIT'],
+                ['value' => 49, 'text' => 'PROHIBITED'],
+                ['value' => 53, 'text' => 'REJECTED_BY_CONSIGNEE'],
+                ['value' => 51, 'text' => 'DAMAGED_PACKAGE'],
+                ['value' => 52, 'text' => 'PUDO_EXCEED'],
             ]),
             'paid' => [
                 0 => 'No',

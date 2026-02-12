@@ -30,7 +30,6 @@ use Auth;
 use Carbon\Carbon;
 use Doctrine\DBAL\Driver\Exception;
 use Excel;
-
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -1273,6 +1272,7 @@ class TrackController extends Controller
             }
 
             $CourierShelfLog = CourierShelfLog::where('type','tracks')->where('custom_id',$id)->get();
+
             return view('admin.widgets.logs', compact('logs', 'id','CourierShelfLog'));
         }catch (\Exception $e){
             return $e->getMessage();
