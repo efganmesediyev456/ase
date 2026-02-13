@@ -30,6 +30,11 @@ class ApiController extends Controller
             file_put_contents('/var/log/ase_cd_api.log',  date('Y-m-d H:i:s')." ".$message . "\n", FILE_APPEND);
     }
 
+    public function __construct()
+    {
+
+    }
+
     public function login()
     {
 
@@ -474,8 +479,6 @@ class ApiController extends Controller
     public function cd_list()
     {
 
-
-
 	$this->log('cd list '.json_encode(Request::all()));
 	$courier=auth()->guard('courier')->user();
         $arr_status=[3,7];
@@ -521,6 +524,7 @@ class ApiController extends Controller
 
 	        if($track->debt_price && $track->debt_price>0 && !$track->paid_debt) {
                     $this->log('Debt Price');
+
                     return Response::json([
                         'status' => 200,
                         'result' => 2,
@@ -628,13 +632,16 @@ class ApiController extends Controller
 	   $data[]=$cd;
 	   //$this->log($item->packages_with_cells_str.'  '.$item->courier_assigned_at.'  '.$item->created_at);
 	}
+
 	$this->log('Ok '.count($data));
-        return Response::json([
+
+    return Response::json([
             'status' => 200,
             'result' => 1,
 	    'data'  => $data,
             'message' => 'Ok'
         ],200);
     }
+
 
 }

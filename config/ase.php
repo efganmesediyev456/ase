@@ -578,6 +578,11 @@ return [
                 29 => 'REFUND',
                 45 => 'WRONG PRICE',
                 46 => 'IN CUSTOMS - Neutral',
+                48 => 'OVERLIMIT',
+                49 => 'PROHIBITED',
+                53 => 'REJECTED_BY_CONSIGNEE',
+                51 => 'DAMAGED_PACKAGE',
+                52 => 'PUDO_EXCEED',
 //                47 => 'SCL_Stopped_in_customs_overlimit',
             ],
             'statusShortWithLabel' => json_encode([
